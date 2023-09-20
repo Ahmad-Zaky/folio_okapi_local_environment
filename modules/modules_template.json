@@ -1,0 +1,45 @@
+[
+    {
+        "id": "mod-users"
+    },
+    {
+        "id": "mod-login"
+    },
+    {
+        "id": "mod-permissions"
+    },
+    {
+        "id": "mod-configuration"
+    },
+    {
+        "id": "mod-authtoken"
+    },
+    {
+        "id": "mod-password-validator"
+    },
+    {
+        "id": "mod-pubsub"
+    },
+    {
+        "id": "mod-email"
+    },
+    {
+        "id": "mod-users-bl"
+    },
+    {
+        "id": "mod-assets",
+        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-assets",
+        "branch": "develop",
+        "access_token": "<access_token>"
+    },
+    {
+        "id": "mod-worklists",
+        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-worklists"
+    },
+    {
+        "id": "mod-mylibrary",
+        "repo": "git@github.com:Ahmad-Zaky/mod-mylibrary.git",
+        "tag": "latest",
+        "compile": "mvn -DskipTests -Dmaven.test.skip=true clean verify"    
+    }
+]

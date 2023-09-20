@@ -1,0 +1,92 @@
+version: "3.8"
+services:
+  postgres:
+    container_name: postgres-folio
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=okapi
+      - POSTGRES_PASSWORD=okapi25
+      - POSTGRES_DB=okapi
+      - PGDATA=/data/postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - folio_network
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: pgadmin-folio
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - folio_network
+    restart: unless-stopped
+  
+  zookeeper:
+    restart: always
+    container_name: zookeeper-folio
+    image: docker.io/bitnami/zookeeper:3.8
+    ports:
+      - "2181:2181"
+    volumes:
+      - "zookeeper-volume:/bitnami"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    restart: always
+    container_name: kafka-folio
+    image: docker.io/bitnami/kafka:3.3
+    ports:
+      - "9093:9093"
+    volumes:
+      - "kafka-volume:/bitnami"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
+    depends_on:
+      - zookeeper
+
+  # elasticsearch:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.9.1
+  #   container_name: elasticsearch-folio
+  #   environment:
+  #     - discovery.type=single-node
+  #     - bootstrap.memory_lock=true
+  #     - ELASTICSEARCH_PLUGINS="analysis-icu analysis-kuromoji analysis-smartcn analysis-nori analysis-phonetic"
+  #   ports:
+  #     - 9200:9200
+  #     - 9300:9300
+  #   volumes:
+  #     - elasticsearch-data:/usr/share/elasticsearch/data
+
+volumes:
+  postgres:
+  pgadmin:
+  zookeeper-volume:
+  kafka-volume:
+  elasticsearch-data:
+    driver: local
+
+networks:
+  folio_network:
+    driver: bridge
