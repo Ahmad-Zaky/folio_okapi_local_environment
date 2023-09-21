@@ -1,47 +1,15 @@
 #!/bin/bash
 
 ################################
-# 		START - HELPERS		   #
+# 		 START - PREPARE	   #
 ################################
 
+setup() {
+	defaults
 
-# Output Error
-error() {
-    echo -e "\n\e[1;31m ERROR: $1 \033[0m"
-    exit 1 
-}
+	new_tenant
 
-# Check if key exists
-has() {
-	if grep -q $(jq ".[$2] | has(\"$1\")" $3) <<< "true"; then
-		return 1
-	fi
-
-	return 0
-}
-
-# Get file content
-getFileContent() {
-	# Get the name of the JSON file.
-	local FILE_NAME=$1
-
-	# Read the contents of the JSON file.
-	JSON_DATA="$(cat $FILE_NAME)"
-}
-
-# Search in arguments
-hasArg() {
-	local ARGS=$1
-	local FIND=$2
-	
-	for ARG in $ARGS; do
-		if [[ "$ARG" =~ "$FIND" ]]; then
-				return 1
-			break
-		fi
-	done
-
-	return 0
+	set_env_vars_to_okapi
 }
 
 # Default Variable values
@@ -62,289 +30,10 @@ defaults() {
 	PASSWORD=admin
 
 	# Modules directory path
-	MODULE_DIR=../modules
+	MODULES_DIR=../modules
 
 	# Modules list file
-	# JSON_FILE="$MODULE_DIR/modules.json"
 	JSON_FILE="modules.json"
-}
-
-# Basic Okapi curl boilerplate
-okapi_curl() {
-	local OKAPI_HEADER=$1
-
-	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER"
-	fi
-	
-	shift
-
-	curl -s $OPTIONS -HContent-Type:application/json $*
-	echo -e ""
-}
-
-# Generate the modules list in this format "mod-users mod-login mod-permissions mod-configuration"
-set_modules_list() {
-	local MODULE=$1
-
-	# First time
-	if [[ ! -v MODULES ]]; then
-		MODULES="$MODULE"
-
-		return
-	fi
-
-	MODULES="$MODULES $MODULE"
-}
-
-pre_register() {
-	local MODULE=$1
-
-	pre_authenticate $MODULE
-}
-
-post_install() {
-	local MODULE=$1
-	local MODULES=$2
-
-	post_authenticate $MODULE
-
-	local USERS_BL_MODULE="mod-users-bl"
-	if [ $MODULE == $USERS_BL_MODULE ]; then
-		set_users_bl_module_permissions $MODULE $MODULES
-	fi
-}
-
-# Pre register mod-authtoken module
-pre_authenticate() {
-	local MODULE=$1
-	local AUTHTOKEN_MODULE="mod-authtoken"
-
-	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
-		return
-	fi
-
-	enable_okapi
-
-	should_login $OKAPI_HEADER
-
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		login_admin
-		get_user_uuid_by_username $OKAPI_HEADER $USERNAME
-
-		return
-	fi
-
-	make_adminuser $OKAPI_HEADER $USERNAME $PASSWORD
-}
-
-# Post register mod-authtoken module
-post_authenticate() {
-	local MODULE=$1
-	local AUTHTOKEN_MODULE="mod-authtoken"
-
-	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
-		return
-	fi
-
-	login_admin
-}
-
-has_tenant() {
-	local TENANT=$1
-	
-	RESULT=$(curl -s $OKAPI_URL/_/proxy/tenants | jq ".[] | .id | contains(\"$TENANT\")")
-
-	hasArg "$RESULT" "true"
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return 1
-	fi
-
-	return 0
-}
-
-has_registered() {
-	local OKAPI_HEADER=$1
-	local MODULE_ID=$2
-
-	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
-	fi
-
-	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
-
-	hasArg "$RESULT" "true"
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return 1
-	fi
-
-	return 0
-}
-
-has_deployed() {
-	local OKAPI_HEADER=$1
-	local MODULE_ID=$2
-
-	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
-	fi
-
-	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .srvcId | contains(\"$MODULE_ID\")")
-
-	hasArg "$RESULT" "true"
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return 1
-	fi
-
-	return 0
-}
-
-has_installed() {
-	local OKAPI_HEADER=$1
-	local MODULE_ID=$2
-	local TENANT=$3
-
-	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
-	fi
-
-	# Remove extra double quotes at start and end of the string
-	MODULE_ID=$(echo $MODULE_ID | sed 's/"//g')
-	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
-
-	hasArg "$RESULT" "true"
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return 1
-	fi
-
-	return 0
-}
-
-should_login() {
-	local OKAPI_HEADER=$1
-
-	STATUS_CODE=$(curl -s -w "%{http_code}" -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users -o /dev/null)
-	if [[ "$STATUS_CODE" != "200" ]]; then
-		return 1
-	fi
-
-	return 0
-}
-
-get_random_permission_uuid_by_user_uuid() {
-	local OKAPI_HEADER=$1
-	local UUID=$2
-
-	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER"
-	fi
-
-	USER_PUUIDS=$(curl -s $OPTIONS $OKAPI_URL/perms/users | jq ".permissionUsers[] | select(.userId == \"$UUID\") | .id")
-	
-	# Return the first incommnig PUUID
-	for USER_PUUID in $USER_PUUIDS; do
-		PUUID=$USER_PUUID
-
-		# Remove extra double quotes at start and end of the string
-		PUUID=$(echo $PUUID | sed 's/"//g')
-
-		return
-	done
-}
-
-reset_and_verify_password() {
-	local UUID=$1
-	
-	echo -e "Please wait untill permissions added are persisted, which may delay due to underlying kafka process in users module"
-
-	# NOTE: this request does not work for the first time, but it works fine the second time
-	# the reason why is not clear but may be related to kafka not finished the task yet.
-	# so I just try to wait using sleep command and it did work with me just fine.
-	sleep 35
-	for ((i=0; i<3; i++))
-	do
-		okapi_curl $TOKEN $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
-
-		getFileContent reset.json
-
-		# Check if the JSON data contains the string "requires permission".
-		if grep -q "requires permission" <<< "$JSON_DATA"; then
-			echo -e "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
-			echo -e "Will try again ..."
-			sleep 10
-			continue
-		fi
-		unset JSON_DATA
-
-		break
-	done
-
-	TOKEN_2=`jq -r '.link' < reset.json | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g'`
-
-	echo -e "Second token: $TOKEN_2"
-
-	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
-
-	echo -e ""
-}
-
-# Set extra permissions related to module mod-users-bl
-set_users_bl_module_permissions() {
-	local MODULES=$*
-	local USERS_BL_MODULE="mod-users-bl"
-	
-	# Validate that mod-users-bl is installed
-	hasArg "$MODULES" "$USERS_BL_MODULE"
-	FOUND=$?
-	if [[ "$FOUND" -eq 0 ]]; then
-		return
-	fi
-
-	get_user_uuid_by_username $TOKEN $USERNAME
-	get_random_permission_uuid_by_user_uuid $TOKEN $UUID
-
-	okapi_curl $TOKEN $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
-	echo -e ""
-
-	okapi_curl $TOKEN $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
-	echo -e ""
-
-	login_admin
-	echo -e ""
-
-	reset_and_verify_password $UUID
-}
-
-################################
-# 		 END - HELPERS		   #
-################################
-
-
-
-
-
-
-
-################################
-# 		 START - PREPARE	   #
-################################
-
-setup() {
-	defaults
-
-	new_tenant
-
-	set_env_vars_to_okapi
 }
 
 # Set Environment Variables to Okapi
@@ -765,6 +454,230 @@ login_admin() {
 	echo -e ""
 }
 
+################################
+# 	 END - Additional Steps    #
+################################
+
+
+
+
+
+
+################################
+# 		START - HELPERS		   #
+################################
+
+
+# Output Error
+error() {
+    echo -e "\n\e[1;31m ERROR: $1 \033[0m"
+    exit 1 
+}
+
+# Check if key exists
+has() {
+	if grep -q $(jq ".[$2] | has(\"$1\")" $3) <<< "true"; then
+		return 1
+	fi
+
+	return 0
+}
+
+# Get file content
+getFileContent() {
+	# Get the name of the JSON file.
+	local FILE_NAME=$1
+
+	# Read the contents of the JSON file.
+	JSON_DATA="$(cat $FILE_NAME)"
+}
+
+# Search in arguments
+hasArg() {
+	local ARGS=$1
+	local FIND=$2
+	
+	for ARG in $ARGS; do
+		if [[ "$ARG" =~ "$FIND" ]]; then
+				return 1
+			break
+		fi
+	done
+
+	return 0
+}
+
+# Basic Okapi curl boilerplate
+okapi_curl() {
+	local OKAPI_HEADER=$1
+
+	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
+	if test "$OKAPI_HEADER" != "x"; then
+		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER"
+	fi
+	
+	shift
+
+	curl -s $OPTIONS -HContent-Type:application/json $*
+	echo -e ""
+}
+
+# Generate the modules list in this format "mod-users mod-login mod-permissions mod-configuration"
+set_modules_list() {
+	local MODULE=$1
+
+	# First time
+	if [[ ! -v MODULES ]]; then
+		MODULES="$MODULE"
+
+		return
+	fi
+
+	MODULES="$MODULES $MODULE"
+}
+
+pre_register() {
+	local MODULE=$1
+
+	pre_authenticate $MODULE
+}
+
+post_install() {
+	local MODULE=$1
+	local MODULES=$2
+
+	post_authenticate $MODULE
+
+	local USERS_BL_MODULE="mod-users-bl"
+	if [ $MODULE == $USERS_BL_MODULE ]; then
+		set_users_bl_module_permissions $MODULE $MODULES
+	fi
+}
+
+# Pre register mod-authtoken module
+pre_authenticate() {
+	local MODULE=$1
+	local AUTHTOKEN_MODULE="mod-authtoken"
+
+	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
+		return
+	fi
+
+	enable_okapi
+
+	should_login $OKAPI_HEADER
+
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		login_admin
+		get_user_uuid_by_username $OKAPI_HEADER $USERNAME
+
+		return
+	fi
+
+	make_adminuser $OKAPI_HEADER $USERNAME $PASSWORD
+}
+
+# Post register mod-authtoken module
+post_authenticate() {
+	local MODULE=$1
+	local AUTHTOKEN_MODULE="mod-authtoken"
+
+	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
+		return
+	fi
+
+	login_admin
+}
+
+has_tenant() {
+	local TENANT=$1
+	
+	RESULT=$(curl -s $OKAPI_URL/_/proxy/tenants | jq ".[] | .id | contains(\"$TENANT\")")
+
+	hasArg "$RESULT" "true"
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+has_registered() {
+	local OKAPI_HEADER=$1
+	local MODULE_ID=$2
+
+	OPTIONS=""
+	if test "$OKAPI_HEADER" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	fi
+
+	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
+
+	hasArg "$RESULT" "true"
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+has_deployed() {
+	local OKAPI_HEADER=$1
+	local MODULE_ID=$2
+
+	OPTIONS=""
+	if test "$OKAPI_HEADER" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	fi
+
+	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .srvcId | contains(\"$MODULE_ID\")")
+
+	hasArg "$RESULT" "true"
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+has_installed() {
+	local OKAPI_HEADER=$1
+	local MODULE_ID=$2
+	local TENANT=$3
+
+	OPTIONS=""
+	if test "$OKAPI_HEADER" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	fi
+
+	# Remove extra double quotes at start and end of the string
+	MODULE_ID=$(echo $MODULE_ID | sed 's/"//g')
+	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
+
+	hasArg "$RESULT" "true"
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+should_login() {
+	local OKAPI_HEADER=$1
+
+	STATUS_CODE=$(curl -s -w "%{http_code}" -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users -o /dev/null)
+	if [[ "$STATUS_CODE" != "200" ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
 get_user_uuid_by_username() {
 	local OKAPI_HEADER=$1
 	local USERNAME=$2
@@ -780,9 +693,96 @@ get_user_uuid_by_username() {
 	UUID=$(echo $UUID | sed 's/"//g')
 }
 
+get_random_permission_uuid_by_user_uuid() {
+	local OKAPI_HEADER=$1
+	local UUID=$2
+
+	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
+	if test "$OKAPI_HEADER" != "x"; then
+		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER"
+	fi
+
+	USER_PUUIDS=$(curl -s $OPTIONS $OKAPI_URL/perms/users | jq ".permissionUsers[] | select(.userId == \"$UUID\") | .id")
+	
+	# Return the first incommnig PUUID
+	for USER_PUUID in $USER_PUUIDS; do
+		PUUID=$USER_PUUID
+
+		# Remove extra double quotes at start and end of the string
+		PUUID=$(echo $PUUID | sed 's/"//g')
+
+		return
+	done
+}
+
+reset_and_verify_password() {
+	local UUID=$1
+	
+	echo -e "Please wait untill permissions added are persisted, which may delay due to underlying kafka process in users module"
+
+	# NOTE: this request does not work for the first time, but it works fine the second time
+	# the reason why is not clear but may be related to kafka not finished the task yet.
+	# so I just try to wait using sleep command and it did work with me just fine.
+	sleep 35
+	for ((i=0; i<3; i++))
+	do
+		okapi_curl $TOKEN $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
+
+		getFileContent reset.json
+
+		# Check if the JSON data contains the string "requires permission".
+		if grep -q "requires permission" <<< "$JSON_DATA"; then
+			echo -e "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
+			echo -e "Will try again ..."
+			sleep 10
+			continue
+		fi
+		unset JSON_DATA
+
+		break
+	done
+
+	TOKEN_2=`jq -r '.link' < reset.json | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g'`
+
+	echo -e "Second token: $TOKEN_2"
+
+	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
+
+	echo -e ""
+}
+
+# Set extra permissions related to module mod-users-bl
+set_users_bl_module_permissions() {
+	local MODULES=$*
+	local USERS_BL_MODULE="mod-users-bl"
+	
+	# Validate that mod-users-bl is installed
+	hasArg "$MODULES" "$USERS_BL_MODULE"
+	FOUND=$?
+	if [[ "$FOUND" -eq 0 ]]; then
+		return
+	fi
+
+	get_user_uuid_by_username $TOKEN $USERNAME
+	get_random_permission_uuid_by_user_uuid $TOKEN $UUID
+
+	okapi_curl $TOKEN $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
+	echo -e ""
+
+	okapi_curl $TOKEN $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
+	echo -e ""
+
+	login_admin
+	echo -e ""
+
+	reset_and_verify_password $UUID
+}
+
 ################################
-# 	 END - Additional Steps    #
+# 		 END - HELPERS		   #
 ################################
+
+
 
 
 
@@ -798,6 +798,7 @@ setup
 clone_compile_modules
 
 register_deploy_install_modules $OKAPI_HEADER $MODULES
+
 
 #####################################
 # 			  END - RUN 			#
