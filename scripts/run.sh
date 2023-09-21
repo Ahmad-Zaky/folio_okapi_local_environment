@@ -106,8 +106,14 @@ pre_register() {
 
 post_install() {
 	local MODULE=$1
+	local MODULES=$2
 
 	post_authenticate $MODULE
+
+	local USERS_BL_MODULE="mod-users-bl"
+	if [ $MODULE == $USERS_BL_MODULE ]; then
+		set_users_bl_module_permissions $MODULE $MODULES
+	fi
 }
 
 # Pre register mod-authtoken module
@@ -256,6 +262,42 @@ get_random_permission_uuid_by_user_uuid() {
 	done
 }
 
+reset_and_verify_password() {
+	local UUID=$1
+	
+	echo -e "Please wait untill permissions added are persisted, which may delay due to underlying kafka process in users module"
+
+	# NOTE: this request does not work for the first time, but it works fine the second time
+	# the reason why is not clear but may be related to kafka not finished the task yet.
+	# so I just try to wait using sleep command and it did work with me just fine.
+	sleep 35
+	for ((i=0; i<3; i++))
+	do
+		okapi_curl $TOKEN $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
+
+		getFileContent reset.json
+
+		# Check if the JSON data contains the string "requires permission".
+		if grep -q "requires permission" <<< "$JSON_DATA"; then
+			echo -e "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
+			echo -e "Will try again ..."
+			sleep 10
+			continue
+		fi
+		unset JSON_DATA
+
+		break
+	done
+
+	TOKEN_2=`jq -r '.link' < reset.json | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g'`
+
+	echo -e "Second token: $TOKEN_2"
+
+	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
+
+	echo -e ""
+}
+
 # Set extra permissions related to module mod-users-bl
 set_users_bl_module_permissions() {
 	local MODULES=$*
@@ -280,27 +322,7 @@ set_users_bl_module_permissions() {
 	login_admin
 	echo -e ""
 
-	# NOTE: this request does not work for the first time, but it works fine the second time
-	# the reason why is not clear but may be related to the UUID, AND PUUID
-	
-	okapi_curl $TOKEN $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
-
-	getFileContent reset.json
-
-	# Check if the JSON data contains the string "requires permission".
-	if grep -q "requires permission" <<< "$JSON_DATA"; then
-		echo "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
-		exit 1
-	fi
-	unset JSON_DATA
-
-	TOKEN_2=`jq -r '.link' < reset.json | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g'`
-
-	echo -e "Second token: $TOKEN_2"
-
-	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
-
-	echo -e ""
+	reset_and_verify_password $UUID
 }
 
 ################################
@@ -317,6 +339,13 @@ set_users_bl_module_permissions() {
 # 		 START - PREPARE	   #
 ################################
 
+setup() {
+	defaults
+
+	new_tenant
+
+	set_env_vars_to_okapi
+}
 
 # Set Environment Variables to Okapi
 set_env_vars_to_okapi() {
@@ -672,7 +701,7 @@ register_deploy_install_modules() {
 		deploy_module $OKAPI_HEADER $MODULE
 
 		install_modules $OKAPI_HEADER enable $MODULE
-		post_install $MODULE
+		post_install $MODULE $MODULES
 	done
 }
 
@@ -763,17 +792,12 @@ get_user_uuid_by_username() {
 # 			 START - RUN			#
 #####################################
 
-defaults
 
-new_tenant
-
-set_env_vars_to_okapi
+setup
 
 clone_compile_modules
 
 register_deploy_install_modules $OKAPI_HEADER $MODULES
-
-set_users_bl_module_permissions $MODULES
 
 #####################################
 # 			  END - RUN 			#
