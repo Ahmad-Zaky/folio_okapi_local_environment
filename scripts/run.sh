@@ -4,7 +4,7 @@
 # 		 START - PREPARE	   #
 ################################
 
-setup() {
+pre_process() {
 	defaults
 
 	new_tenant
@@ -34,6 +34,12 @@ defaults() {
 
 	# Modules list file
 	JSON_FILE="modules.json"
+
+	# Postman API domain url
+	POSTMAN_URL="https://api.getpostman.com"
+	
+	# Import an OpenAPI Specification url path
+	POSTMAN_IMPORT_OPENAPI_PATH="/import/openapi"
 }
 
 # Set Environment Variables to Okapi
@@ -73,7 +79,7 @@ new_tenant() {
 
 # Enable okapi module to tenant
 enable_okapi() {
-	install_modules $OKAPI_HEADER enable okapi
+	install_modules enable okapi
 }
 
 
@@ -105,7 +111,7 @@ validate_module_id() {
 	local INDEX=$1
 	local JSON_LIST=$2
 
-	$(has "id" $INDEX $JSON_LIST)
+	has "id" $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
 		error "Id property is missing"
 	fi
@@ -125,7 +131,7 @@ validate_module_repo() {
 	REPO="git clone --recurse-submodules git@github.com:folio-org/$MODULE_ID"
 
 	# Custom Repo url
-	$(has "repo" $INDEX $JSON_LIST)
+	has "repo" $INDEX $JSON_LIST
 	if [[ "$?" -eq 1 ]]; then
 		local REPO_URL=$(jq ".[$INDEX].repo" $JSON_LIST)
 		
@@ -140,10 +146,10 @@ validate_module_tag_branch() {
 	local INDEX=$1
 	local JSON_LIST=$2
 
-	$(has "branch" $INDEX $JSON_LIST)
+	has "branch" $INDEX $JSON_LIST
 	local HAS_BRANCH=$?
 
-	$(has "tag" $INDEX $JSON_LIST)
+	has "tag" $INDEX $JSON_LIST
 	local HAS_TAG=$?
 
 	if [[ "$HAS_TAG" -eq 1 ]] && [[ "$HAS_BRANCH" -eq 1 ]]; then
@@ -173,7 +179,7 @@ validate_module_access_token() {
 	local INDEX=$1
 	local JSON_LIST=$2
 
-	$(has "access_token" $INDEX $JSON_LIST)
+	has "access_token" $INDEX $JSON_LIST
 	local HAS_ACCESS_TOKEN=$?
 	if [[ "$HAS_ACCESS_TOKEN" -eq 1 ]]; then
 		local ACCESS_TOKEN=$(jq ".[$INDEX].access_token" $JSON_LIST)
@@ -186,6 +192,41 @@ validate_module_access_token() {
 	fi
 }
 
+validate_open_api_file() {
+	local INDEX=$1
+	local JSON_LIST=$2
+	local MODULE=$3
+
+	has "file" $INDEX $JSON_LIST "postman"
+	if [[ "$?" -eq 0 ]]; then
+		error "Postman Open API File is missing" 
+	fi
+
+	OPEN_API_FILE=$(jq ".[$INDEX].postman.file" $JSON_LIST)
+	
+	# Remove extra double quotes at start and end of the string
+	OPEN_API_FILE=$(echo $OPEN_API_FILE | sed 's/"//g')
+
+	# Validate Open API file exists
+	if [ ! -f "$MODULE/$OPEN_API_FILE" ]; then
+		error "Open API file is missing"
+	fi
+}
+
+validate_postman_api_key() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	has "api_key" $INDEX $JSON_LIST "postman"
+	if [[ "$?" -eq 0 ]]; then
+		error "Postman API Key is missing" 
+	fi
+
+	POSTMAN_API_KEY=$(jq ".[$INDEX].postman.api_key" $JSON_LIST)
+
+	# Remove extra double quotes at start and end of the string
+	POSTMAN_API_KEY=$(echo $POSTMAN_API_KEY | sed 's/"//g')
+}
 
 ################################
 # 		END - VALIDATION	   #
@@ -220,6 +261,7 @@ clone_module() {
 	if [ ! -d $MODULE_ID ]; then
 		echo -e "Clone module $MODULE_ID"
 		
+		# Print Repo Link
 		echo -e ""
 		echo -e $REPO
 		echo -e ""
@@ -250,7 +292,7 @@ compile_module() {
 	COMPILE="mvn -DskipTests -Dmaven.test.skip=true verify"
 
 	# Custom Compile command
-	$(has "compile" $INDEX ../$JSON_LIST)
+	has "compile" $INDEX ../$JSON_LIST
 	if [[ "$?" -eq 1 ]]; then
 		local COMPILE=$(jq ".[$INDEX].compile" ../$JSON_LIST)
 		
@@ -267,27 +309,12 @@ compile_module() {
 	cd ..
 }
 
-# Clone and compile modules one by one
-clone_compile_modules() {
-	validate_modules_list
-
-	local LENGTH=$(jq '. | length' $JSON_FILE)
-
-	for ((i=0; i<$LENGTH; i++))
-	do
-		clone_module $i $JSON_FILE		
-		compile_module $MODULE_ID $i $JSON_FILE
-		set_modules_list $MODULE_ID # its useful for upcomming steps
-	done
-}
-
 # Register (store) module into Okapi
 register_module() {
-	local OKAPI_HEADER=$1
-	local MODULE_ID=$2
+	local MODULE_ID=$1
 	local MODULE_DESCRIPTOR=$MODULE_ID/target/ModuleDescriptor.json
 
-	has_registered $OKAPI_HEADER $MODULE_ID
+	has_registered $MODULE_ID
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return
@@ -312,11 +339,10 @@ register_module() {
 
 # Deploy module into Okapi
 deploy_module() {
-	local OKAPI_HEADER=$1
-	local MODULE_ID=$2
+	local MODULE_ID=$1
 	local DEPLOY_DESCRIPTOR=$MODULE_ID/target/DeploymentDescriptor.json
 	
-	has_deployed $OKAPI_HEADER $MODULE_ID
+	has_deployed $MODULE_ID
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return
@@ -325,7 +351,7 @@ deploy_module() {
 	echo "Deploy module $MODULE_ID"
 
 	OPTIONS=""
-	if test "$1" != "x"; then
+	if test "$OKAPI_HEADER" != "x"; then
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
 	fi
 
@@ -336,18 +362,15 @@ deploy_module() {
 
 # Install (enable) modules for a tenant
 install_modules() {
-	local OKAPI_HEADER=$1
-	local ACTION=$2
-	
-	shift && shift
-
+	local ACTION=$1
+	shift
 	local MODULES=$*
 
 	# Build Body Json list of modules with action enable comes as argument
 	local PAYLOAD="["
 	local SEPERATOR=""
 	for MODULE in $MODULES; do
-		has_installed $OKAPI_HEADER $MODULE $TENANT
+		has_installed $MODULE $TENANT
 		FOUND=$?
 		if [[ "$FOUND" -eq 1 ]]; then
 			continue
@@ -364,33 +387,41 @@ install_modules() {
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
 	fi
 
-	# Validate if the list is empty	
-	LENGTH=$(echo "$PAYLOAD" | jq ". | length")
-	if [ $LENGTH -eq 0 ]; then
-		return
+	# Validate if the list is not empty	
+	if [[ "$PAYLOAD" =~ ^\[.+\]$ ]]; then
+		echo -e "Install (Enable) $MODULES"
+
+		# Install (enable) modules
+		curl -s $OPTIONS "-d$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?purge=true"
+
+		echo -e ""
 	fi
-
-	echo -e "Install (Enable) $MODULES"
-
-	# Install (enable) modules
-	curl -s $OPTIONS "-d$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?purge=true"
-
-	echo -e ""
 }
 
-# Register, deploy, and install (enable) modules one by one
-register_deploy_install_modules() {
-	local OKAPI_HEADER=$1 && shift
-	local MODULES=$*
+# Clone, Compile, Register, Deploy, Install (enable) modules one by one
+process() {
+	validate_modules_list
 
-	for MODULE in $MODULES; do
-		pre_register $MODULE		
-		register_module $OKAPI_HEADER $MODULE
+	local LENGTH=$(jq '. | length' $JSON_FILE)
 
-		deploy_module $OKAPI_HEADER $MODULE
+	for ((i=0; i<$LENGTH; i++))
+	do
+		# Step No. 1
+		clone_module $i $JSON_FILE		
+		
+		# Step No. 2
+		compile_module $MODULE_ID $i $JSON_FILE
 
-		install_modules $OKAPI_HEADER enable $MODULE
-		post_install $MODULE $MODULES
+		# Step No. 3
+		pre_register $MODULE_ID		
+		register_module $MODULE_ID
+
+		# Step No. 4
+		deploy_module $MODULE_ID
+
+		# Step No. 5
+		install_modules enable $MODULE_ID
+		post_install $MODULE_ID $i
 	done
 }
 
@@ -409,30 +440,26 @@ register_deploy_install_modules() {
 
 # New admin user with all permissions
 make_adminuser() {
-	local OKAPI_HEADER=$1
-	local USERNAME=$2
-	local PASSWORD=$3
-
 	echo -e "Make Admin User with credentials: "
 	echo -e "username: $USERNAME"
 	echo -e "password: $PASSWORD"
 	echo -e ""
 
 	# Delete admin user firstly if exists
-	okapi_curl $OKAPI_HEADER -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME"
+	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME"
 	echo -e ""
 
 	# New admin user
 	UUID=`uuidgen`
-	okapi_curl $OKAPI_HEADER -d"{\"username\":\"$USERNAME\",\"id\":\"$UUID\",\"active\":true}" $OKAPI_URL/users
+	okapi_curl -d"{\"username\":\"$USERNAME\",\"id\":\"$UUID\",\"active\":true}" $OKAPI_URL/users
 	echo -e ""
 
-	okapi_curl $OKAPI_HEADER -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
+	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
 	echo -e ""
 	
 	# Set permissions for the new admin user
 	PUUID=`uuidgen`
-	okapi_curl $OKAPI_HEADER -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
+	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
 
 	echo -e ""
 }
@@ -476,8 +503,39 @@ error() {
 
 # Check if key exists
 has() {
-	if grep -q $(jq ".[$2] | has(\"$1\")" $3) <<< "true"; then
+	local KEY=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+	
+	if [ -n "$4" ]; then
+		local NESTED_JSON_PROPERTIES=$4
+	fi
+
+	if [[ -v NESTED_JSON_PROPERTIES ]]; then
+		HAS_CMD=".[$INDEX].$NESTED_JSON_PROPERTIES | has(\"$KEY\")"
+	else
+		HAS_CMD=".[$INDEX] | has(\"$KEY\")"
+	fi
+
+	if grep -q $(jq "$HAS_CMD" $JSON_LIST) <<< "true"; then
 		return 1
+	fi
+
+	return 0
+}
+
+# Check if value of key exists
+hasValue() {
+	local KEY=$1
+	local INDEX=$2
+	local VALUE=$3
+	local JSON_LIST=$4
+
+	has $KEY $INDEX $JSON_LIST
+	if [[ "$?" -eq 1 ]]; then
+		if grep -q $(jq ".[$INDEX] | .$KEY == \"$VALUE\"" $JSON_LIST) <<< "true"; then
+			return 1
+		fi
 	fi
 
 	return 0
@@ -499,8 +557,7 @@ hasArg() {
 	
 	for ARG in $ARGS; do
 		if [[ "$ARG" =~ "$FIND" ]]; then
-				return 1
-			break
+			return 1
 		fi
 	done
 
@@ -509,31 +566,13 @@ hasArg() {
 
 # Basic Okapi curl boilerplate
 okapi_curl() {
-	local OKAPI_HEADER=$1
-
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
 	if test "$OKAPI_HEADER" != "x"; then
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER"
 	fi
-	
-	shift
 
 	curl -s $OPTIONS -HContent-Type:application/json $*
 	echo -e ""
-}
-
-# Generate the modules list in this format "mod-users mod-login mod-permissions mod-configuration"
-set_modules_list() {
-	local MODULE=$1
-
-	# First time
-	if [[ ! -v MODULES ]]; then
-		MODULES="$MODULE"
-
-		return
-	fi
-
-	MODULES="$MODULES $MODULE"
 }
 
 pre_register() {
@@ -544,13 +583,16 @@ pre_register() {
 
 post_install() {
 	local MODULE=$1
-	local MODULES=$2
+	local INDEX=$2
 
 	post_authenticate $MODULE
 
+	postman $MODULE $INDEX $JSON_FILE
+
+	# Set permissions related to mod-users-bl
 	local USERS_BL_MODULE="mod-users-bl"
 	if [ $MODULE == $USERS_BL_MODULE ]; then
-		set_users_bl_module_permissions $MODULE $MODULES
+		set_users_bl_module_permissions $INDEX
 	fi
 }
 
@@ -565,17 +607,16 @@ pre_authenticate() {
 
 	enable_okapi
 
-	should_login $OKAPI_HEADER
-
+	should_login
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		login_admin
-		get_user_uuid_by_username $OKAPI_HEADER $USERNAME
+		get_user_uuid_by_username
 
 		return
 	fi
 
-	make_adminuser $OKAPI_HEADER $USERNAME $PASSWORD
+	make_adminuser
 }
 
 # Post register mod-authtoken module
@@ -588,6 +629,39 @@ post_authenticate() {
 	fi
 
 	login_admin
+}
+
+# Import swagger.api OpenApi Specification file as postman collection
+postman() {
+	local MODULE=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+
+	has "postman" $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	validate_open_api_file $INDEX $JSON_LIST $MODULE
+
+	validate_postman_api_key $INDEX $JSON_LIST
+
+	import_postman_openapi $POSTMAN_API_KEY $OPEN_API_FILE $MODULE
+}
+
+import_postman_openapi() {
+	local POSTMAN_API_KEY=$1
+	local OPEN_API_FILE=$2
+	local MODULE=$3
+
+	curl -s $POSTMAN_URL$POSTMAN_IMPORT_OPENAPI_PATH \
+		-HContent-Type:multipart/form-data \
+		-HAccept:application/vnd.api.v10+json \
+		-HX-API-Key:$POSTMAN_API_KEY \
+		-Ftype="file" \
+		-Finput=@"$MODULE/$OPEN_API_FILE" | jq .
+
+	echo -e ""
 }
 
 has_tenant() {
@@ -605,8 +679,7 @@ has_tenant() {
 }
 
 has_registered() {
-	local OKAPI_HEADER=$1
-	local MODULE_ID=$2
+	local MODULE_ID=$1
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER" != "x"; then
@@ -625,8 +698,7 @@ has_registered() {
 }
 
 has_deployed() {
-	local OKAPI_HEADER=$1
-	local MODULE_ID=$2
+	local MODULE_ID=$1
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER" != "x"; then
@@ -645,9 +717,8 @@ has_deployed() {
 }
 
 has_installed() {
-	local OKAPI_HEADER=$1
-	local MODULE_ID=$2
-	local TENANT=$3
+	local MODULE_ID=$1
+	local TENANT=$2
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER" != "x"; then
@@ -668,8 +739,6 @@ has_installed() {
 }
 
 should_login() {
-	local OKAPI_HEADER=$1
-
 	STATUS_CODE=$(curl -s -w "%{http_code}" -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users -o /dev/null)
 	if [[ "$STATUS_CODE" != "200" ]]; then
 		return 1
@@ -679,9 +748,6 @@ should_login() {
 }
 
 get_user_uuid_by_username() {
-	local OKAPI_HEADER=$1
-	local USERNAME=$2
-
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
 	if test "$OKAPI_HEADER" != "x"; then
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER"
@@ -694,8 +760,7 @@ get_user_uuid_by_username() {
 }
 
 get_random_permission_uuid_by_user_uuid() {
-	local OKAPI_HEADER=$1
-	local UUID=$2
+	local UUID=$1
 
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
 	if test "$OKAPI_HEADER" != "x"; then
@@ -721,26 +786,20 @@ reset_and_verify_password() {
 	echo -e "Please wait untill permissions added are persisted, which may delay due to underlying kafka process in users module"
 
 	# NOTE: this request does not work for the first time, but it works fine the second time
-	# the reason why is not clear but may be related to kafka not finished the task yet.
+	# the reason why is not clear but may be related to kafka not finished the task yet,
 	# so I just try to wait using sleep command and it did work with me just fine.
+
 	sleep 35
-	for ((i=0; i<3; i++))
-	do
-		okapi_curl $TOKEN $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
 
-		getFileContent reset.json
+	okapi_curl $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
 
-		# Check if the JSON data contains the string "requires permission".
-		if grep -q "requires permission" <<< "$JSON_DATA"; then
-			echo -e "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
-			echo -e "Will try again ..."
-			sleep 10
-			continue
-		fi
-		unset JSON_DATA
+	getFileContent reset.json
 
-		break
-	done
+	# Check if the JSON data contains the string "requires permission".
+	if grep -q "requires permission" <<< "$JSON_DATA"; then
+		echo -e "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
+	fi
+	unset JSON_DATA
 
 	TOKEN_2=`jq -r '.link' < reset.json | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g'`
 
@@ -753,23 +812,23 @@ reset_and_verify_password() {
 
 # Set extra permissions related to module mod-users-bl
 set_users_bl_module_permissions() {
-	local MODULES=$*
+	local INDEX=$1
 	local USERS_BL_MODULE="mod-users-bl"
-	
+
 	# Validate that mod-users-bl is installed
-	hasArg "$MODULES" "$USERS_BL_MODULE"
+	hasValue "id" $INDEX "$USERS_BL_MODULE" $JSON_FILE
 	FOUND=$?
 	if [[ "$FOUND" -eq 0 ]]; then
 		return
 	fi
 
 	get_user_uuid_by_username $TOKEN $USERNAME
-	get_random_permission_uuid_by_user_uuid $TOKEN $UUID
+	get_random_permission_uuid_by_user_uuid $UUID
 
-	okapi_curl $TOKEN $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
+	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
 	echo -e ""
 
-	okapi_curl $TOKEN $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
+	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
 	echo -e ""
 
 	login_admin
@@ -793,12 +852,9 @@ set_users_bl_module_permissions() {
 #####################################
 
 
-setup
+pre_process
 
-clone_compile_modules
-
-register_deploy_install_modules $OKAPI_HEADER $MODULES
-
+process
 
 #####################################
 # 			  END - RUN 			#
