@@ -10,6 +10,8 @@ pre_process() {
 	new_tenant
 
 	set_env_vars_to_okapi
+
+	validate_modules_list
 }
 
 # Default Variable values
@@ -79,7 +81,7 @@ new_tenant() {
 
 # Enable okapi module to tenant
 enable_okapi() {
-	install_modules enable okapi
+	install_module enable okapi
 }
 
 
@@ -355,31 +357,23 @@ deploy_module() {
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
 	fi
 
-	curl -s $OPTIONS -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules
+	curl -s $OPTIONS -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules -o /dev/null
 
 	echo -e ""
 }
 
 # Install (enable) modules for a tenant
-install_modules() {
+install_module() {
 	local ACTION=$1
-	shift
-	local MODULES=$*
+	local MODULE=$2
 
 	# Build Body Json list of modules with action enable comes as argument
-	local PAYLOAD="["
-	local SEPERATOR=""
-	for MODULE in $MODULES; do
-		has_installed $MODULE $TENANT
-		FOUND=$?
-		if [[ "$FOUND" -eq 1 ]]; then
-			continue
-		fi
-
-		PAYLOAD="$PAYLOAD $SEPERATOR {\"action\":\"$ACTION\",\"id\":\"$MODULE\"}"
-		SEPERATOR=","
-	done
-	PAYLOAD="$PAYLOAD]"
+	has_installed $MODULE $TENANT
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+	local PAYLOAD="[{\"action\":\"$ACTION\",\"id\":\"$MODULE\"}]"
 
 	# Set Okapi Token if set
 	OPTIONS=""
@@ -389,10 +383,10 @@ install_modules() {
 
 	# Validate if the list is not empty	
 	if [[ "$PAYLOAD" =~ ^\[.+\]$ ]]; then
-		echo -e "Install (Enable) $MODULES"
+		echo -e "Install (Enable) $MODULE"
 
 		# Install (enable) modules
-		curl -s $OPTIONS "-d$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?purge=true"
+		curl -s $OPTIONS "-d$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?purge=true" -o /dev/null
 
 		echo -e ""
 	fi
@@ -400,8 +394,6 @@ install_modules() {
 
 # Clone, Compile, Register, Deploy, Install (enable) modules one by one
 process() {
-	validate_modules_list
-
 	local LENGTH=$(jq '. | length' $JSON_FILE)
 
 	for ((i=0; i<$LENGTH; i++))
@@ -413,15 +405,15 @@ process() {
 		compile_module $MODULE_ID $i $JSON_FILE
 
 		# Step No. 3
-		pre_register $MODULE_ID		
+		pre_register $MODULE_ID $i $JSON_FILE
 		register_module $MODULE_ID
 
 		# Step No. 4
 		deploy_module $MODULE_ID
 
 		# Step No. 5
-		install_modules enable $MODULE_ID
-		post_install $MODULE_ID $i
+		install_module enable $MODULE_ID
+		post_install $MODULE_ID $i $JSON_FILE
 	done
 }
 
@@ -506,7 +498,7 @@ has() {
 	local KEY=$1
 	local INDEX=$2
 	local JSON_LIST=$3
-	
+
 	if [ -n "$4" ]; then
 		local NESTED_JSON_PROPERTIES=$4
 	fi
@@ -525,7 +517,7 @@ has() {
 }
 
 # Check if value of key exists
-hasValue() {
+has_value() {
 	local KEY=$1
 	local INDEX=$2
 	local VALUE=$3
@@ -542,7 +534,7 @@ hasValue() {
 }
 
 # Get file content
-getFileContent() {
+get_file_content() {
 	# Get the name of the JSON file.
 	local FILE_NAME=$1
 
@@ -551,7 +543,7 @@ getFileContent() {
 }
 
 # Search in arguments
-hasArg() {
+has_arg() {
 	local ARGS=$1
 	local FIND=$2
 	
@@ -669,7 +661,7 @@ has_tenant() {
 	
 	RESULT=$(curl -s $OKAPI_URL/_/proxy/tenants | jq ".[] | .id | contains(\"$TENANT\")")
 
-	hasArg "$RESULT" "true"
+	has_arg "$RESULT" "true"
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return 1
@@ -688,7 +680,7 @@ has_registered() {
 
 	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
 
-	hasArg "$RESULT" "true"
+	has_arg "$RESULT" "true"
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return 1
@@ -707,7 +699,7 @@ has_deployed() {
 
 	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .srvcId | contains(\"$MODULE_ID\")")
 
-	hasArg "$RESULT" "true"
+	has_arg "$RESULT" "true"
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return 1
@@ -729,7 +721,7 @@ has_installed() {
 	MODULE_ID=$(echo $MODULE_ID | sed 's/"//g')
 	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
 
-	hasArg "$RESULT" "true"
+	has_arg "$RESULT" "true"
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return 1
@@ -782,22 +774,26 @@ get_random_permission_uuid_by_user_uuid() {
 
 reset_and_verify_password() {
 	local UUID=$1
-	
-	echo -e "Please wait untill permissions added are persisted, which may delay due to underlying kafka process in users module"
-
-	# NOTE: this request does not work for the first time, but it works fine the second time
-	# the reason why is not clear but may be related to kafka not finished the task yet,
-	# so I just try to wait using sleep command and it did work with me just fine.
-
-	sleep 35
 
 	okapi_curl $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
 
-	getFileContent reset.json
+	get_file_content reset.json
 
 	# Check if the JSON data contains the string "requires permission".
 	if grep -q "requires permission" <<< "$JSON_DATA"; then
+		# NOTE: this request does not work for the first time, but it works fine the second time
+		# the reason why is not clear but may be related to kafka not finished the task yet,
+		# so I just try to wait using sleep command and it did work with me just fine.
+
 		echo -e "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
+		echo -e ""
+		echo -e "Please wait until permissions added are persisted, which may delay due to underlying kafka process in users module so we try again."
+
+		sleep 50
+
+		reset_and_verify_password $UUID
+
+		return
 	fi
 	unset JSON_DATA
 
@@ -816,7 +812,7 @@ set_users_bl_module_permissions() {
 	local USERS_BL_MODULE="mod-users-bl"
 
 	# Validate that mod-users-bl is installed
-	hasValue "id" $INDEX "$USERS_BL_MODULE" $JSON_FILE
+	has_value "id" $INDEX "$USERS_BL_MODULE" $JSON_FILE
 	FOUND=$?
 	if [[ "$FOUND" -eq 0 ]]; then
 		return
@@ -855,6 +851,7 @@ set_users_bl_module_permissions() {
 pre_process
 
 process
+
 
 #####################################
 # 			  END - RUN 			#
