@@ -1558,6 +1558,8 @@ deploy_module_directly() {
 	# Replace %p with current port
 	DEPLOYMENT_COMMAND=$(echo $DEPLOYMENT_COMMAND | sed "s/%p/$SERVER_PORT/g")
 
+	echo "Deploy module $MODULE on port: $SERVER_PORT"
+
 	# Deploy module
 	eval "cd $MODULE && nohup $DEPLOYMENT_COMMAND &"
 }
@@ -1616,6 +1618,8 @@ enable_module_directly() {
 	# Cloud Okapi login
 	login_admin_curl $CLOUD_OKAPI_URL $CLOUD_TENANT $CLOUD_USERNAME $CLOUD_PASSWORD
 	
+	echo -e "Install (Enable) $MODULE"
+	
 	curl --location "http://localhost:$SERVER_PORT/_/tenant" \
 		--header "x-okapi-tenant: $CLOUD_TENANT" \
 		--header "x-okapi-token: $TOKEN" \
@@ -1628,7 +1632,7 @@ enable_module_directly() {
 
 	# Local Okapi login if we should for the consecutive modules
 	should_login
-	if [[ "$STATUS_CODE" != "404" ]]; then
+	if [[ "$STATUS_CODE" == "200" ]] || [[ "$STATUS_CODE" == "204" ]]; then
 		login_admin
 
 		echo -e ""
