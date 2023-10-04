@@ -537,9 +537,10 @@ build_module() {
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
-	
+	should_rebuild $INDEX $JSON_LIST
+	SHOULD_REBUILD=$?
 	local MODULE_DESCRIPTOR=$MODULE_ID/target/ModuleDescriptor.json
-	if [[ -f $MODULE_DESCRIPTOR ]]; then
+	if [[ -f $MODULE_DESCRIPTOR ]] && [[ "$SHOULD_REBUILD" -eq 0 ]]; then
 		return
 	fi
 
@@ -1203,6 +1204,24 @@ should_build() {
 	return 0
 }
 
+should_rebuild() {
+	local INDEX=$1
+	local JSON_LIST=$2
+	
+	# By default module should not be rebuilt if the key is missing
+	has "rebuild" $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return 0
+	fi
+
+	has_value "rebuild" $INDEX "true" $JSON_LIST
+	if [[ "$?" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
 should_register() {
 	local INDEX=$1
 	local JSON_LIST=$2
@@ -1275,7 +1294,6 @@ is_enabled() {
 	
 	# By default module is enabled if the key is missing
 	has "enabled" $INDEX $JSON_LIST
-
 	if [[ "$?" -eq 0 ]]; then
 		return 1
 	fi
@@ -1292,9 +1310,8 @@ is_postman_enabled() {
 	local INDEX=$1
 	local JSON_LIST=$2
 	
-	# By default module is enabled if the key is missing
+	# By default module is postman enabled if the key is missing
 	has "enabled" $INDEX $JSON_LIST "postman"
-
 	if [[ "$?" -eq 0 ]]; then
 		return 1
 	fi
