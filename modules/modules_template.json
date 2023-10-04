@@ -1,45 +1,151 @@
 [
     {
-        "id": "mod-users"
+        "id": "okapi",
+        "repo": "git@github.com:folio-org/okapi.git",
+        "tag": "v5.1.0",
+        "build": "mvn -DskipTests install"
     },
     {
-        "id": "mod-login"
+        "id": "mod-users",
+        "enabled": "false"    
     },
     {
-        "id": "mod-permissions"
+        "id": "mod-login",
+        "enabled": "false"    
     },
     {
-        "id": "mod-configuration"
+        "id": "mod-permissions",
+        "enabled": "false"    
     },
     {
-        "id": "mod-authtoken"
+        "id": "mod-configuration",
+        "build":"mvn -DskipTests -Dcheckstyle.skip package",
+        "enabled": "false"    
     },
     {
-        "id": "mod-password-validator"
+        "id": "mod-authtoken",
+        "enabled": "false"    
     },
     {
-        "id": "mod-pubsub"
+        "id": "mod-password-validator",
+        "enabled": "false"    
     },
     {
-        "id": "mod-email"
+        "id": "mod-pubsub",
+        "enabled": "false"    
     },
     {
-        "id": "mod-users-bl"
+        "id": "mod-email",
+        "enabled": "false"    
+    },
+    {
+        "id": "mod-users-bl",
+        "enabled": "false"    
     },
     {
         "id": "mod-assets",
         "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-assets",
         "branch": "develop",
-        "access_token": "<access_token>"
+        "access_token": "<access_token>",
+        "okapi": {
+            "url": "https://okapi.medadstg.com",
+            "tenant": "medad",
+            "credentials": {
+                "username": "<username>",
+                "password": "<password>"
+            }
+        },
+        "step": "install",
+        "enabled": "false"
     },
     {
         "id": "mod-worklists",
-        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-worklists"
+        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-worklists",
+        "okapi": {
+            "url": "https://okapi.medadstg.com",
+            "tenant": "medad",
+            "credentials": {
+                "username": "<username>",
+                "password": "<password>"
+            }
+        },
+        "postman": {
+            "file": "src/main/resources/swagger.api/work-lists.yaml",
+            "api_key": "<postman_api_key>"
+        },
+        "enabled": "false"
+    },
+    {
+        "id": "mod-inventory",
+        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-inventory",
+        "branch": "develop",
+        "okapi": {
+            "url": "https://okapi.medadstg.com",
+            "tenant": "medad",
+            "credentials": {
+                "username": "<username>",
+                "password": "<password>"
+            }
+        },
+        "step": "build",
+        "enabled": "false"
+    },
+    {
+        "id": "mod-copycat",
+        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-copycat",
+        "branch": "develop",
+        "okapi": {
+            "url": "https://okapi.medadstg.com",
+            "tenant": "medad",
+            "credentials": {
+                "username": "<username>",
+                "password": "<password>"
+            }
+        },
+        "install_params": {
+            "tenantParameters": {
+                "loadReference": "true"
+            }
+        },
+        "step": "install",
+        "enabled": "false"
+    },
+    {
+        "id": "mod-source-record-manager",
+        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-source-record-manager",
+        "branch": "develop",
+        "okapi": {
+            "url": "https://okapi.medadstg.com",
+            "tenant": "medad",
+            "credentials": {
+                "username": "<username>",
+                "password": "<password>"
+            }
+        },
+        "step": "build",
+        "enabled": "false"
+    },
+    {
+        "id": "mod-label-printing",
+        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-label-printing",
+        "branch": "develop",
+        "okapi": {
+            "url": "https://okapi.medadstg.com",
+            "tenant": "medad",
+            "credentials": {
+                "username": "<username>",
+                "password": "<password>"
+            }
+        },
+        "step": "install",
+        "enabled": "false"
     },
     {
         "id": "mod-mylibrary",
         "repo": "git@github.com:Ahmad-Zaky/mod-mylibrary.git",
         "tag": "latest",
-        "compile": "mvn -DskipTests -Dmaven.test.skip=true clean verify"    
+        "build": "mvn -DskipTests -Dmaven.test.skip=true clean package",
+        "step": "install",
+        "enabled": "false" 
     }
 ]
