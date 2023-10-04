@@ -95,6 +95,7 @@ set_args() {
 		set_init_arg $ARG
 		set_purge_arg $ARG
 		set_restart_okapi_arg $ARG
+		set_without_okapi_arg $ARG
 	done
 
 }
@@ -138,11 +139,29 @@ set_restart_okapi_arg() {
 	fi
 }
 
+set_without_okapi_arg() {
+	local ARGUMENT=$1
+
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	WITHOUT_OKAPI_ARG=0
+	if [ $ARGUMENT == "without-okapi" ]; then
+		WITHOUT_OKAPI_ARG=1
+	fi
+}
+
 go_to_modules_dir() {
 	cd $MODULES_DIR
 }
 
 run_okapi() {
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+	
 	# Do nothing if Okapi is already running without setting restart argument
 	is_okapi_running
 	IS_OKAPI_RUNNING=$?
@@ -181,6 +200,11 @@ run_okapi() {
 
 # Set Environment Variables to Okapi
 set_env_vars_to_okapi() {
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
 	echo -e "Set environment variables to okapi"
 
 	echo -e ""
@@ -226,6 +250,11 @@ export_db_env_vars() {
 
 # Store new tenant
 new_tenant() {
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
 	echo -e "Add new tenant: $TENANT"
 	echo -e ""
 	
@@ -555,6 +584,12 @@ register_module() {
 		return
 	fi
 
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+
 	has_registered $MODULE_ID
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
@@ -599,6 +634,11 @@ deploy_module() {
 		return
 	fi
 
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
 	has_deployed $MODULE_ID
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
@@ -636,6 +676,11 @@ install_module() {
 		enable_module_directly $MODULE_ID $INDEX $JSON_LIST
 		unset CLOUD_OKAPI_URL
 
+		return
+	fi
+
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
 
@@ -754,11 +799,21 @@ has_value() {
 	local VALUE=$3
 	local JSON_LIST=$4
 
-	has $KEY $INDEX $JSON_LIST
+	if [ -n "$5" ]; then
+		local NESTED_JSON_PROPERTIES=$5
+		has $KEY $INDEX $JSON_LIST $NESTED_JSON_PROPERTIES
+	else
+		has $KEY $INDEX $JSON_LIST
+	fi
+
 	if [[ ! "$?" -eq 1 ]]; then
 		return 0
 	fi
 
+	if [[ -v NESTED_JSON_PROPERTIES ]]; then
+		KEY="$NESTED_JSON_PROPERTIES.$KEY"
+	fi
+	
 	if grep -q $(jq ".[$INDEX] | .$KEY == \"$VALUE\"" $JSON_LIST) <<< "true"; then
 		return 1
 	fi
@@ -800,7 +855,7 @@ okapi_curl() {
 	echo -e ""
 }
 
-handle_okapi() {
+handle_cloud_okapi() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
@@ -822,14 +877,21 @@ pre_register() {
 	local INDEX=$2
 	local JSON_LIST=$3
 
+	handle_cloud_okapi $MODULE $INDEX $JSON_LIST
+
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		export_next_port $((SERVER_PORT + 1))
+
+		return
+	fi
+
 	should_register $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
 		
 	pre_authenticate $MODULE $INDEX $JSON_LIST
-
-	handle_okapi $MODULE $INDEX $JSON_LIST
 	
 	has_installed $MODULE $TENANT
 	FOUND=$?
@@ -843,14 +905,19 @@ post_install() {
 	local INDEX=$2
 	local JSON_LIST=$3
 
+	postman $MODULE $INDEX $JSON_LIST
+
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
 	should_install $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
 	
 	post_authenticate $MODULE
-	
-	postman $MODULE $INDEX $JSON_LIST
 
 	# Set permissions related to mod-users-bl
 	local USERS_BL_MODULE="mod-users-bl"
@@ -864,6 +931,11 @@ pre_authenticate() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
 
 	local AUTHTOKEN_MODULE="mod-authtoken"
 	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
@@ -958,7 +1030,14 @@ postman() {
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
-
+	
+	# Skip postman if disabled
+	is_postman_enabled $INDEX $JSON_LIST
+	IS_ENALBLED=$?
+	if [[ "$IS_ENALBLED" -eq 0 ]]; then
+		return
+	fi
+	
 	validate_open_api_file $INDEX $JSON_LIST $MODULE
 
 	validate_postman_api_key $INDEX $JSON_LIST
@@ -1202,6 +1281,25 @@ is_enabled() {
 	fi
 
 	has_value "enabled" $INDEX "true" $JSON_LIST
+	if [[ "$?" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+is_postman_enabled() {
+	local INDEX=$1
+	local JSON_LIST=$2
+	
+	# By default module is enabled if the key is missing
+	has "enabled" $INDEX $JSON_LIST "postman"
+
+	if [[ "$?" -eq 0 ]]; then
+		return 1
+	fi
+
+	has_value "enabled" $INDEX "true" $JSON_LIST "postman"
 	if [[ "$?" -eq 1 ]]; then
 		return 1
 	fi
@@ -1462,9 +1560,6 @@ deploy_module_directly() {
 
 	# Deploy module
 	eval "cd $MODULE && nohup $DEPLOYMENT_COMMAND &"
-
-	# Sleep until the deployment process finish
-	sleep 15
 }
 
 enable_module_directly() {
@@ -1515,6 +1610,9 @@ enable_module_directly() {
 	CLOUD_PASSWORD=$(echo $CLOUD_PASSWORD | sed 's/"//g')
 
 	
+	# Sleep until the deployment process finish
+	sleep 15
+
 	# Cloud Okapi login
 	login_admin_curl $CLOUD_OKAPI_URL $CLOUD_TENANT $CLOUD_USERNAME $CLOUD_PASSWORD
 	
