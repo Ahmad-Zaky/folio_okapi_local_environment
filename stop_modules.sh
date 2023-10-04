@@ -3,9 +3,22 @@
 START_PORT=9131
 END_PORT=9200
 
+set_port_arg() {
+	if [ -n "$1" ]; then
+		SPECIFIC_PORT=$1
+	fi
+}
+
 stop_modules() {
+
+	if [[ -v SPECIFIC_PORT ]]; then
+		START_PORT="$SPECIFIC_PORT"
+		END_PORT="$SPECIFIC_PORT"
+	fi
+
 	for ((i=$START_PORT; i<=$END_PORT; i++))
 	do
+		echo $PORT
         local PORT=$i
 
         is_port_used $PORT
@@ -35,4 +48,5 @@ kill_process_port() {
 	kill -9 $(lsof -t -i:$PORT)
 }
 
+set_port_arg $1
 stop_modules
