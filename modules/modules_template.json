@@ -3,46 +3,83 @@
         "id": "okapi",
         "repo": "git@github.com:folio-org/okapi.git",
         "tag": "v5.1.0",
-        "build": "mvn -DskipTests install"
+        "build": "mvn clean install -DskipTests",
+        "rebuild": "false"
     },
     {
         "id": "mod-users",
-        "enabled": "false"    
+        "enabled": "false"
     },
     {
         "id": "mod-login",
-        "enabled": "false"    
+        "enabled": "false"
     },
     {
         "id": "mod-permissions",
-        "enabled": "false"    
+        "enabled": "false"
     },
     {
         "id": "mod-configuration",
         "build":"mvn -DskipTests -Dcheckstyle.skip package",
-        "enabled": "false"    
+        "enabled": "false"
     },
     {
         "id": "mod-authtoken",
-        "enabled": "false"    
+        "enabled": "false"
     },
     {
         "id": "mod-password-validator",
-        "enabled": "false"    
+        "enabled": "false"
     },
     {
+        "comment": "java.lang.IllegalStateException: Cannot find proxyClass: org.folio.services.audit.AuditServiceVertxProxyHandler",
         "id": "mod-pubsub",
-        "enabled": "false"    
+        "env": [
+            {
+                "name": "REPLICATION_FACTOR",
+                "value": "1"
+            },
+            {
+                "name": "NUMBER_OF_PARTITIONS",
+                "value": "1"
+            },
+            {
+                "name": "KAFKA_PRODUCER_TENANT_COLLECTION",
+                "value": "ALL"
+            },
+            {
+                "name": "ENV",
+                "value": "folio-testing"
+            },
+            {
+                "name": "SYSTEM_USER_NAME",
+                "value": "pub-sub"
+            },
+            {
+                "name": "SYSTEM_USER_PASSWORD",
+                "value": "pubsub"
+            }
+        ],
+        "enabled": "false"
     },
     {
         "id": "mod-email",
-        "enabled": "false"    
+        "enabled": "false"
     },
     {
         "id": "mod-users-bl",
-        "enabled": "false"    
+        "enabled": "false"
     },
     {
+        "id": "mod-mylibrary",
+        "repo": "git@github.com:Ahmad-Zaky/mod-mylibrary.git",
+        "tag": "latest",
+        "build": "mvn -DskipTests -Dmaven.test.skip=true clean package",
+        "step": "install",
+        "enabled": "false"
+    },
+    {
+        "comment": "the module descriptor is pointing to mod-worklists !!!",
         "id": "mod-assets",
         "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-assets",
         "branch": "develop",
@@ -51,8 +88,8 @@
             "url": "https://okapi.medadstg.com",
             "tenant": "medad",
             "credentials": {
-                "username": "<username>",
-                "password": "<password>"
+                "username": "ui_admin",
+                "password": "U!@dm!n123"
             }
         },
         "step": "install",
@@ -65,13 +102,14 @@
             "url": "https://okapi.medadstg.com",
             "tenant": "medad",
             "credentials": {
-                "username": "<username>",
-                "password": "<password>"
+                "username": "ui_admin",
+                "password": "U!@dm!n123"
             }
         },
         "postman": {
             "file": "src/main/resources/swagger.api/work-lists.yaml",
-            "api_key": "<postman_api_key>"
+            "api_key": "<postman_api_key>",
+            "enabled": "false"
         },
         "enabled": "false"
     },
@@ -83,8 +121,8 @@
             "url": "https://okapi.medadstg.com",
             "tenant": "medad",
             "credentials": {
-                "username": "<username>",
-                "password": "<password>"
+                "username": "ui_admin",
+                "password": "U!@dm!n123"
             }
         },
         "step": "build",
@@ -98,8 +136,8 @@
             "url": "https://okapi.medadstg.com",
             "tenant": "medad",
             "credentials": {
-                "username": "<username>",
-                "password": "<password>"
+                "username": "ui_admin",
+                "password": "U!@dm!n123"
             }
         },
         "install_params": {
@@ -107,7 +145,8 @@
                 "loadReference": "true"
             }
         },
-        "step": "install",
+        "rebuild": "false",
+        "step": "deploy",
         "enabled": "false"
     },
     {
@@ -118,8 +157,8 @@
             "url": "https://okapi.medadstg.com",
             "tenant": "medad",
             "credentials": {
-                "username": "<username>",
-                "password": "<password>"
+                "username": "ui_admin",
+                "password": "U!@dm!n123"
             }
         },
         "step": "build",
@@ -133,19 +172,17 @@
             "url": "https://okapi.medadstg.com",
             "tenant": "medad",
             "credentials": {
-                "username": "<username>",
-                "password": "<password>"
+                "username": "ui_admin",
+                "password": "U!@dm!n123"
             }
         },
+        "postman": {
+            "file": "src/main/resources/swagger.api/api.yaml",
+            "api_key": "<postman_api_key>",
+            "enabled": "false"
+        },
+        "rebuild": "false",
         "step": "install",
         "enabled": "false"
-    },
-    {
-        "id": "mod-mylibrary",
-        "repo": "git@github.com:Ahmad-Zaky/mod-mylibrary.git",
-        "tag": "latest",
-        "build": "mvn -DskipTests -Dmaven.test.skip=true clean package",
-        "step": "install",
-        "enabled": "false" 
     }
 ]

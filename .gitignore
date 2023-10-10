@@ -1,3 +1,4 @@
 .vscode
 modules/*
 !modules/modules_template.json
+test.sh

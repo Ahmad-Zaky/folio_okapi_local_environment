@@ -17,7 +17,7 @@ pre_process() {
 
 	set_env_vars_to_okapi
 
-	export_db_env_vars
+	export_vars
 
 	new_tenant
 
@@ -26,6 +26,18 @@ pre_process() {
 
 # Default Variable values
 defaults() {
+	# DB env vars
+	DB_HOST=localhost
+	DB_PORT=5432
+	DB_DATABASE=okapi_modules
+	DB_USERNAME=folio_admin
+	DB_PASSWORD=folio_admin
+	DB_QUERYTIMEOUT=60000
+	DB_MAXPOOLSIZE=5
+
+	KAFKA_PORT=9093
+	KAFKA_HOST="localhost"
+
 	# Default OKAPI Header with value which is used at setting curl request headers
 	OKAPI_HEADER=x
 
@@ -47,17 +59,20 @@ defaults() {
 	# Okapi repository
 	OKAPI_REPO="git@github.com:folio-org/okapi.git"
 	
+	# Okapi Options
+	OKAPI_DB_OPTIONS="-Dpostgres_host=$DB_HOST -Dpostgres_port=$DB_PORT -Dpostgres_database=$DB_DATABASE -Dpostgres_username=$DB_USERNAME -Dpostgres_password=$DB_PASSWORD"
+
 	# Okapi build command
-	OKAPI_BUILD_COMMAND="mvn install -DskipTests"
+	OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
 
 	# Okapi Command
-	OKAPI_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev"
+	OKAPI_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
 
 	# Okapi Initialize Database Command
-	OKAPI_INIT_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar initdatabase"
+	OKAPI_INIT_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
 
 	# Okapi Purge Database tables Command
-	OKAPI_PURGE_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
+	OKAPI_PURGE_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
 
 	# Modules directory path
 	MODULES_DIR=modules
@@ -80,13 +95,6 @@ defaults() {
 	
 	# Import an OpenAPI Specification url path
 	POSTMAN_IMPORT_OPENAPI_PATH="/import/openapi"
-	
-	# DB env vars
-	DB_HOST=localhost
-	DB_PORT=5432
-	DB_USERNAME=okapi
-	DB_PASSWORD=okapi25
-	DB_DATABASE=okapi
 }
 
 set_args() {
@@ -157,6 +165,8 @@ go_to_modules_dir() {
 }
 
 run_okapi() {
+  	echo -e "Running Okapi ..."
+
 	# Do not run Okapi if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
@@ -176,6 +186,11 @@ run_okapi() {
 		clone_okapi && build_okapi
 	fi
 
+	# Rebuild Okapi if enabled in the modules.json
+	if [[ "$IS_OKAPI_EXISTS" -eq 1 ]]; then
+		rebuild_okapi $INDEX $JSON_LIST
+	fi
+
 	# Restart Okapi by stopping it first and then start it again
 	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 1 ]]; then
 		stop_okapi
@@ -183,15 +198,20 @@ run_okapi() {
 
 	# Init Okapi
 	if [[ "$INIT_ARG" -eq 1 ]]; then
+	    echo -e "Init Okapi ..."
+
 		eval "cd $OKAPI_DIR && nohup $OKAPI_INIT_COMMAND &"
 	fi
 
 	# Purge Okapi
 	if [[ "$PURGE_ARG" -eq 1 ]]; then
+	    echo -e "Purge Okapi ..."
+
 		eval "cd $OKAPI_DIR && nohup $OKAPI_PURGE_COMMAND &"
 	fi
 
 	# Run Okapi
+	echo -e "Start Okapi ..."
 	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 
 	# wait untill okapi is fully up and running
@@ -200,7 +220,7 @@ run_okapi() {
 
 # Set Environment Variables to Okapi
 set_env_vars_to_okapi() {
-	# Do not run Okapi if the argument without-okapi has been set
+	# Do not set Okapi env variables if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
@@ -215,42 +235,16 @@ set_env_vars_to_okapi() {
 	curl -s -d"{\"name\":\"DB_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"DB_DATABASE\",\"value\":\"$DB_DATABASE\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"OKAPI_URL\",\"value\":\"$OKAPI_URL\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d'{"name":"KAFKA_PORT","value":"9093"}' $OKAPI_URL/_/env -o /dev/null
-	curl -s -d'{"name":"KAFKA_HOST","value":"localhost"}' $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"KAFKA_PORT\",\"value\":\"$KAFKA_PORT\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"KAFKA_HOST\",\"value\":\"$KAFKA_HOST\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d'{"name":"ELASTICSEARCH_URL","value":"http://localhost:9200"}' $OKAPI_URL/_/env -o /dev/null
 
 	echo -e ""
 }
 
-stop_running_modules() {
-	for ((i=$START_PORT; i<=$END_PORT; i++))
-	do
-        local PORT=$i
-
-        is_port_used $PORT
-        IS_PORT_USED=$?
-        if [[ "$IS_PORT_USED" -eq 1 ]]; then
-            kill_process_port $PORT
-        fi
-	done
-}
-
-export_db_env_vars() {
-	export DB_HOST="$DB_HOST"
-	export DB_PORT="$DB_PORT"
-	export DB_USERNAME="$DB_USERNAME"
-	export DB_PASSWORD="$DB_PASSWORD"
-	export DB_DATABASE="$DB_DATABASE"
-
-	# Spring database env vars
-	export SPRING_DATASOURCE_URL="jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_DATABASE?reWriteBatchedInserts=true"
-	export SPRING_DATASOURCE_USERNAME="$DB_USERNAME"
-	export SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD"
-}
-
 # Store new tenant
 new_tenant() {
-	# Do not run Okapi if the argument without-okapi has been set
+	# Do not call for adding new tenant if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
@@ -493,23 +487,11 @@ clone_module() {
 	local INDEX=$1
 	local JSON_LIST=$2
 
-	should_build $INDEX $JSON_LIST
+	should_clone $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
 	
-	# Validate Module Id
-	validate_module_id $INDEX $JSON_LIST
-
-	# Validate Module Repo
-	validate_module_repo $MODULE_ID $INDEX $JSON_LIST
-
-	# Validate Module Tags and Branches
-	validate_module_tag_branch $INDEX $JSON_LIST
-
-	# Validate Access Token
-	validate_module_access_token $INDEX $JSON_LIST
-
 	# Clone the module repo
 	if [ ! -d $MODULE_ID ]; then
 		echo -e "Clone module $MODULE_ID"
@@ -585,11 +567,10 @@ register_module() {
 		return
 	fi
 
-	# Do not run Okapi if the argument without-okapi has been set
+	# Do not run modules that depend on local Okapi instance if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
-
 
 	has_registered $MODULE_ID
 	FOUND=$?
@@ -635,7 +616,7 @@ deploy_module() {
 		return
 	fi
 
-	# Do not run Okapi if the argument without-okapi has been set
+	# Do not run modules that depend on local Okapi instance if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
@@ -680,7 +661,7 @@ install_module() {
 		return
 	fi
 
-	# Do not run Okapi if the argument without-okapi has been set
+	# Do not run modules that depend on local Okapi instance Okapi if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
@@ -733,6 +714,7 @@ process() {
 		fi
 
 		# Step No. 1
+		pre_clone $i $JSON_FILE		
 		clone_module $i $JSON_FILE		
 		
 		# Step No. 2
@@ -873,6 +855,25 @@ handle_cloud_okapi() {
 	validate_okapi_credentials $INDEX $JSON_LIST
 }
 
+pre_clone() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	# Validate Module Id
+	validate_module_id $INDEX $JSON_LIST
+
+	# Validate Module Repo
+	validate_module_repo $MODULE_ID $INDEX $JSON_LIST
+
+	# Validate Module Tags and Branches
+	validate_module_tag_branch $INDEX $JSON_LIST
+
+	# Validate Access Token
+	validate_module_access_token $INDEX $JSON_LIST
+
+	export_module_envs $MODULE_ID $INDEX $JSON_LIST
+}
+
 pre_register() {
 	local MODULE=$1
 	local INDEX=$2
@@ -880,7 +881,7 @@ pre_register() {
 
 	handle_cloud_okapi $MODULE $INDEX $JSON_LIST
 
-	# Do not run Okapi if the argument without-okapi has been set
+	# Do not export next port for Okapi modules if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		export_next_port $((SERVER_PORT + 1))
 
@@ -908,7 +909,7 @@ post_install() {
 
 	postman $MODULE $INDEX $JSON_LIST
 
-	# Do not run Okapi if the argument without-okapi has been set
+	# Do not proceed  if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
@@ -917,7 +918,7 @@ post_install() {
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
-	
+
 	post_authenticate $MODULE
 
 	# Set permissions related to mod-users-bl
@@ -933,7 +934,7 @@ pre_authenticate() {
 	local INDEX=$2
 	local JSON_LIST=$3
 
-	# Do not run Okapi if the argument without-okapi has been set
+	# Do not proceed if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
@@ -1344,9 +1345,12 @@ is_okapi_running() {
 }
 
 clone_okapi() {
+
 	# Check if Okapi exists in modules.json and clone default okapi repo
 	FOUND=$(jq '.[] | first(select(.id == "okapi")) | .id == "okapi"' $JSON_FILE)
 	if [[ "$FOUND" == "false" ]] || [[ -z "$FOUND" ]]; then
+    	echo -e "Cloning Okapi ..."
+
 		eval "git clone --recurse-submodules $OKAPI_REPO"
 
 		return
@@ -1355,8 +1359,10 @@ clone_okapi() {
 	local HAS_REPO=$(jq '.[] | first(select(.id == "okapi")) | has("repo")' $JSON_FILE)
 	local HAS_TAG=$(jq '.[] | first(select(.id == "okapi")) | has("tag")' $JSON_FILE)
 	
-	# Clone Repo With Tag
+	# Clone Repo with Tag and with custom repo
 	if [[ $HAS_REPO == "true" ]] && [[ $HAS_TAG == "true" ]]; then
+    	echo -e "Cloning Okapi ..."
+
 		OKAPI_REPO=$(jq '.[] | first(select(.id == "okapi")) | .repo' $JSON_FILE)
 		TAG=$(jq '.[] | first(select(.id == "okapi")) | .tag' $JSON_FILE)
 		
@@ -1369,10 +1375,11 @@ clone_okapi() {
 		return
 	fi
 	
-	# Clone Repo
+	# Clone Repo without tag and with custom repo
 	if [[ $HAS_REPO == "true" ]]; then
+    	echo -e "Cloning Okapi ..."
+
 		OKAPI_REPO=$(jq '.[] | first(select(.id == "okapi")) | .repo' $JSON_FILE)
-		
 		# Remove extra double quotes at start and end of the string
 		OKAPI_REPO=$(echo $OKAPI_REPO | sed 's/"//g')
 
@@ -1382,15 +1389,17 @@ clone_okapi() {
 	fi
 
 	# Clone default Okapi
+  	echo -e "Cloning Okapi ..."
+
 	eval "git clone --recurse-submodules $OKAPI_REPO"
+
+  	echo -e ""
 }
 
 build_okapi() {
 	# Check if Okapi exists in modules.json and build default okapi repo
 	FOUND=$(jq '.[] | first(select(.id == "okapi")) | .id == "okapi"' $JSON_FILE)
 	if [[ "$FOUND" == "false" ]] || [[ -z "$FOUND" ]]; then
-		eval "cd $OKAPI_DIR && $OKAPI_BUILD_COMMAND"
-
 		return
 	fi
 
@@ -1404,13 +1413,113 @@ build_okapi() {
 	fi
 
 	# Build default Okapi command
+  	echo -e "Build Okapi ..."
 	eval "cd $OKAPI_DIR && $OKAPI_BUILD_COMMAND"
 
 	# Go back to modules directory
 	cd ..
+
+	echo -e ""
+}
+
+rebuild_okapi() {
+	# Check if Okapi exists in modules.json and build default okapi repo
+	SHOULD_REBUILD_OKAPI=$(jq '.[] | first(select(.id == "okapi")) | .id == "okapi" and .rebuild == "true"' $JSON_FILE)
+	if [[ "$SHOULD_REBUILD_OKAPI" == "true" ]]; then
+    	echo -e "Rebuild Okapi ..."
+
+    	build_okapi
+
+    	echo -e ""
+	fi
+}
+
+stop_running_modules() {
+  	echo -e "Stop running modules ..."
+
+	for ((j=$START_PORT; j<=$END_PORT; j++))
+	do
+        local PORT=$j
+
+        is_port_used $PORT
+        IS_PORT_USED=$?
+        if [[ "$IS_PORT_USED" -eq 1 ]]; then
+            kill_process_port $PORT
+        fi
+	done
+
+  	echo -e ""
+}
+
+export_vars() {
+	export_db_env_vars $DB_HOST $DB_PORT $DB_USERNAME $DB_PASSWORD $DB_DATABASE $DB_QUERYTIMEOUT $DB_MAXPOOLSIZE
+
+	export_kafka_env_vars
+
+	export_okapi_vars
+}
+
+export_db_env_vars() {
+	local DB__HOST=$1
+	local DB__PORT=$2
+	local DB__USERNAME=$3
+	local DB__PASSWORD=$4
+	local DB__DATABASE=$5
+	local DB__QUERYTIMEOUT=$6
+	local DB__MAXPOOLSIZE=$7
+
+	export DB_HOST="$DB__HOST"
+	export DB_PORT="$DB__PORT"
+	export DB_USERNAME="$DB__USERNAME"
+	export DB_PASSWORD="$DB__PASSWORD"
+	export DB_DATABASE="$DB__DATABASE"
+	export DB_QUERYTIMEOUT="$DB__QUERYTIMEOUT"
+	export DB_MAXPOOLSIZE="$DB__MAXPOOLSIZE"
+
+	# Spring database env vars
+	export SPRING_DATASOURCE_URL="jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_DATABASE?reWriteBatchedInserts=true"
+	export SPRING_DATASOURCE_USERNAME="$DB_USERNAME"
+	export SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD"
+}
+
+export_kafka_env_vars() {
+	export KAFKA_PORT="$KAFKA_PORT"
+	export KAFKA_HOST="$KAFKA_HOST"
+}
+
+export_okapi_vars() {
+	export OKAPI_URL="$OKAPI_URL"
+}
+
+export_module_envs() {
+	local MODULE=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+
+	has "env" $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	local LENGTH=$(jq ".[$INDEX].env | length" $JSON_LIST)
+
+	for ((k=0; k<$LENGTH; k++))
+	do
+		ENV_NAME=$(jq ".[$INDEX].env[$k].name" $JSON_LIST)
+		ENV_VALUE=$(jq ".[$INDEX].env[$k].value" $JSON_LIST)
+
+		# Remove extra double quotes at start and end of the string
+		ENV_NAME=$(echo $ENV_NAME | sed 's/"//g')
+		ENV_VALUE=$(echo $ENV_VALUE | sed 's/"//g')
+
+		declare ENV_VAR="$ENV_NAME"
+		export $ENV_VAR="$ENV_VALUE"
+	done
 }
 
 stop_okapi() {
+  	echo -e "Stopping Okapi ..."
+
 	kill_process_port $OKAPI_PORT
 }
 
@@ -1515,7 +1624,7 @@ reset_and_verify_password() {
 
 		echo -e "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
 		echo -e ""
-		echo -e "Please wait until permissions added are persisted, which may delay due to underlying kafka process in users module so we try again."
+		echo -e "Please wait until permissions added are persisted, which may delay due to underlying kafka process in users module so we will try again now."
 
 		sleep 50
 

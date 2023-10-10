@@ -1,6 +1,6 @@
 #!/bin/bash
 
-START_PORT=9131
+START_PORT=9130
 END_PORT=9200
 
 set_port_arg() {

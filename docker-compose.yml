@@ -4,9 +4,9 @@ services:
     container_name: postgres-folio
     image: postgres:14-alpine
     environment:
-      - POSTGRES_USER=okapi
-      - POSTGRES_PASSWORD=okapi25
-      - POSTGRES_DB=okapi
+      - POSTGRES_DB=okapi_modules
+      - POSTGRES_USER=folio_admin
+      - POSTGRES_PASSWORD=folio_admin
       - PGDATA=/data/postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
