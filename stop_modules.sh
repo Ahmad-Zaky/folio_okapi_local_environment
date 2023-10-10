@@ -18,7 +18,6 @@ stop_modules() {
 
 	for ((i=$START_PORT; i<=$END_PORT; i++))
 	do
-		echo $PORT
         local PORT=$i
 
         is_port_used $PORT
