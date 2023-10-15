@@ -165,8 +165,6 @@ go_to_modules_dir() {
 }
 
 run_okapi() {
-  	echo -e "Running Okapi ..."
-
 	# Do not run Okapi if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
@@ -178,6 +176,8 @@ run_okapi() {
 	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 0 ]]; then
 		return
 	fi
+
+  	echo -e "Running Okapi ..."
 
 	# If Okapi is missing in the modules directory then clone and compile
 	is_okapi_exists
