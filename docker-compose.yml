@@ -2,14 +2,15 @@ version: "3.8"
 services:
   postgres:
     container_name: postgres-folio
-    image: postgres:14-alpine
+    image: postgres:15-alpine
     environment:
       - POSTGRES_DB=okapi_modules
       - POSTGRES_USER=folio_admin
       - POSTGRES_PASSWORD=folio_admin
       - PGDATA=/data/postgres
+      - POSTGRES_SUPERUSER_USERNAME=postgres
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
