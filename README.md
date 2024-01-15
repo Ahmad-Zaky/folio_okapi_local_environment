@@ -93,5 +93,5 @@ okapi_purgedb       # run okapi with purgedatabase mode, removes existing tables
 | postman -> api_key | Has the api key of my postman account | `"api_key": "<api_key>",` |
 | postman -> enabled | Control if we want to import the `.yml` file or not | `true` or `false` |
 | install_params | This key value will be used in register (enable) step, A module may, besides doing the fundamental initialization of storage etc. also load sets of reference data. This can be controlled by supplying tenant parameters. These are properties (key-value pairs) that are passed to the module when enabled or upgraded. Passing those are only performed when tenantParameters is specified for install and when the tenant interface is version 1.2 and later. | - |
-| install_params -> tenantParameters -> loadReference | with value true loads reference data |  |
-| install_params -> tenantParameters -> loadSample | with value true loads sample data. |  |
+| install_params -> tenantParameters -> loadReference | with value true loads reference data | `true` or `false` |
+| install_params -> tenantParameters -> loadSample | with value true loads sample data. | `true` or `false` |
