@@ -1,744 +1,13 @@
 #!/bin/bash
 
-################################
-# 		 START - PREPARE	   #
-################################
-
-pre_process() {
-	defaults
-
-	set_args $*
-
-	go_to_modules_dir
-
-	stop_running_modules
-
-	run_okapi
-
-	set_env_vars_to_okapi
-
-	export_vars
-
-	new_tenant
-
-	validate_modules_list
-}
-
-# Default Variable values
-defaults() {
-	# DB env vars
-	DB_HOST=localhost
-	DB_PORT=5432
-	DB_DATABASE=okapi_modules
-	DB_USERNAME=folio_admin
-	DB_PASSWORD=folio_admin
-	DB_QUERYTIMEOUT=60000
-	DB_MAXPOOLSIZE=5
-
-	KAFKA_PORT=9093
-	KAFKA_HOST="localhost"
-
-	# Default OKAPI Header with value which is used at setting curl request headers
-	OKAPI_HEADER=x
-
-	# Okapi Port
-	OKAPI_PORT=9130
-
-	# Okapi Port
-	START_PORT=$((OKAPI_PORT + 1))
-
-	# Okapi Port
-	END_PORT=9200
-
-	# Okapi Url
-	OKAPI_URL=http://localhost:$OKAPI_PORT
-
-	# Okapi Directory
-	OKAPI_DIR=okapi
-	
-	# Okapi repository
-	OKAPI_REPO="git@github.com:folio-org/okapi.git"
-	
-	# Okapi Options
-	OKAPI_DB_OPTIONS="-Dpostgres_host=$DB_HOST -Dpostgres_port=$DB_PORT -Dpostgres_database=$DB_DATABASE -Dpostgres_username=$DB_USERNAME -Dpostgres_password=$DB_PASSWORD"
-
-	# Okapi build command
-	OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
-
-	# Okapi Command
-	OKAPI_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
-
-	# Okapi Initialize Database Command
-	OKAPI_INIT_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
-
-	# Okapi Purge Database tables Command
-	OKAPI_PURGE_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
-
-	# Modules directory path
-	MODULES_DIR=modules
-
-	# Modules list file
-	JSON_FILE="modules.json"
-
-	# Server Port
-	SERVER_PORT=$OKAPI_PORT
-
-	# Test Tenant
-	TENANT=testlib1
-
-	# Test User
-	USERNAME=testing_admin
-	PASSWORD=admin
-
-	# Postman API domain url
-	POSTMAN_URL="https://api.getpostman.com"
-	
-	# Import an OpenAPI Specification url path
-	POSTMAN_IMPORT_OPENAPI_PATH="/import/openapi"
-}
-
-set_args() {
-	ARGS=$*
-	for ARG in $ARGS; do
-		set_init_arg $ARG
-		set_purge_arg $ARG
-		set_restart_okapi_arg $ARG
-		set_without_okapi_arg $ARG
-	done
-
-}
-
-set_init_arg() {
-	local ARGUMENT=$1
-
-	if [[ "$INIT_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	INIT_ARG=0
-	if [ $ARGUMENT == "init" ]; then
-		INIT_ARG=1
-	fi
-}
-
-set_purge_arg() {
-	local ARGUMENT=$1
-
-	if [[ "$PURGE_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	PURGE_ARG=0
-	if [ $ARGUMENT == "purge" ]; then
-		PURGE_ARG=1
-	fi
-}
-
-set_restart_okapi_arg() {
-	local ARGUMENT=$1
-
-	if [[ "$RESTART_OKAPI_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	RESTART_OKAPI_ARG=0
-	if [ $ARGUMENT == "restart" ]; then
-		RESTART_OKAPI_ARG=1
-	fi
-}
-
-set_without_okapi_arg() {
-	local ARGUMENT=$1
-
-	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	WITHOUT_OKAPI_ARG=0
-	if [ $ARGUMENT == "without-okapi" ]; then
-		WITHOUT_OKAPI_ARG=1
-	fi
-}
-
-go_to_modules_dir() {
-	cd $MODULES_DIR
-}
-
-run_okapi() {
-	# Do not run Okapi if the argument without-okapi has been set
-	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		return
-	fi
-	
-	# Do nothing if Okapi is already running without setting restart argument
-	is_okapi_running
-	IS_OKAPI_RUNNING=$?
-	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 0 ]]; then
-		return
-	fi
-
-  	echo -e "Running Okapi ..."
-
-	# If Okapi is missing in the modules directory then clone and compile
-	is_okapi_exists
-	IS_OKAPI_EXISTS=$?
-	if [[ "$IS_OKAPI_EXISTS" -eq 0 ]]; then
-		clone_okapi && build_okapi
-	fi
-
-	# Rebuild Okapi if enabled in the modules.json
-	if [[ "$IS_OKAPI_EXISTS" -eq 1 ]]; then
-		rebuild_okapi $INDEX $JSON_LIST
-	fi
-
-	# Restart Okapi by stopping it first and then start it again
-	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 1 ]]; then
-		stop_okapi
-	fi
-
-	# Init Okapi
-	if [[ "$INIT_ARG" -eq 1 ]]; then
-	    echo -e "Init Okapi ..."
-
-		eval "cd $OKAPI_DIR && nohup $OKAPI_INIT_COMMAND &"
-	fi
-
-	# Purge Okapi
-	if [[ "$PURGE_ARG" -eq 1 ]]; then
-	    echo -e "Purge Okapi ..."
-
-		eval "cd $OKAPI_DIR && nohup $OKAPI_PURGE_COMMAND &"
-	fi
-
-	# Run Okapi
-	echo -e "Start Okapi ..."
-	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
-
-	# wait untill okapi is fully up and running
-	sleep 5
-}
-
-# Set Environment Variables to Okapi
-set_env_vars_to_okapi() {
-	# Do not set Okapi env variables if the argument without-okapi has been set
-	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	echo -e "Set environment variables to okapi"
-
-	echo -e ""
-
-	curl -s -d"{\"name\":\"DB_HOST\",\"value\":\"$DB_HOST\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"DB_PORT\",\"value\":\"$DB_PORT\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"DB_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"DB_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"DB_DATABASE\",\"value\":\"$DB_DATABASE\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"OKAPI_URL\",\"value\":\"$OKAPI_URL\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"KAFKA_PORT\",\"value\":\"$KAFKA_PORT\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"KAFKA_HOST\",\"value\":\"$KAFKA_HOST\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d'{"name":"ELASTICSEARCH_URL","value":"http://localhost:9200"}' $OKAPI_URL/_/env -o /dev/null
-
-	echo -e ""
-}
-
-# Store new tenant
-new_tenant() {
-	# Do not call for adding new tenant if the argument without-okapi has been set
-	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	echo -e "Add new tenant: $TENANT"
-	echo -e ""
-	
-	has_tenant $TENANT
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return
-	fi
-
-	curl -d"{\"id\":\"$TENANT\"}" $OKAPI_URL/_/proxy/tenants
-
-	echo -e ""
-}
-
-# Enable okapi module to tenant
-enable_okapi() {
-	local INDEX=$1
-	local JSON_LIST=$2
-
-	install_module enable okapi $INDEX $JSON_LIST
-}
-
-
-################################
-# 		 END - PREPARE		   #
-################################
-
-
-
-
-
-
-################################
-# 		START - VALIDATION	   #
-################################
-
-
-validate_modules_list() {
-	if [ ! -z "$1" ]; then
-		JSON_FILE=$1
-	fi  
-
-	if [ ! -f "$JSON_FILE" ]; then
-		error "JSON LIST is missing"
-	fi
-}
-
-validate_module_id() {
-	local INDEX=$1
-	local JSON_LIST=$2
-
-	has "id" $INDEX $JSON_LIST
-	if [[ "$?" -eq 0 ]]; then
-		error "Id property is missing"
-	fi
-
-	MODULE_ID=$(jq ".[$INDEX].id" $JSON_LIST)
-	
-	# Remove extra double quotes at start and end of the string
-	MODULE_ID=$(echo $MODULE_ID | sed 's/"//g')
-}
-
-validate_module_repo() {
-	local MODULE_ID=$1
-	local INDEX=$2
-	local JSON_LIST=$3
-
-	# Default repo url (FOLIO ORG)
-	REPO="git clone --recurse-submodules git@github.com:folio-org/$MODULE_ID"
-
-	# Custom Repo url
-	has "repo" $INDEX $JSON_LIST
-	if [[ "$?" -eq 1 ]]; then
-		local REPO_URL=$(jq ".[$INDEX].repo" $JSON_LIST)
-		
-		# Remove extra double quotes at start and end of the string
-		REPO_URL=$(echo $REPO_URL | sed 's/"//g')
-	
-		REPO="git clone --recurse-submodules $REPO_URL"
-	fi
-}
-
-validate_module_tag_branch() {
-	local INDEX=$1
-	local JSON_LIST=$2
-
-	has "branch" $INDEX $JSON_LIST
-	local HAS_BRANCH=$?
-
-	has "tag" $INDEX $JSON_LIST
-	local HAS_TAG=$?
-
-	if [[ "$HAS_TAG" -eq 1 ]] && [[ "$HAS_BRANCH" -eq 1 ]]; then
-		error "Either one of both tag, or branch should be provided"
-	fi
-
-	if [[ "$HAS_TAG" -eq 1 ]] && [[ "$HAS_BRANCH" -eq 0 ]]; then
-		local TAG=$(jq ".[$INDEX].tag" $JSON_LIST)
-		
-		# Remove extra double quotes at start and end of the string
-		TAG=$(echo $TAG | sed 's/"//g')
-		
-		REPO=$(echo "$REPO" | sed "s/^git clone/git clone -b $TAG/g")
-	fi
-	
-	if [[ "$HAS_BRANCH" -eq 1 ]] && [[ "$HAS_TAG" -eq 0 ]]; then
-		local BRANCH=$(jq ".[$INDEX].branch" $JSON_LIST)
-		
-		# Remove extra double quotes at start and end of the string
-		BRANCH=$(echo $BRANCH | sed 's/"//g')
-		
-		REPO=$(echo "$REPO" | sed "s/^git clone/git clone -b $BRANCH/g")
-	fi
-}
-
-validate_module_access_token() {
-	local INDEX=$1
-	local JSON_LIST=$2
-
-	has "access_token" $INDEX $JSON_LIST
-	local HAS_ACCESS_TOKEN=$?
-	if [[ "$HAS_ACCESS_TOKEN" -eq 1 ]]; then
-		local ACCESS_TOKEN=$(jq ".[$INDEX].access_token" $JSON_LIST)
-
-		# Remove extra double quotes at start and end of the string
-		ACCESS_TOKEN=$(echo $ACCESS_TOKEN | sed 's/"//g')
-		
-		B64_ACCESS_TOKEN=$(printf ":%s" "$ACCESS_TOKEN" | base64)
-		REPO=$(echo "$REPO" | sed "s/^git/git -c http.extraHeader=\"Authorization: Basic ${B64_ACCESS_TOKEN}\"/g")
-	fi
-}
-
-validate_open_api_file() {
-	local INDEX=$1
-	local JSON_LIST=$2
-	local MODULE=$3
-
-	has "file" $INDEX $JSON_LIST "postman"
-	if [[ "$?" -eq 0 ]]; then
-		error "Postman Open API File is missing" 
-	fi
-
-	OPEN_API_FILE=$(jq ".[$INDEX].postman.file" $JSON_LIST)
-	
-	# Remove extra double quotes at start and end of the string
-	OPEN_API_FILE=$(echo $OPEN_API_FILE | sed 's/"//g')
-
-	# Validate Open API file exists
-	if [ ! -f "$MODULE/$OPEN_API_FILE" ]; then
-		error "Open API file is missing"
-	fi
-}
-
-validate_postman_api_key() {
-	local INDEX=$1
-	local JSON_LIST=$2
-
-	has "api_key" $INDEX $JSON_LIST "postman"
-	if [[ "$?" -eq 0 ]]; then
-		error "Postman API Key is missing" 
-	fi
-
-	POSTMAN_API_KEY=$(jq ".[$INDEX].postman.api_key" $JSON_LIST)
-
-	# Remove extra double quotes at start and end of the string
-	POSTMAN_API_KEY=$(echo $POSTMAN_API_KEY | sed 's/"//g')
-}
-
-validate_okapi_url() {
-	local INDEX=$1
-	local JSON_LIST=$2
-
-	has "url" $INDEX $JSON_LIST "okapi"
-	if [[ "$?" -eq 0 ]]; then
-		error "Okapi Url Key is missing" 
-	fi
-
-	CLOUD_OKAPI_URL=$(jq ".[$INDEX].okapi.url" $JSON_LIST)
-
-	# Remove extra double quotes at start and end of the string
-	CLOUD_OKAPI_URL=$(echo $CLOUD_OKAPI_URL | sed 's/"//g')
-}
-
-validate_okapi_tenant() {
-	local INDEX=$1
-	local JSON_LIST=$2
-
-	has "tenant" $INDEX $JSON_LIST "okapi"
-	if [[ "$?" -eq 0 ]]; then
-		error "Okapi Tenant Key is missing" 
-	fi
-
-	SERVER_TENANT=$(jq ".[$INDEX].okapi.tenant" $JSON_LIST)
-
-	# Remove extra double quotes at start and end of the string
-	SERVER_TENANT=$(echo $SERVER_TENANT | sed 's/"//g')
-}
-
-validate_okapi_credentials() {
-	local INDEX=$1
-	local JSON_LIST=$2
-
-	has "username" $INDEX $JSON_LIST "okapi.credentials"
-	if [[ "$?" -eq 0 ]]; then
-		error "Okapi credentials username key is missing" 
-	fi
-
-	has "password" $INDEX $JSON_LIST "okapi.credentials"
-	if [[ "$?" -eq 0 ]]; then
-		error "Okapi credentials password key is missing" 
-	fi
-
-	SERVER_USERNAME=$(jq ".[$INDEX].okapi.credentials.username" $JSON_LIST)
-	SERVER_PASSWORD=$(jq ".[$INDEX].okapi.credentials.password" $JSON_LIST)
-
-	# Remove extra double quotes at start and end of the string
-	SERVER_USERNAME=$(echo $SERVER_USERNAME | sed 's/"//g')
-	SERVER_PASSWORD=$(echo $SERVER_PASSWORD | sed 's/"//g')
-}
-
-
-################################
-# 		END - VALIDATION	   #
-################################
-
-
-
-
-
-####################################################################################
-#   START - Clone, Build (Compile), Register (Declare), Deploy, Install (Enable)   #
-####################################################################################
-
-# Clone module
-clone_module() {
-	local INDEX=$1
-	local JSON_LIST=$2
-
-	should_clone $INDEX $JSON_LIST
-	if [[ "$?" -eq 0 ]]; then
-		return
-	fi
-	
-	# Clone the module repo
-	if [ ! -d $MODULE_ID ]; then
-		echo -e "Clone module $MODULE_ID"
-		
-		# Print Repo Link
-		echo -e ""
-		echo -e $REPO
-		echo -e ""
-
-		eval "$REPO"
-	fi
-
-	if [[ ! -d "$MODULE_ID" ]]; then
-		error "$MODULE_ID is missing. git clone failed?"
-	fi
-}
-
-# Build (compile) module
-build_module() {
-	local MODULE_ID=$1
-	local INDEX=$2
-	local JSON_LIST=$3
-
-	should_build $INDEX $JSON_LIST
-	if [[ "$?" -eq 0 ]]; then
-		return
-	fi
-	should_rebuild $INDEX $JSON_LIST
-	SHOULD_REBUILD=$?
-	local MODULE_DESCRIPTOR=$MODULE_ID/target/ModuleDescriptor.json
-	if [[ -f $MODULE_DESCRIPTOR ]] && [[ "$SHOULD_REBUILD" -eq 0 ]]; then
-		return
-	fi
-
-	# Opt in the module
-	cd $MODULE_ID
-	
-	# Default Build command
-	BUILD="mvn -DskipTests -Dmaven.test.skip=true verify"
-
-	# Custom Build command
-	has "build" $INDEX ../$JSON_LIST
-	if [[ "$?" -eq 1 ]]; then
-		local BUILD=$(jq ".[$INDEX].build" ../$JSON_LIST)
-		
-		# Remove extra double quotes at start and end of the string
-		BUILD=$(echo $BUILD | sed 's/"//g')	
-	fi
-
-	echo -e "Build module $MODULE_ID"
-
-	# build
-	eval "$BUILD"
-
-	# Opt out from the module
-	cd ..
-}
-
-# Register (store) module into Okapi
-register_module() {
-	local MODULE_ID=$1
-	local INDEX=$2
-	local JSON_LIST=$3
-	local MODULE_DESCRIPTOR=$MODULE_ID/target/ModuleDescriptor.json
-
-	should_register $INDEX $JSON_LIST
-	if [[ "$?" -eq 0 ]]; then
-		return
-	fi
-	
-	# Do not use local okapi instance instead use already running okapi instance on the cloud
-	if [ -n "$CLOUD_OKAPI_URL" ]; then
-		return
-	fi
-
-	# Do not run modules that depend on local Okapi instance if the argument without-okapi has been set
-	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	has_registered $MODULE_ID
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return
-	fi
-
-	# Validate module descriptor file
-	if [[ ! -f $MODULE_DESCRIPTOR ]]; then
-		error "$MODULE_DESCRIPTOR missing pwd=`pwd`"
-	fi
-
-	echo -e "Register module $MODULE_ID"
-
-	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
-	fi
-
-	curl -s $OPTIONS -d@$MODULE_DESCRIPTOR $OKAPI_URL/_/proxy/modules -o /dev/null
-
-	echo -e ""
-}
-
-# Deploy module into Okapi
-deploy_module() {
-	local MODULE_ID=$1
-	local INDEX=$2
-	local JSON_LIST=$3
-	local DEPLOY_DESCRIPTOR=$MODULE_ID/target/DeploymentDescriptor.json
-	
-	should_deploy $INDEX $JSON_LIST
-	if [[ "$?" -eq 0 ]]; then
-		return
-	fi
-
-	# Do not use local okapi instance instead use already running okapi instance on the cloud
-	has "okapi" $INDEX $JSON_LIST
-	FOUND=$?
-	if [[ -n "$CLOUD_OKAPI_URL" ]] && [[ "$FOUND" -eq 1 ]]; then
-		deploy_module_directly $MODULE_ID $INDEX $JSON_LIST
-
-		return
-	fi
-
-	# Do not run modules that depend on local Okapi instance if the argument without-okapi has been set
-	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	has_deployed $MODULE_ID
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return
-	fi
-
-	echo "Deploy module $MODULE_ID on port: $SERVER_PORT"
-
-	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
-	fi
-
-	curl -s $OPTIONS -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules -o /dev/null
-
-	echo -e ""
-}
-
-# Install (enable) modules for a tenant
-install_module() {
-	local ACTION=$1
-	local MODULE=$2
-	local INDEX=$3
-	local JSON_LIST=$4
-	
-	should_install $INDEX $JSON_LIST
-	if [[ "$?" -eq 0 ]]; then
-		return
-	fi
-
-	# Do not use local okapi instance instead use already running okapi instance on the cloud
-	has "okapi" $INDEX $JSON_LIST
-	FOUND=$?
-	if [[ -n "$CLOUD_OKAPI_URL" ]] && [[ "$FOUND" -eq 1 ]]; then
-		enable_module_directly $MODULE_ID $INDEX $JSON_LIST
-		unset CLOUD_OKAPI_URL
-
-		return
-	fi
-
-	# Do not run modules that depend on local Okapi instance Okapi if the argument without-okapi has been set
-	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	# Build Body Json list of modules with action enable comes as argument
-	has_installed $MODULE $TENANT
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return
-	fi
-	local PAYLOAD="[{\"action\":\"$ACTION\",\"id\":\"$MODULE\"}]"
-
-	# Set Okapi Token if set
-	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
-	fi
-
-	# Validate if the list is not empty	
-	if [[ "$PAYLOAD" =~ ^\[.+\]$ ]]; then
-		echo -e "Install (Enable) $MODULE"
-		
-		get_install_params $MODULE $i $JSON_LIST
-
-		# Install (enable) modules
-		curl -s $OPTIONS "-d$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?$INSTALL_PARAMS" -o /dev/null
-
-		echo -e ""
-	fi
-}
-
-# Clone, Build (compile), Register (declare), Deploy, Install (enable) modules one by one
-process() {
-	local LENGTH=$(jq '. | length' $JSON_FILE)
-
-	for ((i=0; i<$LENGTH; i++))
-	do
-		# Skip okapi module if exists
-		has_value "id" $i "okapi" $JSON_FILE
-		FOUND=$?
-		if [[ "$FOUND" -eq 1 ]]; then
-			continue
-		fi
-
-		# Skip disabled modules
-		is_enabled $i $JSON_FILE
-		IS_ENALBLED=$?
-		if [[ "$IS_ENALBLED" -eq 0 ]]; then
-			continue
-		fi
-
-		# Step No. 1
-		pre_clone $i $JSON_FILE		
-		clone_module $i $JSON_FILE		
-		
-		# Step No. 2
-		build_module $MODULE_ID $i $JSON_FILE
-
-		# Step No. 3
-		pre_register $MODULE_ID $i $JSON_FILE
-		register_module $MODULE_ID $i $JSON_FILE
-
-		# Step No. 4
-		deploy_module $MODULE_ID $i $JSON_FILE
-
-		# Step No. 5
-		install_module enable $MODULE_ID $i $JSON_FILE
-		post_install $MODULE_ID $i $JSON_FILE
-	done
-}
-
-###################################################################################
-#    END - Clone, Build (Compile), Register (Declare), Deploy, Install (Enable)   #
-###################################################################################
-
-
-
+#############################################################################################
+# - Sections order:																			#
+# 	+ Helpers																				#
+# 	+ Prepare																				#
+#	+ Validation																			#
+# 	+ Processing (Clone, Build (Compile), Register (Declare), Deploy, Install (Enable))		#
+# 	+ Run																					#
+#############################################################################################
 
 
 ################################
@@ -1775,6 +1044,747 @@ kill_process_port() {
 ################################
 # 		 END - HELPERS		   #
 ################################
+
+
+
+
+
+################################
+# 		 START - PREPARE	   #
+################################
+
+pre_process() {
+	defaults
+
+	set_args $*
+
+	go_to_modules_dir
+
+	stop_running_modules
+
+	run_okapi
+
+	set_env_vars_to_okapi
+
+	export_vars
+
+	new_tenant
+
+	validate_modules_list
+}
+
+# Default Variable values
+defaults() {
+	# DB env vars
+	DB_HOST=localhost
+	DB_PORT=5432
+	DB_DATABASE=okapi_modules
+	DB_USERNAME=folio_admin
+	DB_PASSWORD=folio_admin
+	DB_QUERYTIMEOUT=60000
+	DB_MAXPOOLSIZE=5
+
+	KAFKA_PORT=9093
+	KAFKA_HOST="localhost"
+
+	# Default OKAPI Header with value which is used at setting curl request headers
+	OKAPI_HEADER=x
+
+	# Okapi Port
+	OKAPI_PORT=9130
+
+	# Okapi Port
+	START_PORT=$((OKAPI_PORT + 1))
+
+	# Okapi Port
+	END_PORT=9200
+
+	# Okapi Url
+	OKAPI_URL=http://localhost:$OKAPI_PORT
+
+	# Okapi Directory
+	OKAPI_DIR=okapi
+	
+	# Okapi repository
+	OKAPI_REPO="git@github.com:folio-org/okapi.git"
+	
+	# Okapi Options
+	OKAPI_DB_OPTIONS="-Dpostgres_host=$DB_HOST -Dpostgres_port=$DB_PORT -Dpostgres_database=$DB_DATABASE -Dpostgres_username=$DB_USERNAME -Dpostgres_password=$DB_PASSWORD"
+
+	# Okapi build command
+	OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
+
+	# Okapi Command
+	OKAPI_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
+
+	# Okapi Initialize Database Command
+	OKAPI_INIT_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
+
+	# Okapi Purge Database tables Command
+	OKAPI_PURGE_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
+
+	# Modules directory path
+	MODULES_DIR=modules
+
+	# Modules list file
+	JSON_FILE="modules.json"
+
+	# Server Port
+	SERVER_PORT=$OKAPI_PORT
+
+	# Test Tenant
+	TENANT=testlib1
+
+	# Test User
+	USERNAME=testing_admin
+	PASSWORD=admin
+
+	# Postman API domain url
+	POSTMAN_URL="https://api.getpostman.com"
+	
+	# Import an OpenAPI Specification url path
+	POSTMAN_IMPORT_OPENAPI_PATH="/import/openapi"
+}
+
+set_args() {
+	ARGS=$*
+	for ARG in $ARGS; do
+		set_init_arg $ARG
+		set_purge_arg $ARG
+		set_restart_okapi_arg $ARG
+		set_without_okapi_arg $ARG
+	done
+
+}
+
+set_init_arg() {
+	local ARGUMENT=$1
+
+	if [[ "$INIT_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	INIT_ARG=0
+	if [ $ARGUMENT == "init" ]; then
+		INIT_ARG=1
+	fi
+}
+
+set_purge_arg() {
+	local ARGUMENT=$1
+
+	if [[ "$PURGE_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	PURGE_ARG=0
+	if [ $ARGUMENT == "purge" ]; then
+		PURGE_ARG=1
+	fi
+}
+
+set_restart_okapi_arg() {
+	local ARGUMENT=$1
+
+	if [[ "$RESTART_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	RESTART_OKAPI_ARG=0
+	if [ $ARGUMENT == "restart" ]; then
+		RESTART_OKAPI_ARG=1
+	fi
+}
+
+set_without_okapi_arg() {
+	local ARGUMENT=$1
+
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	WITHOUT_OKAPI_ARG=0
+	if [ $ARGUMENT == "without-okapi" ]; then
+		WITHOUT_OKAPI_ARG=1
+	fi
+}
+
+go_to_modules_dir() {
+	cd $MODULES_DIR
+}
+
+run_okapi() {
+	# Do not run Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+	
+	# Do nothing if Okapi is already running without setting restart argument
+	is_okapi_running
+	IS_OKAPI_RUNNING=$?
+	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 0 ]]; then
+		return
+	fi
+
+  	echo -e "Running Okapi ..."
+
+	# If Okapi is missing in the modules directory then clone and compile
+	is_okapi_exists
+	IS_OKAPI_EXISTS=$?
+	if [[ "$IS_OKAPI_EXISTS" -eq 0 ]]; then
+		clone_okapi && build_okapi
+	fi
+
+	# Rebuild Okapi if enabled in the modules.json
+	if [[ "$IS_OKAPI_EXISTS" -eq 1 ]]; then
+		rebuild_okapi $INDEX $JSON_LIST
+	fi
+
+	# Restart Okapi by stopping it first and then start it again
+	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 1 ]]; then
+		stop_okapi
+	fi
+
+	# Init Okapi
+	if [[ "$INIT_ARG" -eq 1 ]]; then
+	    echo -e "Init Okapi ..."
+
+		eval "cd $OKAPI_DIR && nohup $OKAPI_INIT_COMMAND &"
+	fi
+
+	# Purge Okapi
+	if [[ "$PURGE_ARG" -eq 1 ]]; then
+	    echo -e "Purge Okapi ..."
+
+		eval "cd $OKAPI_DIR && nohup $OKAPI_PURGE_COMMAND &"
+	fi
+
+	# Run Okapi
+	echo -e "Start Okapi ..."
+	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
+
+	# wait untill okapi is fully up and running
+	sleep 5
+}
+
+# Set Environment Variables to Okapi
+set_env_vars_to_okapi() {
+	# Do not set Okapi env variables if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	echo -e "Set environment variables to okapi"
+
+	echo -e ""
+
+	curl -s -d"{\"name\":\"DB_HOST\",\"value\":\"$DB_HOST\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"DB_PORT\",\"value\":\"$DB_PORT\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"DB_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"DB_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"DB_DATABASE\",\"value\":\"$DB_DATABASE\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"OKAPI_URL\",\"value\":\"$OKAPI_URL\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"KAFKA_PORT\",\"value\":\"$KAFKA_PORT\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"KAFKA_HOST\",\"value\":\"$KAFKA_HOST\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d'{"name":"ELASTICSEARCH_URL","value":"http://localhost:9200"}' $OKAPI_URL/_/env -o /dev/null
+
+	echo -e ""
+}
+
+# Store new tenant
+new_tenant() {
+	# Do not call for adding new tenant if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	echo -e "Add new tenant: $TENANT"
+	echo -e ""
+	
+	has_tenant $TENANT
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	curl -d"{\"id\":\"$TENANT\"}" $OKAPI_URL/_/proxy/tenants
+
+	echo -e ""
+}
+
+# Enable okapi module to tenant
+enable_okapi() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	install_module enable okapi $INDEX $JSON_LIST
+}
+
+
+################################
+# 		 END - PREPARE		   #
+################################
+
+
+
+
+
+
+################################
+# 		START - VALIDATION	   #
+################################
+
+
+validate_modules_list() {
+	if [ ! -z "$1" ]; then
+		JSON_FILE=$1
+	fi  
+
+	if [ ! -f "$JSON_FILE" ]; then
+		error "JSON LIST is missing"
+	fi
+}
+
+validate_module_id() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	has "id" $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		error "Id property is missing"
+	fi
+
+	MODULE_ID=$(jq ".[$INDEX].id" $JSON_LIST)
+	
+	# Remove extra double quotes at start and end of the string
+	MODULE_ID=$(echo $MODULE_ID | sed 's/"//g')
+}
+
+validate_module_repo() {
+	local MODULE_ID=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+
+	# Default repo url (FOLIO ORG)
+	REPO="git clone --recurse-submodules git@github.com:folio-org/$MODULE_ID"
+
+	# Custom Repo url
+	has "repo" $INDEX $JSON_LIST
+	if [[ "$?" -eq 1 ]]; then
+		local REPO_URL=$(jq ".[$INDEX].repo" $JSON_LIST)
+		
+		# Remove extra double quotes at start and end of the string
+		REPO_URL=$(echo $REPO_URL | sed 's/"//g')
+	
+		REPO="git clone --recurse-submodules $REPO_URL"
+	fi
+}
+
+validate_module_tag_branch() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	has "branch" $INDEX $JSON_LIST
+	local HAS_BRANCH=$?
+
+	has "tag" $INDEX $JSON_LIST
+	local HAS_TAG=$?
+
+	if [[ "$HAS_TAG" -eq 1 ]] && [[ "$HAS_BRANCH" -eq 1 ]]; then
+		error "Either one of both tag, or branch should be provided"
+	fi
+
+	if [[ "$HAS_TAG" -eq 1 ]] && [[ "$HAS_BRANCH" -eq 0 ]]; then
+		local TAG=$(jq ".[$INDEX].tag" $JSON_LIST)
+		
+		# Remove extra double quotes at start and end of the string
+		TAG=$(echo $TAG | sed 's/"//g')
+		
+		REPO=$(echo "$REPO" | sed "s/^git clone/git clone -b $TAG/g")
+	fi
+	
+	if [[ "$HAS_BRANCH" -eq 1 ]] && [[ "$HAS_TAG" -eq 0 ]]; then
+		local BRANCH=$(jq ".[$INDEX].branch" $JSON_LIST)
+		
+		# Remove extra double quotes at start and end of the string
+		BRANCH=$(echo $BRANCH | sed 's/"//g')
+		
+		REPO=$(echo "$REPO" | sed "s/^git clone/git clone -b $BRANCH/g")
+	fi
+}
+
+validate_module_access_token() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	has "access_token" $INDEX $JSON_LIST
+	local HAS_ACCESS_TOKEN=$?
+	if [[ "$HAS_ACCESS_TOKEN" -eq 1 ]]; then
+		local ACCESS_TOKEN=$(jq ".[$INDEX].access_token" $JSON_LIST)
+
+		# Remove extra double quotes at start and end of the string
+		ACCESS_TOKEN=$(echo $ACCESS_TOKEN | sed 's/"//g')
+		
+		B64_ACCESS_TOKEN=$(printf ":%s" "$ACCESS_TOKEN" | base64)
+		REPO=$(echo "$REPO" | sed "s/^git/git -c http.extraHeader=\"Authorization: Basic ${B64_ACCESS_TOKEN}\"/g")
+	fi
+}
+
+validate_open_api_file() {
+	local INDEX=$1
+	local JSON_LIST=$2
+	local MODULE=$3
+
+	has "file" $INDEX $JSON_LIST "postman"
+	if [[ "$?" -eq 0 ]]; then
+		error "Postman Open API File is missing" 
+	fi
+
+	OPEN_API_FILE=$(jq ".[$INDEX].postman.file" $JSON_LIST)
+	
+	# Remove extra double quotes at start and end of the string
+	OPEN_API_FILE=$(echo $OPEN_API_FILE | sed 's/"//g')
+
+	# Validate Open API file exists
+	if [ ! -f "$MODULE/$OPEN_API_FILE" ]; then
+		error "Open API file is missing"
+	fi
+}
+
+validate_postman_api_key() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	has "api_key" $INDEX $JSON_LIST "postman"
+	if [[ "$?" -eq 0 ]]; then
+		error "Postman API Key is missing" 
+	fi
+
+	POSTMAN_API_KEY=$(jq ".[$INDEX].postman.api_key" $JSON_LIST)
+
+	# Remove extra double quotes at start and end of the string
+	POSTMAN_API_KEY=$(echo $POSTMAN_API_KEY | sed 's/"//g')
+}
+
+validate_okapi_url() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	has "url" $INDEX $JSON_LIST "okapi"
+	if [[ "$?" -eq 0 ]]; then
+		error "Okapi Url Key is missing" 
+	fi
+
+	CLOUD_OKAPI_URL=$(jq ".[$INDEX].okapi.url" $JSON_LIST)
+
+	# Remove extra double quotes at start and end of the string
+	CLOUD_OKAPI_URL=$(echo $CLOUD_OKAPI_URL | sed 's/"//g')
+}
+
+validate_okapi_tenant() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	has "tenant" $INDEX $JSON_LIST "okapi"
+	if [[ "$?" -eq 0 ]]; then
+		error "Okapi Tenant Key is missing" 
+	fi
+
+	SERVER_TENANT=$(jq ".[$INDEX].okapi.tenant" $JSON_LIST)
+
+	# Remove extra double quotes at start and end of the string
+	SERVER_TENANT=$(echo $SERVER_TENANT | sed 's/"//g')
+}
+
+validate_okapi_credentials() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	has "username" $INDEX $JSON_LIST "okapi.credentials"
+	if [[ "$?" -eq 0 ]]; then
+		error "Okapi credentials username key is missing" 
+	fi
+
+	has "password" $INDEX $JSON_LIST "okapi.credentials"
+	if [[ "$?" -eq 0 ]]; then
+		error "Okapi credentials password key is missing" 
+	fi
+
+	SERVER_USERNAME=$(jq ".[$INDEX].okapi.credentials.username" $JSON_LIST)
+	SERVER_PASSWORD=$(jq ".[$INDEX].okapi.credentials.password" $JSON_LIST)
+
+	# Remove extra double quotes at start and end of the string
+	SERVER_USERNAME=$(echo $SERVER_USERNAME | sed 's/"//g')
+	SERVER_PASSWORD=$(echo $SERVER_PASSWORD | sed 's/"//g')
+}
+
+
+################################
+# 		END - VALIDATION	   #
+################################
+
+
+
+
+
+####################################################################################
+#   START - Clone, Build (Compile), Register (Declare), Deploy, Install (Enable)   #
+####################################################################################
+
+# Clone module
+clone_module() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	should_clone $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+	
+	# Clone the module repo
+	if [ ! -d $MODULE_ID ]; then
+		echo -e "Clone module $MODULE_ID"
+		
+		# Print Repo Link
+		echo -e ""
+		echo -e $REPO
+		echo -e ""
+
+		eval "$REPO"
+	fi
+
+	if [[ ! -d "$MODULE_ID" ]]; then
+		error "$MODULE_ID is missing. git clone failed?"
+	fi
+}
+
+# Build (compile) module
+build_module() {
+	local MODULE_ID=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+
+	should_build $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+	should_rebuild $INDEX $JSON_LIST
+	SHOULD_REBUILD=$?
+	local MODULE_DESCRIPTOR=$MODULE_ID/target/ModuleDescriptor.json
+	if [[ -f $MODULE_DESCRIPTOR ]] && [[ "$SHOULD_REBUILD" -eq 0 ]]; then
+		return
+	fi
+
+	# Opt in the module
+	cd $MODULE_ID
+	
+	# Default Build command
+	BUILD="mvn -DskipTests -Dmaven.test.skip=true verify"
+
+	# Custom Build command
+	has "build" $INDEX ../$JSON_LIST
+	if [[ "$?" -eq 1 ]]; then
+		local BUILD=$(jq ".[$INDEX].build" ../$JSON_LIST)
+		
+		# Remove extra double quotes at start and end of the string
+		BUILD=$(echo $BUILD | sed 's/"//g')	
+	fi
+
+	echo -e "Build module $MODULE_ID"
+
+	# build
+	eval "$BUILD"
+
+	# Opt out from the module
+	cd ..
+}
+
+# Register (store) module into Okapi
+register_module() {
+	local MODULE_ID=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+	local MODULE_DESCRIPTOR=$MODULE_ID/target/ModuleDescriptor.json
+
+	should_register $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+	
+	# Do not use local okapi instance instead use already running okapi instance on the cloud
+	if [ -n "$CLOUD_OKAPI_URL" ]; then
+		return
+	fi
+
+	# Do not run modules that depend on local Okapi instance if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	has_registered $MODULE_ID
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	# Validate module descriptor file
+	if [[ ! -f $MODULE_DESCRIPTOR ]]; then
+		error "$MODULE_DESCRIPTOR missing pwd=`pwd`"
+	fi
+
+	echo -e "Register module $MODULE_ID"
+
+	OPTIONS=""
+	if test "$OKAPI_HEADER" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	fi
+
+	curl -s $OPTIONS -d@$MODULE_DESCRIPTOR $OKAPI_URL/_/proxy/modules -o /dev/null
+
+	echo -e ""
+}
+
+# Deploy module into Okapi
+deploy_module() {
+	local MODULE_ID=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+	local DEPLOY_DESCRIPTOR=$MODULE_ID/target/DeploymentDescriptor.json
+	
+	should_deploy $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	# Do not use local okapi instance instead use already running okapi instance on the cloud
+	has "okapi" $INDEX $JSON_LIST
+	FOUND=$?
+	if [[ -n "$CLOUD_OKAPI_URL" ]] && [[ "$FOUND" -eq 1 ]]; then
+		deploy_module_directly $MODULE_ID $INDEX $JSON_LIST
+
+		return
+	fi
+
+	# Do not run modules that depend on local Okapi instance if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	has_deployed $MODULE_ID
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	echo "Deploy module $MODULE_ID on port: $SERVER_PORT"
+
+	OPTIONS=""
+	if test "$OKAPI_HEADER" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	fi
+
+	curl -s $OPTIONS -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules -o /dev/null
+
+	echo -e ""
+}
+
+# Install (enable) modules for a tenant
+install_module() {
+	local ACTION=$1
+	local MODULE=$2
+	local INDEX=$3
+	local JSON_LIST=$4
+	
+	should_install $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	# Do not use local okapi instance instead use already running okapi instance on the cloud
+	has "okapi" $INDEX $JSON_LIST
+	FOUND=$?
+	if [[ -n "$CLOUD_OKAPI_URL" ]] && [[ "$FOUND" -eq 1 ]]; then
+		enable_module_directly $MODULE_ID $INDEX $JSON_LIST
+		unset CLOUD_OKAPI_URL
+
+		return
+	fi
+
+	# Do not run modules that depend on local Okapi instance Okapi if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	# Build Body Json list of modules with action enable comes as argument
+	has_installed $MODULE $TENANT
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+	local PAYLOAD="[{\"action\":\"$ACTION\",\"id\":\"$MODULE\"}]"
+
+	# Set Okapi Token if set
+	OPTIONS=""
+	if test "$OKAPI_HEADER" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	fi
+
+	# Validate if the list is not empty	
+	if [[ "$PAYLOAD" =~ ^\[.+\]$ ]]; then
+		echo -e "Install (Enable) $MODULE"
+		
+		get_install_params $MODULE $i $JSON_LIST
+
+		# Install (enable) modules
+		curl -s $OPTIONS "-d$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?$INSTALL_PARAMS" -o /dev/null
+
+		echo -e ""
+	fi
+}
+
+# Clone, Build (compile), Register (declare), Deploy, Install (enable) modules one by one
+process() {
+	local LENGTH=$(jq '. | length' $JSON_FILE)
+
+	for ((i=0; i<$LENGTH; i++))
+	do
+		# Skip okapi module if exists
+		has_value "id" $i "okapi" $JSON_FILE
+		FOUND=$?
+		if [[ "$FOUND" -eq 1 ]]; then
+			continue
+		fi
+
+		# Skip disabled modules
+		is_enabled $i $JSON_FILE
+		IS_ENALBLED=$?
+		if [[ "$IS_ENALBLED" -eq 0 ]]; then
+			continue
+		fi
+
+		# Step No. 1
+		pre_clone $i $JSON_FILE		
+		clone_module $i $JSON_FILE		
+		
+		# Step No. 2
+		build_module $MODULE_ID $i $JSON_FILE
+
+		# Step No. 3
+		pre_register $MODULE_ID $i $JSON_FILE
+		register_module $MODULE_ID $i $JSON_FILE
+
+		# Step No. 4
+		deploy_module $MODULE_ID $i $JSON_FILE
+
+		# Step No. 5
+		install_module enable $MODULE_ID $i $JSON_FILE
+		post_install $MODULE_ID $i $JSON_FILE
+	done
+}
+
+###################################################################################
+#    END - Clone, Build (Compile), Register (Declare), Deploy, Install (Enable)   #
+###################################################################################
 
 
 
