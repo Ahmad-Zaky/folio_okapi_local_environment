@@ -1,6 +1,15 @@
 # FOLIO Okapi Local Environment
 FOLIO Okapi Local Environment
 
+> First you need to run this command `sudo docker compose up --build -d` to build and run the containers inside `docker-compose.yml` file which has these services
+
+* postgres
+* pgadmin
+* zookeeper
+* kafka
+* elasticsearch
+* kibana
+
 
 > for linux .bash_aliases saved aliases
 
