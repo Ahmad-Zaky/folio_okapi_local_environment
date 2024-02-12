@@ -141,6 +141,8 @@ pre_clone() {
 	validate_module_access_token $INDEX $JSON_LIST
 
 	export_module_envs $MODULE_ID $INDEX $JSON_LIST
+
+	re_export_vars
 }
 
 pre_register() {
@@ -728,6 +730,20 @@ export_vars() {
 	export_okapi_vars
 }
 
+re_export_vars() {
+	db_defaults
+
+	kafka_defaults
+	
+	module_defaults
+	
+	user_defaults
+	
+	postman_defaults
+
+	export_vars
+}
+
 export_db_env_vars() {
 	local DB__HOST=$1
 	local DB__PORT=$2
@@ -1075,6 +1091,20 @@ pre_process() {
 
 # Default Variable values
 defaults() {
+	db_defaults
+
+	kafka_defaults
+	
+	okapi_defaults
+	
+	module_defaults
+	
+	user_defaults
+	
+	postman_defaults
+}
+
+db_defaults() {
 	# DB env vars
 	DB_HOST=localhost
 	DB_PORT=5432
@@ -1083,10 +1113,14 @@ defaults() {
 	DB_PASSWORD=folio_admin
 	DB_QUERYTIMEOUT=60000
 	DB_MAXPOOLSIZE=5
+}
 
+kafka_defaults() {
 	KAFKA_PORT=9093
 	KAFKA_HOST="localhost"
+}
 
+okapi_defaults() {
 	# Default OKAPI Header with value which is used at setting curl request headers
 	OKAPI_HEADER=x
 
@@ -1123,22 +1157,28 @@ defaults() {
 	# Okapi Purge Database tables Command
 	OKAPI_PURGE_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
 
+	# Server Port
+	SERVER_PORT=$OKAPI_PORT
+}
+
+module_defaults() {
 	# Modules directory path
 	MODULES_DIR=modules
 
 	# Modules list file
 	JSON_FILE="modules.json"
+}
 
-	# Server Port
-	SERVER_PORT=$OKAPI_PORT
-
+user_defaults() {
 	# Test Tenant
 	TENANT=testlib1
 
 	# Test User
 	USERNAME=testing_admin
 	PASSWORD=admin
+}
 
+postman_defaults() {
 	# Postman API domain url
 	POSTMAN_URL="https://api.getpostman.com"
 	
@@ -1154,7 +1194,6 @@ set_args() {
 		set_restart_okapi_arg $ARG
 		set_without_okapi_arg $ARG
 	done
-
 }
 
 set_init_arg() {
