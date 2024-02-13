@@ -141,8 +141,6 @@ pre_clone() {
 	validate_module_access_token $INDEX $JSON_LIST
 
 	export_module_envs $MODULE_ID $INDEX $JSON_LIST
-
-	re_export_vars
 }
 
 pre_register() {
@@ -197,6 +195,10 @@ post_install() {
 	if [ $MODULE == $USERS_BL_MODULE ]; then
 		set_users_bl_module_permissions $INDEX
 	fi
+
+	re_export_vars
+
+	set_env_vars_to_okapi
 }
 
 # Pre register mod-authtoken module
@@ -799,6 +801,8 @@ export_module_envs() {
 
 		declare ENV_VAR="$ENV_NAME"
 		export $ENV_VAR="$ENV_VALUE"
+
+		okapi_curl $OKAPI_URL/_/env -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" -o /dev/null
 	done
 }
 
