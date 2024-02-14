@@ -1153,13 +1153,13 @@ okapi_defaults() {
 	OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
 
 	# Okapi Command
-	OKAPI_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
+	OKAPI_COMMAND="java -Dtrace_headers=true -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
 
 	# Okapi Initialize Database Command
-	OKAPI_INIT_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
+	OKAPI_INIT_COMMAND="java -Dtrace_headers=true -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
 
 	# Okapi Purge Database tables Command
-	OKAPI_PURGE_COMMAND="java -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
+	OKAPI_PURGE_COMMAND="java -Dtrace_headers=true -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
 
 	# Server Port
 	SERVER_PORT=$OKAPI_PORT
