@@ -31,7 +31,7 @@ stop_modules() {
 is_port_used() {
 	local PORT=$1
 
-	FILTERED_PROCESSES=$(lsof -i :$1)
+	FILTERED_PROCESSES=$(lsof -i :$PORT)
 
 	if [ -z "$FILTERED_PROCESSES" ]; then
 		return 0

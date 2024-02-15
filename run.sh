@@ -161,7 +161,7 @@ pre_register() {
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
-		
+
 	pre_authenticate $MODULE $INDEX $JSON_LIST
 	
 	has_installed $MODULE $TENANT
@@ -194,6 +194,9 @@ post_install() {
 	local USERS_BL_MODULE="mod-users-bl"
 	if [ $MODULE == $USERS_BL_MODULE ]; then
 		set_users_bl_module_permissions $INDEX
+
+		# update token and user id
+		update_env_postman $POSTMAN_API_KEY
 	fi
 
 	re_export_vars
@@ -206,10 +209,18 @@ pre_authenticate() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	local USERS_MODULE="mod-users"
 
 	# Do not proceed if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
+	fi
+
+	# Validate that mod-users exists in modules.json
+	has_value "id" $INDEX "$USERS_MODULE" $JSON_LIST
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		new_user
 	fi
 
 	local AUTHTOKEN_MODULE="mod-authtoken"
@@ -255,17 +266,21 @@ make_adminuser() {
 	echo -e ""
 
 	# New admin user
-	UUID=`uuidgen`
-	okapi_curl -d"{\"username\":\"$USERNAME\",\"id\":\"$USER_UUID\",\"active\":true}" $OKAPI_URL/users
+	new_user
+
+	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
 	echo -e ""
 
-	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$USER_UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
-	echo -e ""
-	
 	# Set permissions for the new admin user
 	PUUID=`uuidgen`
-	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$USER_UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
+	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
 
+	echo -e ""
+}
+
+new_user() {
+	UUID=`uuidgen`
+	okapi_curl -d"{\"username\":\"$USERNAME\",\"id\":\"$UUID\",\"active\":true}" $OKAPI_URL/users
 	echo -e ""
 }
 
@@ -279,6 +294,8 @@ login_admin() {
 	login_admin_curl $OKAPI_URL $TENANT $USERNAME $PASSWORD
 
 	OKAPI_HEADER=$TOKEN
+
+	POSTMAN_ENV_TOKEN_VAL=$TOKEN
 
 	echo -e ""
 }
@@ -321,6 +338,8 @@ postman() {
 }
 
 import_postman_openapi() {
+	echo -e "Import postman openapi collection"
+
 	local POSTMAN_API_KEY=$1
 	local OPEN_API_FILE=$2
 	local MODULE=$3
@@ -331,6 +350,79 @@ import_postman_openapi() {
 		-HX-API-Key:$POSTMAN_API_KEY \
 		-Ftype="file" \
 		-Finput=@"$MODULE/$OPEN_API_FILE" | jq .
+
+	echo -e ""
+}
+
+update_env_postman() {
+	echo -e "Update env postman"
+
+	local POSTMAN_API_KEY=$1
+
+	curl -s --location -XPUT $POSTMAN_URL$POSTMAN_ENVIRONMENT_PATH'/'$POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID \
+		-H'Content-Type: application/json' \
+		-H'X-API-Key: '$POSTMAN_API_KEY \
+		--data '{
+			"environment": {
+				"name": "'"$POSTMAN_ENV_NAME"'",
+				"values": [
+					{
+						"key": "okapi_url",
+						"value": "'$POSTMAN_ENV_OKAPI_URL_VAL'",
+						"enabled": true,
+						"type": "default"
+					},
+					{
+						"key": "mod_url",
+						"value": "'$POSTMAN_ENV_MOD_URL_VAL'",
+						"enabled": true,
+						"type": "default"
+					},
+					{
+						"key": "tenant",
+						"value": "'$POSTMAN_ENV_TENANT_VAL'",
+						"enabled": true,
+						"type": "default"
+					},
+					{
+						"key": "token",
+						"value": "'$POSTMAN_ENV_TOKEN_VAL'",
+						"enabled": true,
+						"type": "default"
+					},
+					{
+						"key": "user_id",
+						"value": "'$POSTMAN_ENV_USER_ID_VAL'",
+						"enabled": true,
+						"type": "default"
+					},
+					{
+						"key": "user_permission_id",
+						"value": "",
+						"enabled": true,
+						"type": "default"
+					},
+					{
+						"key": "upload_definition_id",
+						"value": "",
+						"enabled": true,
+						"type": "default"
+					},
+					{
+						"key": "job_execution_id",
+						"value": "",
+						"enabled": true,
+						"type": "default"
+					},
+					{
+						"key": "file_id",
+						"value": "",
+						"enabled": true,
+						"type": "default"
+					}
+				]
+			}
+		}'
 
 	echo -e ""
 }
@@ -849,6 +941,8 @@ get_user_uuid_by_username() {
 
 	# Remove extra double quotes at start and end of the string
 	UUID=$(echo $UUID | sed 's/"//g')
+
+	POSTMAN_ENV_USER_ID_VAL=$UUID
 }
 
 get_random_permission_uuid_by_user_uuid() {
@@ -936,6 +1030,9 @@ reset_and_verify_password() {
 set_users_bl_module_permissions() {
 	local INDEX=$1
 	local USERS_BL_MODULE="mod-users-bl"
+	local PERMISSIONS_MODULE="mod-permissions"
+
+	get_user_uuid_by_username $TOKEN $USERNAME
 
 	# Validate that mod-users-bl exists in modules.json
 	has_value "id" $INDEX "$USERS_BL_MODULE" $JSON_FILE
@@ -944,7 +1041,13 @@ set_users_bl_module_permissions() {
 		return
 	fi
 
-	get_user_uuid_by_username $TOKEN $USERNAME
+	# Validate that mod-permissions exists in modules.json
+	has_value "id" $INDEX "$PERMISSIONS_MODULE" $JSON_FILE
+	FOUND=$?
+	if [[ "$FOUND" -eq 0 ]]; then
+		return
+	fi
+
 	get_random_permission_uuid_by_user_uuid $UUID
 
 	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
@@ -1142,24 +1245,25 @@ okapi_defaults() {
 
 	# Okapi Directory
 	OKAPI_DIR=okapi
-	
+
 	# Okapi repository
 	OKAPI_REPO="git@github.com:folio-org/okapi.git"
-	
+
 	# Okapi Options
 	OKAPI_DB_OPTIONS="-Dpostgres_host=$DB_HOST -Dpostgres_port=$DB_PORT -Dpostgres_database=$DB_DATABASE -Dpostgres_username=$DB_USERNAME -Dpostgres_password=$DB_PASSWORD"
+	OKAPI_OPTIONS="-Denable_system_auth=false -Dport_end=$END_PORT -Dstorage=postgres -Dtrace_headers=true $OKAPI_DB_OPTIONS"
 
 	# Okapi build command
 	OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
 
 	# Okapi Command
-	OKAPI_COMMAND="java -Dtrace_headers=true -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
+	OKAPI_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
 
 	# Okapi Initialize Database Command
-	OKAPI_INIT_COMMAND="java -Dtrace_headers=true -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
+	OKAPI_INIT_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
 
 	# Okapi Purge Database tables Command
-	OKAPI_PURGE_COMMAND="java -Dtrace_headers=true -Dport_end=$END_PORT -Dstorage=postgres $OKAPI_DB_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
+	OKAPI_PURGE_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
 
 	# Server Port
 	SERVER_PORT=$OKAPI_PORT
@@ -1174,9 +1278,6 @@ module_defaults() {
 }
 
 user_defaults() {
-	# Helps with postman productivity as I use it in an environment variable
-	USER_UUID="17350f50-f5ed-4924-9b36-fc029ca8af50"
-
 	# Test Tenant
 	TENANT=testlib1
 
@@ -1186,11 +1287,25 @@ user_defaults() {
 }
 
 postman_defaults() {
-	# Postman API domain url
+	POSTMAN_API_KEY="PMAK-65cd8d7babb3c00001161a61-d912a2f8f461273dd3642f5966b5b45c62"
+
 	POSTMAN_URL="https://api.getpostman.com"
-	
-	# Import an OpenAPI Specification url path
+
 	POSTMAN_IMPORT_OPENAPI_PATH="/import/openapi"
+
+	POSTMAN_ENVIRONMENT_PATH="/environments"
+
+	POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID="05a56aae-8263-4aa2-be72-bd33cac94ef3"
+
+	POSTMAN_OWNER="32340824"
+
+	# Environment variable's values
+	POSTMAN_ENV_NAME="Local with okapi"
+	POSTMAN_ENV_OKAPI_URL_VAL=$OKAPI_URL
+	POSTMAN_ENV_MOD_URL_VAL="http://localhost:9135"
+	POSTMAN_ENV_TENANT_VAL=$TENANT
+	POSTMAN_ENV_TOKEN_VAL=""
+	POSTMAN_ENV_USER_ID_VAL=""
 }
 
 set_args() {
@@ -1614,6 +1729,7 @@ build_module() {
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
+
 	should_rebuild $INDEX $JSON_LIST
 	SHOULD_REBUILD=$?
 	local MODULE_DESCRIPTOR=$MODULE_ID/target/ModuleDescriptor.json
@@ -1623,7 +1739,7 @@ build_module() {
 
 	# Opt in the module
 	cd $MODULE_ID
-	
+
 	# Default Build command
 	BUILD="mvn -DskipTests -Dmaven.test.skip=true verify"
 
@@ -1696,7 +1812,7 @@ deploy_module() {
 	local INDEX=$2
 	local JSON_LIST=$3
 	local DEPLOY_DESCRIPTOR=$MODULE_ID/target/DeploymentDescriptor.json
-	
+
 	should_deploy $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
 		return
