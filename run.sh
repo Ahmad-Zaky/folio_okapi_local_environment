@@ -256,15 +256,15 @@ make_adminuser() {
 
 	# New admin user
 	UUID=`uuidgen`
-	okapi_curl -d"{\"username\":\"$USERNAME\",\"id\":\"$UUID\",\"active\":true}" $OKAPI_URL/users
+	okapi_curl -d"{\"username\":\"$USERNAME\",\"id\":\"$USER_UUID\",\"active\":true}" $OKAPI_URL/users
 	echo -e ""
 
-	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
+	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$USER_UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
 	echo -e ""
 	
 	# Set permissions for the new admin user
 	PUUID=`uuidgen`
-	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
+	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$USER_UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
 
 	echo -e ""
 }
@@ -1098,9 +1098,9 @@ defaults() {
 	db_defaults
 
 	kafka_defaults
-	
+
 	okapi_defaults
-	
+
 	module_defaults
 	
 	user_defaults
@@ -1174,6 +1174,9 @@ module_defaults() {
 }
 
 user_defaults() {
+	# Helps with postman productivity as I use it in an environment variable
+	USER_UUID="17350f50-f5ed-4924-9b36-fc029ca8af50"
+
 	# Test Tenant
 	TENANT=testlib1
 
