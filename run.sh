@@ -190,18 +190,22 @@ post_install() {
 
 	post_authenticate $MODULE
 
+	# Add new user
+	local USERS_MODULE="mod-users"
+	if [ $MODULE = $USERS_MODULE ]; then
+		new_user
+	fi
+
 	# Set permissions related to mod-users-bl
 	local USERS_BL_MODULE="mod-users-bl"
-	if [ $MODULE == $USERS_BL_MODULE ]; then
+	if [ $MODULE = $USERS_BL_MODULE ]; then
 		set_users_bl_module_permissions $INDEX
 
 		# update token and user id
 		update_env_postman $POSTMAN_API_KEY
 	fi
 
-	re_export_vars
-
-	set_env_vars_to_okapi
+	re_export_env_vars
 }
 
 # Pre register mod-authtoken module
@@ -209,18 +213,10 @@ pre_authenticate() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
-	local USERS_MODULE="mod-users"
 
 	# Do not proceed if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
-	fi
-
-	# Validate that mod-users exists in modules.json
-	has_value "id" $INDEX "$USERS_MODULE" $JSON_LIST
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		new_user
 	fi
 
 	local AUTHTOKEN_MODULE="mod-authtoken"
@@ -816,15 +812,7 @@ stop_running_modules() {
   	echo -e ""
 }
 
-export_vars() {
-	export_db_env_vars $DB_HOST $DB_PORT $DB_USERNAME $DB_PASSWORD $DB_DATABASE $DB_QUERYTIMEOUT $DB_MAXPOOLSIZE
-
-	export_kafka_env_vars
-
-	export_okapi_vars
-}
-
-re_export_vars() {
+re_export_env_vars() {
 	db_defaults
 
 	kafka_defaults
@@ -835,39 +823,7 @@ re_export_vars() {
 	
 	postman_defaults
 
-	export_vars
-}
-
-export_db_env_vars() {
-	local DB__HOST=$1
-	local DB__PORT=$2
-	local DB__USERNAME=$3
-	local DB__PASSWORD=$4
-	local DB__DATABASE=$5
-	local DB__QUERYTIMEOUT=$6
-	local DB__MAXPOOLSIZE=$7
-
-	export DB_HOST="$DB__HOST"
-	export DB_PORT="$DB__PORT"
-	export DB_USERNAME="$DB__USERNAME"
-	export DB_PASSWORD="$DB__PASSWORD"
-	export DB_DATABASE="$DB__DATABASE"
-	export DB_QUERYTIMEOUT="$DB__QUERYTIMEOUT"
-	export DB_MAXPOOLSIZE="$DB__MAXPOOLSIZE"
-
-	# Spring database env vars
-	export SPRING_DATASOURCE_URL="jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_DATABASE?reWriteBatchedInserts=true"
-	export SPRING_DATASOURCE_USERNAME="$DB_USERNAME"
-	export SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD"
-}
-
-export_kafka_env_vars() {
-	export KAFKA_PORT="$KAFKA_PORT"
-	export KAFKA_HOST="$KAFKA_HOST"
-}
-
-export_okapi_vars() {
-	export OKAPI_URL="$OKAPI_URL"
+	set_env_vars_to_okapi
 }
 
 export_module_envs() {
@@ -890,9 +846,6 @@ export_module_envs() {
 		# Remove extra double quotes at start and end of the string
 		ENV_NAME=$(echo $ENV_NAME | sed 's/"//g')
 		ENV_VALUE=$(echo $ENV_VALUE | sed 's/"//g')
-
-		declare ENV_VAR="$ENV_NAME"
-		export $ENV_VAR="$ENV_VALUE"
 
 		okapi_curl $OKAPI_URL/_/env -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" -o /dev/null
 	done
@@ -1189,8 +1142,6 @@ pre_process() {
 
 	set_env_vars_to_okapi
 
-	export_vars
-
 	new_tenant
 
 	validate_modules_list
@@ -1265,8 +1216,13 @@ okapi_defaults() {
 	# Okapi Purge Database tables Command
 	OKAPI_PURGE_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
 
-	# Server Port
+	# Server/Http Port
+	PORT=$OKAPI_PORT
 	SERVER_PORT=$OKAPI_PORT
+	HTTP_PORT=$OKAPI_PORT
+
+	# Elastic search url
+	ELASTIC_SEARCH_URL=http://localhost:9200
 }
 
 module_defaults() {
@@ -1444,10 +1400,16 @@ set_env_vars_to_okapi() {
 	curl -s -d"{\"name\":\"DB_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"DB_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"DB_DATABASE\",\"value\":\"$DB_DATABASE\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"SPRING_DATASOURCE_URL\",\"value\":\"jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_DATABASE?reWriteBatchedInserts=true\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"SPRING_DATASOURCE_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"SPRING_DATASOURCE_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"OKAPI_URL\",\"value\":\"$OKAPI_URL\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"KAFKA_PORT\",\"value\":\"$KAFKA_PORT\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"KAFKA_HOST\",\"value\":\"$KAFKA_HOST\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d'{"name":"ELASTICSEARCH_URL","value":"http://localhost:9200"}' $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env -o /dev/null
+	curl -s -d"{\"name\":\"ELASTICSEARCH_URL\",\"value\":\"$ELASTIC_SEARCH_URL\"}" $OKAPI_URL/_/env -o /dev/null
 
 	echo -e ""
 }
@@ -1468,7 +1430,7 @@ new_tenant() {
 		return
 	fi
 
-	curl -d"{\"id\":\"$TENANT\"}" $OKAPI_URL/_/proxy/tenants
+	curl -d"{\"id\":\"$TENANT\", \"name\":\"Test Library #1\", \"description\":\"Test Libarary Number One\"}" $OKAPI_URL/_/proxy/tenants
 
 	echo -e ""
 }
