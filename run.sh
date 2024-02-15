@@ -816,9 +816,7 @@ re_export_env_vars() {
 	db_defaults
 
 	kafka_defaults
-	
-	module_defaults
-	
+
 	user_defaults
 	
 	postman_defaults
@@ -1134,8 +1132,6 @@ pre_process() {
 
 	set_args $*
 
-	go_to_modules_dir
-
 	stop_running_modules
 
 	run_okapi
@@ -1145,37 +1141,65 @@ pre_process() {
 	new_tenant
 
 	validate_modules_list
+
+	validate_configurations_list
 }
 
 # Default Variable values
 defaults() {
+	module_defaults
+	
 	db_defaults
 
 	kafka_defaults
 
 	okapi_defaults
 
-	module_defaults
-	
 	user_defaults
 	
 	postman_defaults
 }
 
+module_defaults() {
+	# Modules directory path
+	MODULES_DIR=modules
+	
+	go_to_modules_dir
+
+	# Modules list file
+	JSON_FILE="modules.json"
+
+	# Configurations list file
+	CONFIG_FILE="configuration.json"
+}
+
 db_defaults() {
-	# DB env vars
-	DB_HOST=localhost
-	DB_PORT=5432
-	DB_DATABASE=okapi_modules
-	DB_USERNAME=folio_admin
-	DB_PASSWORD=folio_admin
-	DB_QUERYTIMEOUT=60000
-	DB_MAXPOOLSIZE=5
+	DB_HOST=$(jq ".DB_HOST" $CONFIG_FILE)
+	DB_PORT=$(jq ".DB_PORT" $CONFIG_FILE)
+	DB_DATABASE=$(jq ".DB_DATABASE" $CONFIG_FILE)
+	DB_USERNAME=$(jq ".DB_USERNAME" $CONFIG_FILE)
+	DB_PASSWORD=$(jq ".DB_PASSWORD" $CONFIG_FILE)
+	DB_QUERYTIMEOUT=$(jq ".DB_QUERYTIMEOUT" $CONFIG_FILE)
+	DB_MAXPOOLSIZE=$(jq ".DB_MAXPOOLSIZE" $CONFIG_FILE)
+	
+	# Remove extra double quotes at start and end of the string
+	DB_HOST=$(echo $DB_HOST | sed 's/"//g')
+	DB_PORT=$(echo $DB_PORT | sed 's/"//g')
+	DB_DATABASE=$(echo $DB_DATABASE | sed 's/"//g')
+	DB_USERNAME=$(echo $DB_USERNAME | sed 's/"//g')
+	DB_PASSWORD=$(echo $DB_PASSWORD | sed 's/"//g')
+	DB_QUERYTIMEOUT=$(echo $DB_QUERYTIMEOUT | sed 's/"//g')
+	DB_MAXPOOLSIZE=$(echo $DB_MAXPOOLSIZE | sed 's/"//g')
 }
 
 kafka_defaults() {
-	KAFKA_PORT=9093
-	KAFKA_HOST="localhost"
+	# DB env vars
+	KAFKA_PORT=$(jq ".KAFKA_PORT" $CONFIG_FILE)
+	KAFKA_HOST=$(jq ".KAFKA_HOST" $CONFIG_FILE)
+	
+	# Remove extra double quotes at start and end of the string
+	KAFKA_PORT=$(echo $KAFKA_PORT | sed 's/"//g')
+	KAFKA_HOST=$(echo $KAFKA_HOST | sed 's/"//g')
 }
 
 okapi_defaults() {
@@ -1225,14 +1249,6 @@ okapi_defaults() {
 	ELASTIC_SEARCH_URL=http://localhost:9200
 }
 
-module_defaults() {
-	# Modules directory path
-	MODULES_DIR=modules
-
-	# Modules list file
-	JSON_FILE="modules.json"
-}
-
 user_defaults() {
 	# Test Tenant
 	TENANT=testlib1
@@ -1252,8 +1268,6 @@ postman_defaults() {
 	POSTMAN_ENVIRONMENT_PATH="/environments"
 
 	POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID="05a56aae-8263-4aa2-be72-bd33cac94ef3"
-
-	POSTMAN_OWNER="32340824"
 
 	# Environment variable's values
 	POSTMAN_ENV_NAME="Local with okapi"
@@ -1327,7 +1341,7 @@ set_without_okapi_arg() {
 }
 
 go_to_modules_dir() {
-	cd $MODULES_DIR
+	cd "$MODULES_DIR"
 }
 
 run_okapi() {
@@ -1465,6 +1479,16 @@ validate_modules_list() {
 
 	if [ ! -f "$JSON_FILE" ]; then
 		error "JSON LIST is missing"
+	fi
+}
+
+validate_configurations_list() {
+	if [ ! -z "$1" ]; then
+		CONFIG_FILE=$1
+	fi  
+
+	if [ ! -f "$CONFIG_FILE" ]; then
+		error "Configuration list is missing"
 	fi
 }
 
