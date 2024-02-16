@@ -14,11 +14,21 @@
 # 		START - HELPERS		   #
 ################################
 
+log() {
+	local MSG=$1
+
+	echo -e "["$(date +"%A, %b %d, %Y %I:%M %p")"] $MSG"
+}
+
+new_line() {
+	echo -e "\n"
+}
 
 # Output Error
 error() {
-    echo -e "\n\e[1;31m ERROR: $1 \033[0m"
-    exit 1 
+    log "\n\e[1;31m ERROR: $1 \033[0m"
+	
+    exit 1
 }
 
 # Check if key exists
@@ -99,12 +109,12 @@ has_arg() {
 # Basic Okapi curl boilerplate
 okapi_curl() {
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER"
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
 	curl -s $OPTIONS -HContent-Type:application/json $*
-	echo -e ""
+	new_line
 }
 
 handle_cloud_okapi() {
@@ -152,8 +162,6 @@ pre_register() {
 
 	# Do not export next port for Okapi modules if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		export_next_port $((SERVER_PORT + 1))
-
 		return
 	fi
 
@@ -163,12 +171,6 @@ pre_register() {
 	fi
 
 	pre_authenticate $MODULE $INDEX $JSON_LIST
-	
-	has_installed $MODULE $TENANT
-	FOUND=$?
-	if [[ "$FOUND" -eq 0 ]]; then
-		export_next_port $((SERVER_PORT + 1))
-	fi
 }
 
 post_install() {
@@ -183,13 +185,6 @@ post_install() {
 		return
 	fi
 
-	should_install $INDEX $JSON_LIST
-	if [[ "$?" -eq 0 ]]; then
-		return
-	fi
-
-	post_authenticate $MODULE
-
 	# Add new user
 	local USERS_MODULE="mod-users"
 	if [ $MODULE = $USERS_MODULE ]; then
@@ -200,6 +195,13 @@ post_install() {
 		# Update postman environment variables
 		update_env_postman $POSTMAN_API_KEY
 	fi
+
+	should_install $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	post_authenticate $MODULE
 
 	# Set permissions related to mod-users-bl
 	local USERS_BL_MODULE="mod-users-bl"
@@ -257,48 +259,52 @@ post_authenticate() {
 
 # New admin user with all permissions
 make_adminuser() {
-	echo -e "Make Admin User with credentials: "
-	echo -e "username: $USERNAME"
-	echo -e "password: $PASSWORD"
-	echo -e ""
+	log "Make Admin User with credentials: "
+	log "username: $USERNAME"
+	log "password: $PASSWORD"
+	new_line
 
 	# Delete admin user firstly if exists
-	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME"
-	echo -e ""
+	delete_user $USERNAME
 
 	# New admin user
 	new_user
 
-	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
-	echo -e ""
+	# Attach Credentials
+	UUID=`uuidgen`
+	attach_credentials $UUID
 
 	# Set permissions for the new admin user
-	PUUID=`uuidgen`
-	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
-
-	echo -e ""
+	attach_permissions $UUID
+	new_line
 }
 
-new_user() {
-	UUID=`uuidgen`
-	okapi_curl -d"{\"username\":\"$USERNAME\",\"id\":\"$UUID\",\"active\":true}" $OKAPI_URL/users
-	echo -e ""
+attach_credentials() {
+	local UUID=$1
+
+	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
+	new_line
+}
+
+attach_permissions() {
+	local UUID=$1
+
+	PUUID=`uuidgen`
+	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
 }
 
 # Login to obtain the token from the header
 login_admin() {
-	echo -e "Login with credentials: "
-	echo -e "username: $USERNAME"
-	echo -e "password: $PASSWORD"
-	echo -e ""
+	log "Login with credentials: "
+	log "username: $USERNAME"
+	log "password: $PASSWORD"
+	new_line
 
 	login_admin_curl $OKAPI_URL $TENANT $USERNAME $PASSWORD
+	new_line
 
-	OKAPI_HEADER=$TOKEN
-
+	OKAPI_HEADER_TOKEN=$TOKEN
 	POSTMAN_ENV_TOKEN_VAL=$TOKEN
-
-	echo -e ""
 }
 
 login_admin_curl() {
@@ -308,7 +314,7 @@ login_admin_curl() {
 	local PWD=$4
 	
 	curl -s -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
-	echo -e ""
+	new_line
 
 	TOKEN=`awk '/x-okapi-token/ {print $2}' <headers|tr -d '[:space:]'`
 }
@@ -339,7 +345,7 @@ postman() {
 }
 
 import_postman_openapi() {
-	echo -e "Import postman openapi collection"
+	log "Import postman openapi collection"
 
 	local POSTMAN_API_KEY=$1
 	local OPEN_API_FILE=$2
@@ -352,11 +358,11 @@ import_postman_openapi() {
 		-Ftype="file" \
 		-Finput=@"$MODULE/$OPEN_API_FILE" | jq .
 
-	echo -e ""
+	new_line
 }
 
 update_env_postman() {
-	echo -e "Update env postman"
+	log "Update env postman"
 
 	local POSTMAN_API_KEY=$1
 
@@ -396,36 +402,12 @@ update_env_postman() {
 						"value": "'$POSTMAN_ENV_USER_ID_VAL'",
 						"enabled": true,
 						"type": "default"
-					},
-					{
-						"key": "user_permission_id",
-						"value": "",
-						"enabled": true,
-						"type": "default"
-					},
-					{
-						"key": "upload_definition_id",
-						"value": "",
-						"enabled": true,
-						"type": "default"
-					},
-					{
-						"key": "job_execution_id",
-						"value": "",
-						"enabled": true,
-						"type": "default"
-					},
-					{
-						"key": "file_id",
-						"value": "",
-						"enabled": true,
-						"type": "default"
 					}
 				]
 			}
 		}'
 
-	echo -e ""
+	new_line
 }
 
 has_tenant() {
@@ -442,12 +424,26 @@ has_tenant() {
 	return 0
 }
 
+has_user() {
+	local USERNAME=$1
+	
+	RESULT=$(okapi_curl $OKAPI_URL/users | jq ".users[] | .username | contains(\"$USERNAME\")")
+
+	has_arg "$RESULT" "true"
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
 has_registered() {
 	local MODULE_ID=$1
 
 	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
 	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
@@ -465,8 +461,8 @@ has_deployed() {
 	local MODULE_ID=$1
 
 	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
 	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .srvcId | contains(\"$MODULE_ID\")")
@@ -485,12 +481,10 @@ has_installed() {
 	local TENANT=$2
 
 	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
-	# Remove extra double quotes at start and end of the string
-	MODULE_ID=$(echo $MODULE_ID | sed 's/"//g')
 	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
 
 	has_arg "$RESULT" "true"
@@ -715,7 +709,7 @@ clone_okapi() {
 	# Check if Okapi exists in modules.json and clone default okapi repo
 	FOUND=$(jq '.[] | first(select(.id == "okapi")) | .id == "okapi"' $JSON_FILE)
 	if [[ "$FOUND" == "false" ]] || [[ -z "$FOUND" ]]; then
-    	echo -e "Cloning Okapi ..."
+    	log "Cloning Okapi ..."
 
 		eval "git clone --recurse-submodules $OKAPI_REPO"
 
@@ -727,7 +721,7 @@ clone_okapi() {
 	
 	# Clone Repo with Tag and with custom repo
 	if [[ $HAS_REPO == "true" ]] && [[ $HAS_TAG == "true" ]]; then
-    	echo -e "Cloning Okapi ..."
+    	log "Cloning Okapi ..."
 
 		OKAPI_REPO=$(jq '.[] | first(select(.id == "okapi")) | .repo' $JSON_FILE)
 		TAG=$(jq '.[] | first(select(.id == "okapi")) | .tag' $JSON_FILE)
@@ -743,7 +737,7 @@ clone_okapi() {
 	
 	# Clone Repo without tag and with custom repo
 	if [[ $HAS_REPO == "true" ]]; then
-    	echo -e "Cloning Okapi ..."
+    	log "Cloning Okapi ..."
 
 		OKAPI_REPO=$(jq '.[] | first(select(.id == "okapi")) | .repo' $JSON_FILE)
 		# Remove extra double quotes at start and end of the string
@@ -755,11 +749,11 @@ clone_okapi() {
 	fi
 
 	# Clone default Okapi
-  	echo -e "Cloning Okapi ..."
+  	log "Cloning Okapi ..."
 
 	eval "git clone --recurse-submodules $OKAPI_REPO"
 
-  	echo -e ""
+  	new_line
 }
 
 build_okapi() {
@@ -779,29 +773,33 @@ build_okapi() {
 	fi
 
 	# Build default Okapi command
-  	echo -e "Build Okapi ..."
+  	log "Build Okapi ..."
 	eval "cd $OKAPI_DIR && $OKAPI_BUILD_COMMAND"
 
 	# Go back to modules directory
 	cd ..
 
-	echo -e ""
+	new_line
 }
 
 rebuild_okapi() {
 	# Check if Okapi exists in modules.json and build default okapi repo
 	SHOULD_REBUILD_OKAPI=$(jq '.[] | first(select(.id == "okapi")) | .id == "okapi" and .rebuild == "true"' $JSON_FILE)
 	if [[ "$SHOULD_REBUILD_OKAPI" == "true" ]]; then
-    	echo -e "Rebuild Okapi ..."
+    	log "Rebuild Okapi ..."
 
     	build_okapi
 
-    	echo -e ""
+    	new_line
 	fi
 }
 
 stop_running_modules() {
-  	echo -e "Stop running modules ..."
+	if [ $SHOULD_STOP_RUNNING_MODULES == "false" ]; then
+		return
+	fi
+
+	log "Stop running modules ..."
 
 	for ((j=$START_PORT; j<=$END_PORT; j++))
 	do
@@ -814,7 +812,7 @@ stop_running_modules() {
         fi
 	done
 
-  	echo -e ""
+  	new_line
 }
 
 re_export_env_vars() {
@@ -855,7 +853,7 @@ export_module_envs() {
 }
 
 stop_okapi() {
-  	echo -e "Stopping Okapi ..."
+  	log "Stopping Okapi ..."
 
 	kill_process_port $OKAPI_PORT
 }
@@ -878,19 +876,25 @@ export_next_port() {
 	FILTERED_PROCESSES=$(lsof -i :$1)
 
 	if [ -z "$FILTERED_PROCESSES" ]; then
+		export PORT="$1"
 		export SERVER_PORT="$1"
+		export HTTP_PORT="$1"
+
+		curl -s -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env -o /dev/null
+		curl -s -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env -o /dev/null
+		curl -s -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env -o /dev/null
 
 		return
 	fi
 
-	PORT+=1
+	PORT=$((PORT + 1))
 	export_next_port $PORT 
 }
 
 get_user_uuid_by_username() {
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER"
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
 	UUID=$(curl -s $OPTIONS $OKAPI_URL/users | jq ".users[] | select(.username == \"$USERNAME\") | .id")
@@ -905,8 +909,8 @@ get_random_permission_uuid_by_user_uuid() {
 	local UUID=$1
 
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER"
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
 	USER_PUUIDS=$(curl -s $OPTIONS $OKAPI_URL/perms/users | jq ".permissionUsers[] | select(.userId == \"$UUID\") | .id")
@@ -961,9 +965,11 @@ reset_and_verify_password() {
 		# the reason why is not clear but may be related to kafka not finished the task yet,
 		# so I just try to wait using sleep command and it did work with me just fine.
 
-		echo -e "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
-		echo -e ""
-		echo -e "Please wait until permissions added are persisted, which may delay due to underlying kafka process in users module so we will try again now."
+		log "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
+		
+		new_line
+		
+		log "Please wait until permissions added are persisted, which may delay due to underlying kafka process in users module so we will try again now."
 
 		sleep 50
 
@@ -975,11 +981,11 @@ reset_and_verify_password() {
 
 	TOKEN_2=`jq -r '.link' < reset.json | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g'`
 
-	echo -e "Second token: $TOKEN_2"
+	log "Second token: $TOKEN_2"
 
 	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
 
-	echo -e ""
+	new_line
 }
 
 # Set extra permissions related to module mod-users-bl
@@ -1007,13 +1013,13 @@ set_users_bl_module_permissions() {
 	get_random_permission_uuid_by_user_uuid $UUID
 
 	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
-	echo -e ""
+	new_line
 
 	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
-	echo -e ""
+	new_line
 
 	login_admin
-	echo -e ""
+	new_line
 
 	reset_and_verify_password $UUID
 }
@@ -1092,7 +1098,7 @@ enable_module_directly() {
 	# Cloud Okapi login
 	login_admin_curl $CLOUD_OKAPI_URL $CLOUD_TENANT $CLOUD_USERNAME $CLOUD_PASSWORD
 	
-	echo -e "Install (Enable) $MODULE"
+	log "Install (Enable) $MODULE"
 	
 	curl --location "http://localhost:$SERVER_PORT/_/tenant" \
 		--header "x-okapi-tenant: $CLOUD_TENANT" \
@@ -1102,14 +1108,14 @@ enable_module_directly() {
 		--header "x-okapi-url-to: http://localhost:$SERVER_PORT" \
 		--data "$ENABLE_PAYLOAD"
 
-	echo -e ""
+	new_line
 
 	# Local Okapi login if we should for the consecutive modules
 	should_login
 	if [[ "$STATUS_CODE" == "200" ]] || [[ "$STATUS_CODE" == "204" ]]; then
 		login_admin
 
-		echo -e ""
+		new_line
 	fi
 }
 
@@ -1176,6 +1182,11 @@ module_defaults() {
 
 	# Configurations list file
 	CONFIG_FILE="configuration.json"
+
+	SHOULD_STOP_RUNNING_MODULES=$(jq ".SHOULD_STOP_RUNNING_MODULES" $CONFIG_FILE)
+
+	# Remove extra double quotes at start and end of the string
+	SHOULD_STOP_RUNNING_MODULES=$(echo $SHOULD_STOP_RUNNING_MODULES | sed 's/"//g')
 }
 
 db_defaults() {
@@ -1209,16 +1220,21 @@ kafka_defaults() {
 
 okapi_defaults() {
 	# Default OKAPI Header with value which is used at setting curl request headers
-	OKAPI_HEADER=x
+	OKAPI_HEADER_TOKEN=x
 
 	# Okapi Port
 	OKAPI_PORT=9130
 
-	# Okapi Port
+	# Start Port
 	START_PORT=$((OKAPI_PORT + 1))
 
-	# Okapi Port
+	# End Port
 	END_PORT=9200
+
+	# Server/Http Port
+	PORT=$OKAPI_PORT
+	SERVER_PORT=$OKAPI_PORT
+	HTTP_PORT=$OKAPI_PORT
 
 	# Okapi Url
 	OKAPI_URL=http://localhost:$OKAPI_PORT
@@ -1245,34 +1261,67 @@ okapi_defaults() {
 	# Okapi Purge Database tables Command
 	OKAPI_PURGE_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
 
-	# Server/Http Port
-	PORT=$OKAPI_PORT
-	SERVER_PORT=$OKAPI_PORT
-	HTTP_PORT=$OKAPI_PORT
-
 	# Elastic search url
 	ELASTIC_SEARCH_URL=http://localhost:9200
 }
 
 user_defaults() {
 	# Test Tenant
-	TENANT=testlib1
+	TENANT=$(jq ".TENANT" $CONFIG_FILE)
 
 	# Test User
-	USERNAME=testing_admin
-	PASSWORD=admin
+	USERNAME=$(jq ".USERNAME" $CONFIG_FILE)
+	PASSWORD=$(jq ".PASSWORD" $CONFIG_FILE)
+	USER_ACTIVE=$(jq ".USER_ACTIVE" $CONFIG_FILE)
+	USER_BARCODE=$(jq ".USER_BARCODE" $CONFIG_FILE)
+	USER_PERSONAL_FIRSTNAME=$(jq ".USER_PERSONAL_FIRSTNAME" $CONFIG_FILE)
+	USER_PERSONAL_LASTNAME=$(jq ".USER_PERSONAL_LASTNAME" $CONFIG_FILE)
+	USER_PERSONAL_MIDDLENAME=$(jq ".USER_PERSONAL_MIDDLENAME" $CONFIG_FILE)
+	USER_PERSONAL_PREFERRED_FIRST_NAME=$(jq ".USER_PERSONAL_PREFERRED_FIRST_NAME" $CONFIG_FILE)
+	USER_PERSONAL_PHONE=$(jq ".USER_PERSONAL_PHONE" $CONFIG_FILE)
+	USER_PERSONAL_MOBILE_PHONE=$(jq ".USER_PERSONAL_MOBILE_PHONE" $CONFIG_FILE)
+	USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID=$(jq ".USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID" $CONFIG_FILE)
+	USER_PERSONAL_EMAIL=$(jq ".USER_PERSONAL_EMAIL" $CONFIG_FILE)
+	USER_PERSONAL_ADDRESSES_CITY=$(jq ".USER_PERSONAL_ADDRESSES_CITY" $CONFIG_FILE)
+	USER_PERSONAL_ADDRESSES_COUNTRY_ID=$(jq ".USER_PERSONAL_ADDRESSES_COUNTRY_ID" $CONFIG_FILE)
+	USER_PERSONAL_ADDRESSES_POSTAL_CODE=$(jq ".USER_PERSONAL_ADDRESSES_POSTAL_CODE" $CONFIG_FILE)
+	USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1=$(jq ".USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1" $CONFIG_FILE)
+	USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID=$(jq ".USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID" $CONFIG_FILE)
+	USER_PROXY_FOR=$(jq ".USER_PROXY_FOR" $CONFIG_FILE)
+	USER_DEPARTMENTS=$(jq ".USER_DEPARTMENTS" $CONFIG_FILE)
+	USER_PATRON_GROUP=$(jq ".USER_PATRON_GROUP" $CONFIG_FILE)
+
+	# Remove extra double quotes at start and end of the string
+	TENANT=$(echo $TENANT | sed 's/"//g')
+	USERNAME=$(echo $USERNAME | sed 's/"//g')
+	PASSWORD=$(echo $PASSWORD | sed 's/"//g')
+	USER_ACTIVE=$(echo $USER_ACTIVE | sed 's/"//g')
+	USER_BARCODE=$(echo $USER_BARCODE | sed 's/"//g')
+	USER_PERSONAL_FIRSTNAME=$(echo $USER_PERSONAL_FIRSTNAME | sed 's/"//g')
+	USER_PERSONAL_LASTNAME=$(echo $USER_PERSONAL_LASTNAME | sed 's/"//g')
+	USER_PERSONAL_MIDDLENAME=$(echo $USER_PERSONAL_MIDDLENAME | sed 's/"//g')
+	USER_PERSONAL_PREFERRED_FIRST_NAME=$(echo $USER_PERSONAL_PREFERRED_FIRST_NAME | sed 's/"//g')
+	USER_PERSONAL_PHONE=$(echo $USER_PERSONAL_PHONE | sed 's/"//g')
+	USER_PERSONAL_MOBILE_PHONE=$(echo $USER_PERSONAL_MOBILE_PHONE | sed 's/"//g')
+	USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID=$(echo $USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID | sed 's/"//g')
+	USER_PERSONAL_EMAIL=$(echo $USER_PERSONAL_EMAIL | sed 's/"//g')
+	USER_PERSONAL_ADDRESSES_CITY=$(echo $USER_PERSONAL_ADDRESSES_CITY | sed 's/"//g')
+	USER_PERSONAL_ADDRESSES_COUNTRY_ID=$(echo $USER_PERSONAL_ADDRESSES_COUNTRY_ID | sed 's/"//g')
+	USER_PERSONAL_ADDRESSES_POSTAL_CODE=$(echo $USER_PERSONAL_ADDRESSES_POSTAL_CODE | sed 's/"//g')
+	USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1=$(echo $USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1 | sed 's/"//g')
+	USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID=$(echo $USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID | sed 's/"//g')
+	USER_PROXY_FOR=$(echo $USER_PROXY_FOR | sed 's/"//g')
+	USER_DEPARTMENTS=$(echo $USER_DEPARTMENTS | sed 's/"//g')
+	USER_PATRON_GROUP=$(echo $USER_PATRON_GROUP | sed 's/"//g')
+	
 }
 
 postman_defaults() {
-	POSTMAN_API_KEY="PMAK-65cd8d7babb3c00001161a61-d912a2f8f461273dd3642f5966b5b45c62"
-
-	POSTMAN_URL="https://api.getpostman.com"
-
-	POSTMAN_IMPORT_OPENAPI_PATH="/import/openapi"
-
-	POSTMAN_ENVIRONMENT_PATH="/environments"
-
-	POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID="05a56aae-8263-4aa2-be72-bd33cac94ef3"
+	POSTMAN_API_KEY=$(jq ".POSTMAN_API_KEY" $CONFIG_FILE)
+	POSTMAN_URL=$(jq ".POSTMAN_URL" $CONFIG_FILE)
+	POSTMAN_IMPORT_OPENAPI_PATH=$(jq ".POSTMAN_IMPORT_OPENAPI_PATH" $CONFIG_FILE)
+	POSTMAN_ENVIRONMENT_PATH=$(jq ".POSTMAN_ENVIRONMENT_PATH" $CONFIG_FILE)
+	POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID=$(jq ".POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID" $CONFIG_FILE)
 
 	# Environment variable's values
 	POSTMAN_ENV_NAME="Local with okapi"
@@ -1281,6 +1330,13 @@ postman_defaults() {
 	POSTMAN_ENV_TENANT_VAL=$TENANT
 	POSTMAN_ENV_TOKEN_VAL=""
 	POSTMAN_ENV_USER_ID_VAL=""
+
+	# Remove extra double quotes at start and end of the string
+	POSTMAN_API_KEY=$(echo $POSTMAN_API_KEY | sed 's/"//g')
+	POSTMAN_URL=$(echo $POSTMAN_URL | sed 's/"//g')
+	POSTMAN_IMPORT_OPENAPI_PATH=$(echo $POSTMAN_IMPORT_OPENAPI_PATH | sed 's/"//g')
+	POSTMAN_ENVIRONMENT_PATH=$(echo $POSTMAN_ENVIRONMENT_PATH | sed 's/"//g')
+	POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID=$(echo $POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID | sed 's/"//g')
 }
 
 set_args() {
@@ -1354,7 +1410,7 @@ run_okapi() {
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
-	
+
 	# Do nothing if Okapi is already running without setting restart argument
 	is_okapi_running
 	IS_OKAPI_RUNNING=$?
@@ -1362,7 +1418,7 @@ run_okapi() {
 		return
 	fi
 
-  	echo -e "Running Okapi ..."
+  	log "Running Okapi ..."
 
 	# If Okapi is missing in the modules directory then clone and compile
 	is_okapi_exists
@@ -1383,20 +1439,20 @@ run_okapi() {
 
 	# Init Okapi
 	if [[ "$INIT_ARG" -eq 1 ]]; then
-	    echo -e "Init Okapi ..."
+	    log "Init Okapi ..."
 
 		eval "cd $OKAPI_DIR && nohup $OKAPI_INIT_COMMAND &"
 	fi
 
 	# Purge Okapi
 	if [[ "$PURGE_ARG" -eq 1 ]]; then
-	    echo -e "Purge Okapi ..."
+	    log "Purge Okapi ..."
 
 		eval "cd $OKAPI_DIR && nohup $OKAPI_PURGE_COMMAND &"
 	fi
 
 	# Run Okapi
-	echo -e "Start Okapi ..."
+	log "Start Okapi ..."
 	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 
 	# wait untill okapi is fully up and running
@@ -1410,9 +1466,9 @@ set_env_vars_to_okapi() {
 		return
 	fi
 
-	echo -e "Set environment variables to okapi"
+	log "Set environment variables to okapi"
 
-	echo -e ""
+	new_line
 
 	curl -s -d"{\"name\":\"DB_HOST\",\"value\":\"$DB_HOST\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"DB_PORT\",\"value\":\"$DB_PORT\"}" $OKAPI_URL/_/env -o /dev/null
@@ -1430,7 +1486,7 @@ set_env_vars_to_okapi() {
 	curl -s -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"ELASTICSEARCH_URL\",\"value\":\"$ELASTIC_SEARCH_URL\"}" $OKAPI_URL/_/env -o /dev/null
 
-	echo -e ""
+	new_line
 }
 
 # Store new tenant
@@ -1440,8 +1496,8 @@ new_tenant() {
 		return
 	fi
 
-	echo -e "Add new tenant: $TENANT"
-	echo -e ""
+	log "Add new tenant: $TENANT"
+	new_line
 	
 	has_tenant $TENANT
 	FOUND=$?
@@ -1451,7 +1507,71 @@ new_tenant() {
 
 	curl -d"{\"id\":\"$TENANT\", \"name\":\"Test Library #1\", \"description\":\"Test Libarary Number One\"}" $OKAPI_URL/_/proxy/tenants
 
-	echo -e ""
+	new_line
+}
+
+# Store new user
+new_user() {
+
+	# Check if users api works at all
+	should_login
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	has_user $USERNAME
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	log "Add New User with username: $USERNAME"
+
+	PAYLOAD="{\"username\":\"$USERNAME\", \"id\":\"$UUID\", \"active\":true, \"scopes\": [], \"barcode\": \"123456789\", \"personal\": {\"email\": \"ahmed@email.com\", \"phone\": \"010111111111\", \"imageUrl\": \"\", \"lastName\": \"Zaky\", \"addresses\": [{\"city\": \"\", \"countryId\": \"EG\", \"postalCode\": \"11111\", \"addressLine1\": \"\", \"addressTypeId\": \"93d3d88d-499b-45d0-9bc7-ac73c3a19880\"}], \"firstName\": \"Ahmed\", \"middleName\": \"Mohamed\", \"mobilePhone\": \"010111111111\", \"preferredFirstName\": \"Ahmed\", \"preferredContactTypeId\": \"002\"}, \"proxyFor\": [], \"username\": \"ui_admin\", \"departments\": [], \"patronGroup\": \"503a81cd-6c26-400f-b620-14c08943697c\"}"
+
+	local OPTIONS="-HX-Okapi-Tenant:$TENANT -HContent-Type:application/json"
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS="$OPTIONS -HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
+	fi
+
+	curl -s --location -XPOST $OKAPI_URL/users $OPTIONS \
+		--data '{
+		"username": "'$USERNAME'",
+		"active": '$USER_ACTIVE',
+		"barcode": '$USER_BARCODE',
+		"personal": {
+			"firstName": "'$USER_PERSONAL_FIRSTNAME'",
+			"lastName": "'$USER_PERSONAL_LASTNAME'",
+			"middleName": "'$USER_PERSONAL_MIDDLENAME'",
+			"preferredFirstName": "'$USER_PERSONAL_PREFERRED_FIRST_NAME'",
+			"phone": "'$USER_PERSONAL_PHONE'",
+			"mobilePhone": "'$USER_PERSONAL_MOBILE_PHONE'",
+			"preferredContactTypeId": "'$USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID'",
+			"email": "'$USER_PERSONAL_EMAIL'",
+			"addresses": [
+				{
+					"city": "'$USER_PERSONAL_ADDRESSES_CITY'",
+					"countryId": "'$USER_PERSONAL_ADDRESSES_COUNTRY_ID'",
+					"postalCode": "'$USER_PERSONAL_ADDRESSES_POSTAL_CODE'",
+					"addressLine1": "'$USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1'",
+					"addressTypeId": "'$USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID'"
+				}
+			]
+		},
+		"proxyFor": '$USER_PROXY_FOR',
+		"departments": '$USER_DEPARTMENTS',
+		"patronGroup": "'$USER_PATRON_GROUP'"
+	}'
+
+	new_line
+}
+
+delete_user() {
+	local USERNAME=$1
+
+	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME"
+	new_line
 }
 
 # Enable okapi module to tenant
@@ -1695,12 +1815,12 @@ clone_module() {
 	
 	# Clone the module repo
 	if [ ! -d $MODULE_ID ]; then
-		echo -e "Clone module $MODULE_ID"
+		log "Clone module $MODULE_ID"
 		
 		# Print Repo Link
-		echo -e ""
-		echo -e $REPO
-		echo -e ""
+		new_line
+		log $REPO
+		new_line
 
 		eval "$REPO"
 	fi
@@ -1743,7 +1863,7 @@ build_module() {
 		BUILD=$(echo $BUILD | sed 's/"//g')	
 	fi
 
-	echo -e "Build module $MODULE_ID"
+	log "Build module $MODULE_ID"
 
 	# build
 	eval "$BUILD"
@@ -1785,16 +1905,16 @@ register_module() {
 		error "$MODULE_DESCRIPTOR missing pwd=`pwd`"
 	fi
 
-	echo -e "Register module $MODULE_ID"
+	log "Register module $MODULE_ID"
 
 	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
 	curl -s $OPTIONS -d@$MODULE_DESCRIPTOR $OKAPI_URL/_/proxy/modules -o /dev/null
 
-	echo -e ""
+	new_line
 }
 
 # Deploy module into Okapi
@@ -1829,16 +1949,18 @@ deploy_module() {
 		return
 	fi
 
-	echo "Deploy module $MODULE_ID on port: $SERVER_PORT"
+	export_next_port $SERVER_PORT
+
+	log "Deploy module $MODULE_ID on port: $SERVER_PORT"
 
 	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
 	curl -s $OPTIONS -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules -o /dev/null
 
-	echo -e ""
+	new_line
 }
 
 # Install (enable) modules for a tenant
@@ -1874,24 +1996,25 @@ install_module() {
 	if [[ "$FOUND" -eq 1 ]]; then
 		return
 	fi
+
 	local PAYLOAD="[{\"action\":\"$ACTION\",\"id\":\"$MODULE\"}]"
 
 	# Set Okapi Token if set
 	OPTIONS=""
-	if test "$OKAPI_HEADER" != "x"; then
-		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
 	# Validate if the list is not empty	
 	if [[ "$PAYLOAD" =~ ^\[.+\]$ ]]; then
-		echo -e "Install (Enable) $MODULE"
+		log "Install (Enable) $MODULE"
 		
 		get_install_params $MODULE $i $JSON_LIST
 
 		# Install (enable) modules
 		curl -s $OPTIONS "-d$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?$INSTALL_PARAMS" -o /dev/null
 
-		echo -e ""
+		new_line
 	fi
 }
 
