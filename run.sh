@@ -194,6 +194,11 @@ post_install() {
 	local USERS_MODULE="mod-users"
 	if [ $MODULE = $USERS_MODULE ]; then
 		new_user
+		
+		get_user_uuid_by_username
+
+		# Update postman environment variables
+		update_env_postman $POSTMAN_API_KEY
 	fi
 
 	# Set permissions related to mod-users-bl
@@ -201,7 +206,7 @@ post_install() {
 	if [ $MODULE = $USERS_BL_MODULE ]; then
 		set_users_bl_module_permissions $INDEX
 
-		# update token and user id
+		# Update postman environment variables
 		update_env_postman $POSTMAN_API_KEY
 	fi
 
@@ -983,7 +988,7 @@ set_users_bl_module_permissions() {
 	local USERS_BL_MODULE="mod-users-bl"
 	local PERMISSIONS_MODULE="mod-permissions"
 
-	get_user_uuid_by_username $TOKEN $USERNAME
+	get_user_uuid_by_username
 
 	# Validate that mod-users-bl exists in modules.json
 	has_value "id" $INDEX "$USERS_BL_MODULE" $JSON_FILE
