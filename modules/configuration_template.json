@@ -1,0 +1,47 @@
+{
+    "DB_HOST":"localhost",
+    "DB_PORT":"5432",
+    "DB_DATABASE":"okapi_modules",
+    "DB_USERNAME":"folio_admin",
+    "DB_PASSWORD":"folio_admin",
+    "DB_QUERYTIMEOUT":"60000",
+    "DB_MAXPOOLSIZE":"5",
+
+    "KAFKA_PORT":"9093",
+    "KAFKA_HOST":"localhost",
+    
+    "OKAPI_PORT":"9130",
+    "OKAPI_DIR":"okapi",
+    "OKAPI_REPO":"git@github.com:folio-org/okapi.git",
+    "ELASTIC_SEARCH_URL":"http://localhost:9200",
+    "SHOULD_STOP_RUNNING_MODULES":"true",
+    "TENANT":"testlib1",
+
+    
+    "USERNAME":"ui_admin",
+    "PASSWORD":"admin",
+    "USER_ACTIVE":true,
+    "USER_BARCODE":"123456789",
+    "USER_PERSONAL_FIRSTNAME":"Ahmed",
+    "USER_PERSONAL_LASTNAME":"Zaky",
+    "USER_PERSONAL_MIDDLENAME":"Mohamed",
+    "USER_PERSONAL_PREFERRED_FIRST_NAME":"Ahmed",
+    "USER_PERSONAL_PHONE":"010111111111",
+    "USER_PERSONAL_MOBILE_PHONE":"010111111111",
+    "USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID":"002",
+    "USER_PERSONAL_EMAIL":"ahmed@email.com",
+    "USER_PERSONAL_ADDRESSES_CITY":"",
+    "USER_PERSONAL_ADDRESSES_COUNTRY_ID":"EG",
+    "USER_PERSONAL_ADDRESSES_POSTAL_CODE":"11111",
+    "USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1":"",
+    "USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID":"93d3d88d-499b-45d0-9bc7-ac73c3a19880",
+    "USER_PROXY_FOR":"[]",
+    "USER_DEPARTMENTS":"[]",
+    "USER_PATRON_GROUP":"503a81cd-6c26-400f-b620-14c08943697c",
+
+    "POSTMAN_API_KEY": "<postman_api_key>",
+    "POSTMAN_URL":"https://api.getpostman.com",
+    "POSTMAN_IMPORT_OPENAPI_PATH":"/import/openapi",
+    "POSTMAN_ENVIRONMENT_PATH":"/environments",
+    "POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID":"<postman_environment_uuid>"
+}
