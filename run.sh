@@ -17,7 +17,7 @@
 log() {
 	local MSG=$1
 
-	echo -e "["$(date +"%A, %b %d, %Y %I:%M %p")"] $MSG"
+	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] $MSG"
 }
 
 new_line() {
