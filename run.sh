@@ -339,22 +339,22 @@ postman() {
 	
 	validate_open_api_file $INDEX $JSON_LIST $MODULE
 
-	validate_postman_api_key $INDEX $JSON_LIST
+	validate_module_postman_api_key $INDEX $JSON_LIST
 
-	import_postman_openapi $POSTMAN_API_KEY $OPEN_API_FILE $MODULE
+	import_postman_openapi $MODULE_POSTMAN_API_KEY $OPEN_API_FILE $MODULE
 }
 
 import_postman_openapi() {
 	log "Import postman openapi collection"
 
-	local POSTMAN_API_KEY=$1
+	local MODULE_POSTMAN_API_KEY=$1
 	local OPEN_API_FILE=$2
 	local MODULE=$3
 
 	curl -s $POSTMAN_URL$POSTMAN_IMPORT_OPENAPI_PATH \
 		-HContent-Type:multipart/form-data \
 		-HAccept:application/vnd.api.v10+json \
-		-HX-API-Key:$POSTMAN_API_KEY \
+		-HX-API-Key:$MODULE_POSTMAN_API_KEY \
 		-Ftype="file" \
 		-Finput=@"$MODULE/$OPEN_API_FILE" | jq .
 
@@ -362,6 +362,10 @@ import_postman_openapi() {
 }
 
 update_env_postman() {
+	if [ -z "$POSTMAN_API_KEY" ] || [ -z "$POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID" ] || [ -z "$POSTMAN_URL" ] || [ -z "$POSTMAN_ENVIRONMENT_PATH" ]; then
+		return 
+	fi
+
 	log "Update env postman"
 
 	local POSTMAN_API_KEY=$1
@@ -432,8 +436,8 @@ has_tenant() {
 
 has_user() {
 	local USERNAME=$1
-	
-	RESULT=$(okapi_curl $OKAPI_URL/users | jq ".users[] | .username | contains(\"$USERNAME\")")
+
+	RESULT=$(okapi_curl $OKAPI_URL/users?query=username%3D%3D$USERNAME | jq ".users[] | .username | contains(\"$USERNAME\")")
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -1730,7 +1734,7 @@ validate_open_api_file() {
 	fi
 }
 
-validate_postman_api_key() {
+validate_module_postman_api_key() {
 	local INDEX=$1
 	local JSON_LIST=$2
 
@@ -1739,10 +1743,14 @@ validate_postman_api_key() {
 		error "Postman API Key is missing" 
 	fi
 
-	POSTMAN_API_KEY=$(jq ".[$INDEX].postman.api_key" $JSON_LIST)
+	MODULE_POSTMAN_API_KEY=$(jq ".[$INDEX].postman.api_key" $JSON_LIST)
 
 	# Remove extra double quotes at start and end of the string
-	POSTMAN_API_KEY=$(echo $POSTMAN_API_KEY | sed 's/"//g')
+	MODULE_POSTMAN_API_KEY=$(echo $MODULE_POSTMAN_API_KEY | sed 's/"//g')
+
+	if [ -z "$MODULE_POSTMAN_API_KEY" ]; then
+		error "Postman API Key is empty" 
+	fi
 }
 
 validate_okapi_url() {
