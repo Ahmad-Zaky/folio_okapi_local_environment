@@ -1528,8 +1528,6 @@ new_user() {
 
 	log "Add New User with username: $USERNAME"
 
-	PAYLOAD="{\"username\":\"$USERNAME\", \"id\":\"$UUID\", \"active\":true, \"scopes\": [], \"barcode\": \"123456789\", \"personal\": {\"email\": \"ahmed@email.com\", \"phone\": \"010111111111\", \"imageUrl\": \"\", \"lastName\": \"Zaky\", \"addresses\": [{\"city\": \"\", \"countryId\": \"EG\", \"postalCode\": \"11111\", \"addressLine1\": \"\", \"addressTypeId\": \"93d3d88d-499b-45d0-9bc7-ac73c3a19880\"}], \"firstName\": \"Ahmed\", \"middleName\": \"Mohamed\", \"mobilePhone\": \"010111111111\", \"preferredFirstName\": \"Ahmed\", \"preferredContactTypeId\": \"002\"}, \"proxyFor\": [], \"username\": \"ui_admin\", \"departments\": [], \"patronGroup\": \"503a81cd-6c26-400f-b620-14c08943697c\"}"
-
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT -HContent-Type:application/json"
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS="$OPTIONS -HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
@@ -1549,6 +1547,7 @@ new_user() {
 			"mobilePhone": "'$USER_PERSONAL_MOBILE_PHONE'",
 			"preferredContactTypeId": "'$USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID'",
 			"email": "'$USER_PERSONAL_EMAIL'",
+			"imageUrl": "",
 			"addresses": [
 				{
 					"city": "'$USER_PERSONAL_ADDRESSES_CITY'",
@@ -1561,7 +1560,9 @@ new_user() {
 		},
 		"proxyFor": '$USER_PROXY_FOR',
 		"departments": '$USER_DEPARTMENTS',
-		"patronGroup": "'$USER_PATRON_GROUP'"
+		"patronGroup": "'$USER_PATRON_GROUP'",
+		"expirationDate": "",
+		"scopes": []
 	}'
 
 	new_line
