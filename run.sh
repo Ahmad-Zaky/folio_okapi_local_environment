@@ -402,6 +402,12 @@ update_env_postman() {
 						"value": "'$POSTMAN_ENV_USER_ID_VAL'",
 						"enabled": true,
 						"type": "default"
+					},
+					{
+						"key": "job_profile_id",
+						"value": "",
+						"enabled": true,
+						"type": "default"
 					}
 				]
 			}
