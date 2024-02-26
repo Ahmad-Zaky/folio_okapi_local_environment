@@ -114,7 +114,6 @@ okapi_curl() {
 	fi
 
 	curl -s $OPTIONS -HContent-Type:application/json $*
-	new_line
 }
 
 handle_cloud_okapi() {
@@ -291,6 +290,7 @@ attach_permissions() {
 
 	PUUID=`uuidgen`
 	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
+	new_line
 }
 
 # Login to obtain the token from the header
@@ -336,7 +336,7 @@ postman() {
 	if [[ "$IS_ENALBLED" -eq 0 ]]; then
 		return
 	fi
-	
+
 	validate_open_api_file $INDEX $JSON_LIST $MODULE
 
 	validate_module_postman_api_key $INDEX $JSON_LIST
@@ -695,6 +695,24 @@ is_postman_enabled() {
 	return 0
 }
 
+is_server_okapi_enabled() {
+	local INDEX=$1
+	local JSON_LIST=$2
+	
+	# By default module has server okapi enabled if the key is missing
+	has "enabled" $INDEX $JSON_LIST "okapi"
+	if [[ "$?" -eq 0 ]]; then
+		return 1
+	fi
+
+	has_value "enabled" $INDEX "true" $JSON_LIST "okapi"
+	if [[ "$?" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
 is_okapi_exists() {
 	if [ -d $OKAPI_DIR ]; then
 		return 1
@@ -858,7 +876,11 @@ export_module_envs() {
 		ENV_NAME=$(echo $ENV_NAME | sed 's/"//g')
 		ENV_VALUE=$(echo $ENV_VALUE | sed 's/"//g')
 
-		okapi_curl $OKAPI_URL/_/env -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" -o /dev/null
+		declare ENV_VAR="$ENV_NAME"
+		export $ENV_VAR="$ENV_VALUE"
+
+		curl -s -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" $OKAPI_URL/_/env
+		new_line
 	done
 }
 
@@ -966,6 +988,7 @@ reset_and_verify_password() {
 	local UUID=$1
 
 	okapi_curl $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
+	new_line
 
 	get_file_content reset.json
 
@@ -1506,14 +1529,14 @@ new_tenant() {
 		return
 	fi
 
-	log "Add new tenant: $TENANT"
-	new_line
-	
 	has_tenant $TENANT
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return
 	fi
+
+	log "Add new tenant: $TENANT"
+	new_line
 
 	curl -d"{\"id\":\"$TENANT\", \"name\":\"Test Library #1\", \"description\":\"Test Libarary Number One\"}" $OKAPI_URL/_/proxy/tenants
 
@@ -1827,7 +1850,7 @@ clone_module() {
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
-	
+
 	# Clone the module repo
 	if [ ! -d $MODULE_ID ]; then
 		log "Clone module $MODULE_ID"
@@ -1898,10 +1921,16 @@ register_module() {
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
-	
+
 	# Do not use local okapi instance instead use already running okapi instance on the cloud
 	if [ -n "$CLOUD_OKAPI_URL" ]; then
-		return
+
+		# Do not Skip server okapi if enabled
+		is_server_okapi_enabled $INDEX $JSON_LIST
+		IS_ENALBLED=$?
+		if [[ "$IS_ENALBLED" -eq 1 ]]; then
+			return
+		fi
 	fi
 
 	# Do not run modules that depend on local Okapi instance if the argument without-okapi has been set
@@ -1948,9 +1977,15 @@ deploy_module() {
 	has "okapi" $INDEX $JSON_LIST
 	FOUND=$?
 	if [[ -n "$CLOUD_OKAPI_URL" ]] && [[ "$FOUND" -eq 1 ]]; then
-		deploy_module_directly $MODULE_ID $INDEX $JSON_LIST
 
-		return
+		# Do not Skip server okapi if enabled
+		is_server_okapi_enabled $INDEX $JSON_LIST
+		IS_ENALBLED=$?
+		if [[ "$IS_ENALBLED" -eq 1 ]]; then
+			deploy_module_directly $MODULE_ID $INDEX $JSON_LIST
+
+			return
+		fi
 	fi
 
 	# Do not run modules that depend on local Okapi instance if the argument without-okapi has been set
@@ -1984,7 +2019,7 @@ install_module() {
 	local MODULE=$2
 	local INDEX=$3
 	local JSON_LIST=$4
-	
+
 	should_install $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
 		return
@@ -1994,10 +2029,16 @@ install_module() {
 	has "okapi" $INDEX $JSON_LIST
 	FOUND=$?
 	if [[ -n "$CLOUD_OKAPI_URL" ]] && [[ "$FOUND" -eq 1 ]]; then
-		enable_module_directly $MODULE_ID $INDEX $JSON_LIST
-		unset CLOUD_OKAPI_URL
 
-		return
+		# Do not Skip server okapi if enabled
+		is_server_okapi_enabled $INDEX $JSON_LIST
+		IS_ENALBLED=$?
+		if [[ "$IS_ENALBLED" -eq 1 ]]; then
+			enable_module_directly $MODULE_ID $INDEX $JSON_LIST
+			unset CLOUD_OKAPI_URL
+
+			return
+		fi
 	fi
 
 	# Do not run modules that depend on local Okapi instance Okapi if the argument without-okapi has been set
