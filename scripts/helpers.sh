@@ -3,7 +3,9 @@
 log() {
 	local MSG=$1
 
+	new_line
 	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] $MSG"
+	new_line
 }
 
 new_line() {
@@ -139,7 +141,6 @@ login_admin() {
 	log "Login with credentials: "
 	log "username: $USERNAME"
 	log "password: $PASSWORD"
-	new_line
 
 	login_admin_curl $OKAPI_URL $TENANT $USERNAME $PASSWORD
 	new_line
@@ -446,8 +447,6 @@ build_okapi() {
 
 	# Go back to modules directory
 	cd ..
-
-	new_line
 }
 
 rebuild_okapi() {
@@ -462,7 +461,7 @@ rebuild_okapi() {
 	fi
 }
 
-stop_running_modules() {
+stop_running_module_or_modules() {
 
 	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ ! -z "$STOP_OKAPI_PROT_ARG" ]]; then
         stop_running_module
@@ -472,6 +471,10 @@ stop_running_modules() {
 		return
 	fi
 
+	stop_running_modules
+}
+
+stop_running_modules() {
 	log "Stop running modules ..."
 
 	for ((j=$START_PORT; j<=$END_PORT; j++))
@@ -493,6 +496,18 @@ stop_running_modules() {
 }
 
 stop_running_module() {
+    if [[ "$STOP_OKAPI_PROT_ARG" == "okapi" ]]; then
+		stop_okapi
+
+		exit 0
+	fi
+
+    if [[ "$STOP_OKAPI_PROT_ARG" == "modules" ]]; then
+		stop_running_modules
+
+		exit 0
+	fi
+
     is_port_used $STOP_OKAPI_PROT_ARG
     IS_PORT_USED=$?
     if [[ "$IS_PORT_USED" -eq 1 ]]; then
@@ -500,6 +515,8 @@ stop_running_module() {
 		log "Stop running module with port $STOP_OKAPI_PROT_ARG ..."
 
         kill_process_port $STOP_OKAPI_PROT_ARG
+	else
+		log "Module with port $STOP_OKAPI_PROT_ARG already stopped !"
     fi
 
   	new_line
@@ -549,9 +566,15 @@ export_module_envs() {
 }
 
 stop_okapi() {
-  	log "Stopping Okapi ..."
+	is_port_used $OKAPI_PORT
+	IS_PORT_USED=$?
+	if [[ "$IS_PORT_USED" -eq 1 ]]; then
+		log "Stopping Okapi ..."
 
-	kill_process_port $OKAPI_PORT
+		kill_process_port $OKAPI_PORT
+	else
+		log "Okapi already stopped !"
+	fi
 }
 
 is_port_used() {
@@ -591,6 +614,20 @@ get_user_uuid_by_username() {
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
+	fi
+
+
+	# Check if users api works at all
+	should_login
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	has_user $USERNAME
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
 	fi
 
 	UUID=$(curl -s $OPTIONS $OKAPI_URL/users | jq ".users[] | select(.username == \"$USERNAME\") | .id")
@@ -663,8 +700,6 @@ reset_and_verify_password() {
 		# so I just try to wait using sleep command and it did work with me just fine.
 
 		log "Access for user '$USERNAME' requires permission: users-bl.password-reset-link.generate"
-		
-		new_line
 		
 		log "Please wait until permissions added are persisted, which may delay due to underlying kafka process in users module so we will try again now."
 
@@ -820,4 +855,182 @@ kill_process_port() {
 	local PORT=$1
 
 	kill -9 $(lsof -t -i:$PORT)
+}
+
+
+get_module_version() {
+	local MODULE_ID=$1
+	local VERSION_FROM=$2
+
+	if  [[ "$VERSION_FROM" == "pom" ]]; then
+		get_module_version_from_pom $MODULE_ID
+	fi
+
+	if  [[ "$VERSION_FROM" == "azure_pipeline" ]]; then
+		get_module_version_from_azure_pipeline $MODULE_ID
+	fi
+}
+
+get_module_version_from_pom() {
+	local MODULE_ID=$1
+
+	if [ ! -f "$MODULE_ID/pom.xml" ] && [ ! -f "$MODULE_ID/azure-pipelines.yml" ]; then
+		error "pom.xml file is missing"
+	fi
+
+	if [ ! -f "$MODULE_ID/pom.xml" ] && [ -f "$MODULE_ID/azure-pipelines.yml" ]; then
+		VERSION_FROM="azure_pipeline"
+	fi
+
+	# Opt in the module
+	cd $MODULE_ID
+
+	MODULE_VERSION=$(grep -m1 '<version>' pom.xml | awk -F'[><]' '/version/ {print $3}')
+
+	# Opt out from the module
+	cd ..
+}
+
+get_module_version_from_azure_pipeline() {
+	local MODULE_ID=$1
+
+	if [ ! -f "$MODULE_ID/azure-pipelines.yml" ]; then
+		error "azure-pipelines.yml file is missing"
+	fi
+
+	# Opt in the module
+	cd $MODULE_ID
+
+	MODULE_VERSION=$(yq '.variables.[] | select(.name == "tag") | .value' azure-pipelines.yml)
+
+	# Opt out from the module
+	cd ..
+}
+
+# Pre register mod-authtoken module
+pre_authenticate() {
+	local MODULE=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+
+	# Do not proceed if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	local AUTHTOKEN_MODULE="mod-authtoken"
+	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
+		return
+	fi
+
+	enable_okapi $INDEX $JSON_LIST
+
+	should_login
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		login_admin
+		get_user_uuid_by_username
+
+		return
+	fi
+
+	make_adminuser
+}
+
+# Post register mod-authtoken module
+post_authenticate() {
+	local MODULE=$1
+	local AUTHTOKEN_MODULE="mod-authtoken"
+
+	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
+		return
+	fi
+
+	login_admin
+}
+
+# New admin user with all permissions
+make_adminuser() {
+	log "Make Admin User with credentials: "
+	log "username: $USERNAME"
+	log "password: $PASSWORD"
+
+	# Delete admin user firstly if exists
+	delete_user $USERNAME
+
+	# New admin user
+	new_user
+
+	# Attach Credentials
+	UUID=`uuidgen`
+	attach_credentials $UUID
+
+	# Set permissions for the new admin user
+	attach_permissions $UUID
+	new_line
+}
+
+# Store new user
+new_user() {
+
+	# Check if users api works at all
+	should_login
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	has_user $USERNAME
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	log "Add New User with username: $USERNAME"
+
+	local OPTIONS="-HX-Okapi-Tenant:$TENANT -HContent-Type:application/json"
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS="$OPTIONS -HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
+	fi
+
+	curl -s --location -XPOST $OKAPI_URL/users $OPTIONS \
+		--data '{
+		"username": "'$USERNAME'",
+		"active": '$USER_ACTIVE',
+		"barcode": '$USER_BARCODE',
+		"personal": {
+			"firstName": "'$USER_PERSONAL_FIRSTNAME'",
+			"lastName": "'$USER_PERSONAL_LASTNAME'",
+			"middleName": "'$USER_PERSONAL_MIDDLENAME'",
+			"preferredFirstName": "'$USER_PERSONAL_PREFERRED_FIRST_NAME'",
+			"phone": "'$USER_PERSONAL_PHONE'",
+			"mobilePhone": "'$USER_PERSONAL_MOBILE_PHONE'",
+			"preferredContactTypeId": "'$USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID'",
+			"email": "'$USER_PERSONAL_EMAIL'",
+			"imageUrl": "",
+			"addresses": [
+				{
+					"city": "'$USER_PERSONAL_ADDRESSES_CITY'",
+					"countryId": "'$USER_PERSONAL_ADDRESSES_COUNTRY_ID'",
+					"postalCode": "'$USER_PERSONAL_ADDRESSES_POSTAL_CODE'",
+					"addressLine1": "'$USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1'",
+					"addressTypeId": "'$USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID'"
+				}
+			]
+		},
+		"proxyFor": '$USER_PROXY_FOR',
+		"departments": '$USER_DEPARTMENTS',
+		"patronGroup": "'$USER_PATRON_GROUP'",
+		"expirationDate": "",
+		"scopes": []
+	}'
+
+	new_line
+}
+
+delete_user() {
+	local USERNAME=$1
+
+	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME"
+	new_line
 }

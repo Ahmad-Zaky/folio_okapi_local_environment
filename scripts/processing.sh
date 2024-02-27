@@ -23,13 +23,18 @@ fi
 
 has_registered() {
 	local MODULE_ID=$1
+	local VERSION_FROM="pom" # for now we will keep it like this ...
+
+	get_module_version $MODULE_ID $VERSION_FROM
+
+	local MODULE_WITH_VERSION="$MODULE_ID-$MODULE_VERSION"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
-	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
+	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/modules | jq ".[] | .id | contains(\"$MODULE_WITH_VERSION\")")
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -42,13 +47,18 @@ has_registered() {
 
 has_deployed() {
 	local MODULE_ID=$1
+	local VERSION_FROM="pom" # for now we will keep it like this ...
+
+	get_module_version $MODULE_ID $VERSION_FROM
+
+	local MODULE_WITH_VERSION="$MODULE_ID-$MODULE_VERSION"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
-	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .srvcId | contains(\"$MODULE_ID\")")
+	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .srvcId | contains(\"$MODULE_WITH_VERSION\")")
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -62,13 +72,18 @@ has_deployed() {
 has_installed() {
 	local MODULE_ID=$1
 	local TENANT=$2
+	local VERSION_FROM="pom" # for now we will keep it like this ...
+
+	get_module_version $MODULE_ID $VERSION_FROM
+
+	local MODULE_WITH_VERSION="$MODULE_ID-$MODULE_VERSION"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
-	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules | jq ".[] | .id | contains(\"$MODULE_ID\")")
+	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules | jq ".[] | .id | contains(\"$MODULE_WITH_VERSION\")")
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -276,6 +291,7 @@ post_install() {
 	# Add new user
 	local USERS_MODULE="mod-users"
 	if [ $MODULE = $USERS_MODULE ]; then
+
 		new_user
 		
 		get_user_uuid_by_username
@@ -294,77 +310,13 @@ post_install() {
 	# Set permissions related to mod-users-bl
 	local USERS_BL_MODULE="mod-users-bl"
 	if [ $MODULE = $USERS_BL_MODULE ]; then
-		set_users_bl_module_permissions $INDEX
+		set_users_bl_module_permissions $INDEXupdate_env_postman
 
 		# Update postman environment variables
 		update_env_postman $POSTMAN_API_KEY
 	fi
 
 	re_export_env_vars
-}
-
-# Pre register mod-authtoken module
-pre_authenticate() {
-	local MODULE=$1
-	local INDEX=$2
-	local JSON_LIST=$3
-
-	# Do not proceed if the argument without-okapi has been set
-	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		return
-	fi
-
-	local AUTHTOKEN_MODULE="mod-authtoken"
-	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
-		return
-	fi
-
-	enable_okapi $INDEX $JSON_LIST
-
-	should_login
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		login_admin
-		get_user_uuid_by_username
-
-		return
-	fi
-
-	make_adminuser
-}
-
-# Post register mod-authtoken module
-post_authenticate() {
-	local MODULE=$1
-	local AUTHTOKEN_MODULE="mod-authtoken"
-
-	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
-		return
-	fi
-
-	login_admin
-}
-
-# New admin user with all permissions
-make_adminuser() {
-	log "Make Admin User with credentials: "
-	log "username: $USERNAME"
-	log "password: $PASSWORD"
-	new_line
-
-	# Delete admin user firstly if exists
-	delete_user $USERNAME
-
-	# New admin user
-	new_user
-
-	# Attach Credentials
-	UUID=`uuidgen`
-	attach_credentials $UUID
-
-	# Set permissions for the new admin user
-	attach_permissions $UUID
-	new_line
 }
 
 # Clone module
@@ -384,7 +336,6 @@ clone_module() {
 		# Print Repo Link
 		new_line
 		log $REPO
-		new_line
 
 		eval "$REPO"
 	fi

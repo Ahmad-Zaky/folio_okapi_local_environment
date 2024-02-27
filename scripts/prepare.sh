@@ -20,7 +20,7 @@ pre_process() {
 
 	set_args $*
 
-	stop_running_modules
+	stop_running_module_or_modules
 
 	run_okapi
 
@@ -325,7 +325,7 @@ run_okapi() {
 	# Do nothing if Okapi is already running without setting restart argument
 	is_okapi_running
 	IS_OKAPI_RUNNING=$?
-	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && ([[ "$RESTART_OKAPI_ARG" -eq 0 ]] || [[ "$START_OKAPI_ARG" -eq 0 ]]); then
+	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 0 ]] && [[ "$START_OKAPI_ARG" -eq 0 ]]; then
 		return
 	fi
 
@@ -379,8 +379,6 @@ set_env_vars_to_okapi() {
 
 	log "Set environment variables to okapi"
 
-	new_line
-
 	curl -s -d"{\"name\":\"DB_HOST\",\"value\":\"$DB_HOST\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"DB_PORT\",\"value\":\"$DB_PORT\"}" $OKAPI_URL/_/env -o /dev/null
 	curl -s -d"{\"name\":\"DB_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env -o /dev/null
@@ -414,75 +412,9 @@ new_tenant() {
 	fi
 
 	log "Add new tenant: $TENANT"
-	new_line
 
 	curl -d"{\"id\":\"$TENANT\", \"name\":\"Test Library #1\", \"description\":\"Test Libarary Number One\"}" $OKAPI_URL/_/proxy/tenants
 
-	new_line
-}
-
-# Store new user
-new_user() {
-
-	# Check if users api works at all
-	should_login
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return
-	fi
-
-	has_user $USERNAME
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return
-	fi
-
-	log "Add New User with username: $USERNAME"
-
-	local OPTIONS="-HX-Okapi-Tenant:$TENANT -HContent-Type:application/json"
-	if test "$OKAPI_HEADER_TOKEN" != "x"; then
-		OPTIONS="$OPTIONS -HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
-	fi
-
-	curl -s --location -XPOST $OKAPI_URL/users $OPTIONS \
-		--data '{
-		"username": "'$USERNAME'",
-		"active": '$USER_ACTIVE',
-		"barcode": '$USER_BARCODE',
-		"personal": {
-			"firstName": "'$USER_PERSONAL_FIRSTNAME'",
-			"lastName": "'$USER_PERSONAL_LASTNAME'",
-			"middleName": "'$USER_PERSONAL_MIDDLENAME'",
-			"preferredFirstName": "'$USER_PERSONAL_PREFERRED_FIRST_NAME'",
-			"phone": "'$USER_PERSONAL_PHONE'",
-			"mobilePhone": "'$USER_PERSONAL_MOBILE_PHONE'",
-			"preferredContactTypeId": "'$USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID'",
-			"email": "'$USER_PERSONAL_EMAIL'",
-			"imageUrl": "",
-			"addresses": [
-				{
-					"city": "'$USER_PERSONAL_ADDRESSES_CITY'",
-					"countryId": "'$USER_PERSONAL_ADDRESSES_COUNTRY_ID'",
-					"postalCode": "'$USER_PERSONAL_ADDRESSES_POSTAL_CODE'",
-					"addressLine1": "'$USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1'",
-					"addressTypeId": "'$USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID'"
-				}
-			]
-		},
-		"proxyFor": '$USER_PROXY_FOR',
-		"departments": '$USER_DEPARTMENTS',
-		"patronGroup": "'$USER_PATRON_GROUP'",
-		"expirationDate": "",
-		"scopes": []
-	}'
-
-	new_line
-}
-
-delete_user() {
-	local USERNAME=$1
-
-	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME"
 	new_line
 }
 
