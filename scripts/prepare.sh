@@ -222,8 +222,11 @@ set_args() {
 		set_init_arg $ARG
 		set_purge_arg $ARG
 		set_restart_okapi_arg $ARG
+		set_start_okapi_arg $ARG
 		set_without_okapi_arg $ARG
 	done
+
+	set_stop_okapi_arg $ARGS
 }
 
 set_init_arg() {
@@ -265,6 +268,37 @@ set_restart_okapi_arg() {
 	fi
 }
 
+set_start_okapi_arg() {
+	local ARGUMENT=$1
+
+	if [[ "$START_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	START_OKAPI_ARG=0
+	if [ $ARGUMENT == "start" ]; then
+		START_OKAPI_ARG=1
+	fi
+}
+
+set_stop_okapi_arg() {
+	local ARGUMENT=$1
+	local PORT=$2
+
+	if [[ "$STOP_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	if [ ! -z "$PORT" ]; then
+        STOP_OKAPI_PROT_ARG=$PORT
+	fi
+
+	STOP_OKAPI_ARG=0
+	if [ $ARGUMENT == "stop" ]; then
+		STOP_OKAPI_ARG=1
+	fi
+}
+
 set_without_okapi_arg() {
 	local ARGUMENT=$1
 
@@ -291,7 +325,7 @@ run_okapi() {
 	# Do nothing if Okapi is already running without setting restart argument
 	is_okapi_running
 	IS_OKAPI_RUNNING=$?
-	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 0 ]]; then
+	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && ([[ "$RESTART_OKAPI_ARG" -eq 0 ]] || [[ "$START_OKAPI_ARG" -eq 0 ]]); then
 		return
 	fi
 
@@ -310,7 +344,7 @@ run_okapi() {
 	fi
 
 	# Restart Okapi by stopping it first and then start it again
-	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 1 ]]; then
+	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && ([[ "$RESTART_OKAPI_ARG" -eq 1 ]] || [[ "$START_OKAPI_ARG" -eq 1 ]]); then
 		stop_okapi
 	fi
 
