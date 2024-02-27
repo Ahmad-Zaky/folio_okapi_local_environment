@@ -477,14 +477,17 @@ stop_running_module_or_modules() {
 stop_running_modules() {
 	log "Stop running modules ..."
 
-	for ((j=$START_PORT; j<=$END_PORT; j++))
-	do
-        local PORT=$j
+	local MODULE_URLS=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .url")
+	local MODULE_URLS=$(echo $MODULE_URLS | sed 's/"//g')
 
-        is_port_used $PORT
+	for MODULE_URL in $MODULE_URLS; do
+		# Using sed to extract the port
+		local MODULE_PORT=$(echo "$MODULE_URL" | sed -n 's/.*:\([0-9]\+\)$/\1/p')
+
+		is_port_used $MODULE_PORT
         IS_PORT_USED=$?
         if [[ "$IS_PORT_USED" -eq 1 ]]; then
-            kill_process_port $PORT
+            kill_process_port $MODULE_PORT
         fi
 	done
 
@@ -521,7 +524,7 @@ stop_running_module() {
 
   	new_line
 
-    exit 0;
+    exit 0
 }
 
 re_export_env_vars() {
