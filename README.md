@@ -1,7 +1,14 @@
 # FOLIO Okapi Local Environment
 FOLIO Okapi Local Environment
 
-> First you need to run this command `sudo docker compose up --build -d` to build and run the containers inside `docker-compose.yml` file which has these services
+> prerequesits
+
+* java installed locally. [click here](https://www.freecodecamp.org/news/how-to-install-java-in-ubuntu/)
+* jq linux tool to process json files. [click here](https://jqlang.github.io/jq/download/)
+* yq linux tool to process yml files. [click here](https://github.com/mikefarah/yq)
+* lsof linux tool to check process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
+
+> First you need to run this command `sudo docker compose up --build -d` to build and run the containers inside `docker-compose.yml` file which has these services, be aware that you may not need all services located in the `docker-compose.yml` file, the basic services you need are (`postgres`, `kafka`, `zookeeper`).
 
 * postgres
 * pgadmin
@@ -14,8 +21,10 @@ FOLIO Okapi Local Environment
 > for linux .bash_aliases saved aliases
 
 ```
-alias folio='bash run.sh'
-alias foliostop='bash stop_modules.sh'
+alias folio='cd <path/to/script> && bash run.sh'
+alias foliostop='cd <path/to/script> && bash stop_modules.sh'
+alias folioup='cd <path/to/script> && dkup'
+alias cdfolio='cd <path/to/script>'
 alias okapi='java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev'
 alias okapi_initdb='java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar initdatabase'
 alias okapi_purgedb='java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar purgedatabase'
@@ -27,10 +36,11 @@ alias iokapi='okapi_initdb && okapi'
 ```
 folio init          # removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
 folio purge         # removes existing tables and data only, does not reinitialize.
-folio restart       # stop all running mocules and restart over with okapi
+folio start         # stop all running modules first and then start over with okapi
+folio restart       # stop all running modules first and then restart over with okapi
+folio stop          # stop all running modules.
+folio stop <port>   # stop one module by port number.
 folio without-okapi # running modules without okapi, its helpful when you run a module placed in modules.json directly with an already running okapi on the cloud
-foliostop           # stop all running folio modules
-foliostop 9131      # stop one running module by port
 okapi               # run okapi with development mode
 okapi_initdb        # run okapi with initdatabase mode, which removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
 okapi_purgedb       # run okapi with purgedatabase mode, removes existing tables and data only, does not reinitialize.
