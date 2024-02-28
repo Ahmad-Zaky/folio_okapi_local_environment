@@ -1,11 +1,7 @@
 #!/bin/bash
 
 log() {
-	local MSG=$1
-
-	new_line
-	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] $MSG"
-	new_line
+	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] $1"
 }
 
 new_line() {
@@ -15,7 +11,7 @@ new_line() {
 # Output Error
 error() {
     log "\n\e[1;31m ERROR: $1 \033[0m"
-	
+
     exit 1
 }
 
@@ -124,7 +120,7 @@ handle_cloud_okapi() {
 attach_credentials() {
 	local UUID=$1
 
-	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
+	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials -o output.txt
 	new_line
 }
 
@@ -132,7 +128,7 @@ attach_permissions() {
 	local UUID=$1
 
 	PUUID=`uuidgen`
-	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
+	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users -o output.txt
 	new_line
 }
 
@@ -155,7 +151,8 @@ login_admin_curl() {
 	local USR=$3
 	local PWD=$4
 	
-	curl -s -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
+	curl -s -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login -o output.txt
+
 	new_line
 
 	TOKEN=`awk '/x-okapi-token/ {print $2}' <headers|tr -d '[:space:]'`
@@ -193,6 +190,7 @@ import_postman_openapi() {
 	local OPEN_API_FILE=$2
 	local MODULE=$3
 
+	# TODO: HANDLE FAILURE OF THE REQUEST
 	curl -s $POSTMAN_URL$POSTMAN_IMPORT_OPENAPI_PATH \
 		-HContent-Type:multipart/form-data \
 		-HAccept:application/vnd.api.v10+json \
@@ -208,13 +206,14 @@ update_env_postman() {
 		return 
 	fi
 
-	log "Update env postman"
+	log "Update env postman ..."
 
 	local POSTMAN_API_KEY=$1
 
 	curl -s --location -XPUT $POSTMAN_URL$POSTMAN_ENVIRONMENT_PATH'/'$POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID \
 		-H'Content-Type: application/json' \
 		-H'X-API-Key: '$POSTMAN_API_KEY \
+		--output output.txt \
 		--data '{
 			"environment": {
 				"name": "'"$POSTMAN_ENV_NAME"'",
@@ -265,6 +264,7 @@ update_env_postman() {
 has_tenant() {
 	local TENANT=$1
 	
+	# TODO: HANDLE FAILURE OF THE REQUEST
 	RESULT=$(curl -s $OKAPI_URL/_/proxy/tenants | jq ".[] | .id | contains(\"$TENANT\")")
 
 	has_arg "$RESULT" "true"
@@ -279,6 +279,7 @@ has_tenant() {
 has_user() {
 	local USERNAME=$1
 
+	# TODO: HANDLE THE FAILURE OF THE REQUEST
 	RESULT=$(okapi_curl $OKAPI_URL/users?query=username%3D%3D$USERNAME | jq ".users[] | .username | contains(\"$USERNAME\")")
 
 	has_arg "$RESULT" "true"
@@ -291,6 +292,7 @@ has_user() {
 }
 
 should_login() {
+	# TODO: USE THE STATUS CODE CHECK HERE FOR OTHER CURL REQUESTS TO HANDLE CURL REQUEST FAILURE
 	STATUS_CODE=$(curl -s -w "%{http_code}" -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users -o /dev/null)
 
 	if [[ "$STATUS_CODE" != "200" ]]; then
@@ -477,6 +479,7 @@ stop_running_module_or_modules() {
 stop_running_modules() {
 	log "Stop running modules ..."
 
+	# TODO: HANDLE THE FAILURE OF THE REQUEST
 	local MODULE_URLS=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .url")
 	local MODULE_URLS=$(echo $MODULE_URLS | sed 's/"//g')
 
@@ -563,7 +566,7 @@ export_module_envs() {
 		declare ENV_VAR="$ENV_NAME"
 		export $ENV_VAR="$ENV_VALUE"
 
-		curl -s -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" $OKAPI_URL/_/env
+		curl -s -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" $OKAPI_URL/_/env -o output.txt
 		new_line
 	done
 }
@@ -602,9 +605,9 @@ export_next_port() {
 		export SERVER_PORT="$1"
 		export HTTP_PORT="$1"
 
-		curl -s -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env -o /dev/null
-		curl -s -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env -o /dev/null
-		curl -s -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env -o /dev/null
+		curl -s -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env -o output.txt
+		curl -s -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env -o output.txt
+		curl -s -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env -o output.txt
 
 		return
 	fi
@@ -633,6 +636,7 @@ get_user_uuid_by_username() {
 		return
 	fi
 
+	# TODO: HANDLE FAILURE OF THE REQUEST  
 	UUID=$(curl -s $OPTIONS $OKAPI_URL/users | jq ".users[] | select(.username == \"$USERNAME\") | .id")
 
 	# Remove extra double quotes at start and end of the string
@@ -649,6 +653,7 @@ get_random_permission_uuid_by_user_uuid() {
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
+	# TODO: HANDLE FAILURE OF THE REQUEST
 	USER_PUUIDS=$(curl -s $OPTIONS $OKAPI_URL/perms/users | jq ".permissionUsers[] | select(.userId == \"$UUID\") | .id")
 	
 	# Return the first incommnig PUUID
@@ -718,7 +723,7 @@ reset_and_verify_password() {
 
 	log "Second token: $TOKEN_2"
 
-	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
+	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}' -o output.txt
 
 	new_line
 }
@@ -747,10 +752,10 @@ set_users_bl_module_permissions() {
 
 	get_random_permission_uuid_by_user_uuid $UUID
 
-	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
+	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}' -o output.txt
 	new_line
 
-	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
+	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}' -o output.txt
 	new_line
 
 	login_admin
@@ -841,7 +846,8 @@ enable_module_directly() {
 		--header "x-okapi-url: $CLOUD_OKAPI_URL" \
 		--header 'Content-Type: application/json' \
 		--header "x-okapi-url-to: http://localhost:$SERVER_PORT" \
-		--data "$ENABLE_PAYLOAD"
+		--data "$ENABLE_PAYLOAD" \
+		--output /dev/null
 
 	new_line
 
@@ -857,7 +863,7 @@ enable_module_directly() {
 kill_process_port() {
 	local PORT=$1
 
-	kill -9 $(lsof -t -i:$PORT)
+	kill -9 $(lsof -i :$PORT | grep LISTEN | awk '{print $2}')
 }
 
 
@@ -997,6 +1003,7 @@ new_user() {
 	fi
 
 	curl -s --location -XPOST $OKAPI_URL/users $OPTIONS \
+		--output output.txt \
 		--data '{
 		"username": "'$USERNAME'",
 		"active": '$USER_ACTIVE',
@@ -1034,6 +1041,6 @@ new_user() {
 delete_user() {
 	local USERNAME=$1
 
-	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME"
+	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME" -o output.txt
 	new_line
 }
