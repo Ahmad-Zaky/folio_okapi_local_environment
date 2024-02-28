@@ -40,11 +40,14 @@ folio start         # stop all running modules first and then start over with ok
 folio restart       # stop all running modules first and then restart over with okapi
 folio stop          # stop all running modules.
 folio stop <port>   # stop one module by port number.
+folio stop okapi    # stop running okapi instance.
+folio stop modules  # stop okapi running modules.
 folio without-okapi # running modules without okapi, its helpful when you run a module placed in modules.json directly with an already running okapi on the cloud
 okapi               # run okapi with development mode
 okapi_initdb        # run okapi with initdatabase mode, which removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
 okapi_purgedb       # run okapi with purgedatabase mode, removes existing tables and data only, does not reinitialize.
 ```
+> WARNING: issues happening during running the script are not properly handled
 
 > Modules json keys explained:
 

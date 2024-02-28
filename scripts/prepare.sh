@@ -294,7 +294,7 @@ set_stop_okapi_arg() {
 	fi
 
 	STOP_OKAPI_ARG=0
-	if [ $ARGUMENT == "stop" ]; then
+	if [[ $ARGUMENT == "stop" ]]; then
 		STOP_OKAPI_ARG=1
 	fi
 }
