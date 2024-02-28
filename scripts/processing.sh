@@ -434,8 +434,6 @@ register_module() {
 	fi
 
 	curl -s $OPTIONS -d@$MODULE_DESCRIPTOR $OKAPI_URL/_/proxy/modules -o /dev/null
-
-	new_line
 }
 
 # Deploy module into Okapi
@@ -486,8 +484,6 @@ deploy_module() {
 	fi
 
 	curl -s $OPTIONS -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules -o /dev/null
-
-	new_line
 }
 
 # Install (enable) modules for a tenant
@@ -546,8 +542,6 @@ install_module() {
 
 		# Install (enable) modules
 		curl -s $OPTIONS "-d$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?$INSTALL_PARAMS" -o /dev/null
-
-		new_line
 	fi
 }
 
