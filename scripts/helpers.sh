@@ -464,9 +464,22 @@ rebuild_okapi() {
 }
 
 stop_running_module_or_modules() {
+	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && ([[ -z "$STOP_OKAPI_PROT_ARG" ]] || [[ "$STOP_OKAPI_PROT_ARG" == "okapi" ]]); then
+        stop_okapi
+
+		exit 0
+	fi
+
+    if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ "$STOP_OKAPI_PROT_ARG" == "modules" ]]; then
+		stop_running_modules
+
+		exit 0
+	fi
 
 	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ ! -z "$STOP_OKAPI_PROT_ARG" ]]; then
         stop_running_module
+
+		exit 0
 	fi
 
 	if [[ $SHOULD_STOP_RUNNING_MODULES == "false" ]] && [[ "$STOP_OKAPI_ARG" -eq 0 ]]; then
@@ -502,18 +515,6 @@ stop_running_modules() {
 }
 
 stop_running_module() {
-    if [[ "$STOP_OKAPI_PROT_ARG" == "okapi" ]]; then
-		stop_okapi
-
-		exit 0
-	fi
-
-    if [[ "$STOP_OKAPI_PROT_ARG" == "modules" ]]; then
-		stop_running_modules
-
-		exit 0
-	fi
-
     is_port_used $STOP_OKAPI_PROT_ARG
     IS_PORT_USED=$?
     if [[ "$IS_PORT_USED" -eq 1 ]]; then
@@ -524,10 +525,6 @@ stop_running_module() {
 	else
 		log "Module with port $STOP_OKAPI_PROT_ARG already stopped !"
     fi
-
-  	new_line
-
-    exit 0
 }
 
 re_export_env_vars() {
