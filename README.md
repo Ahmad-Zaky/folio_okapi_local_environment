@@ -49,6 +49,8 @@ okapi_purgedb       # run okapi with purgedatabase mode, removes existing tables
 ```
 > WARNING: issues happening during running the script are not properly handled
 
+> NOTICE: when you need to run some okapi modules localy you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.
+
 > Modules json keys explained:
 
 > The only required unique key is `id` any other keys are optional and may be conditional required
