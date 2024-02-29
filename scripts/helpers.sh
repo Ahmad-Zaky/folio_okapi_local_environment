@@ -151,18 +151,18 @@ attach_permissions() {
 }
 
 # Login to obtain the token from the header
-login_admin() {
+login_user() {
 	log "Login with credentials: "
 	log "username: $USERNAME"
 	log "password: $PASSWORD"
 
-	login_admin_curl $OKAPI_URL $TENANT $USERNAME $PASSWORD
+	login_user_curl $OKAPI_URL $TENANT $USERNAME $PASSWORD
 
 	OKAPI_HEADER_TOKEN=$TOKEN
 	POSTMAN_ENV_TOKEN_VAL=$TOKEN
 }
 
-login_admin_curl() {
+login_user_curl() {
 	local URL=$1
 	local TNT=$2
 	local USR=$3
@@ -170,6 +170,10 @@ login_admin_curl() {
 
 	new_line
 	curl -s -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
+	
+	# login from mod-users-bl module but the $LOGIN_WITH_MOD variable value should be 'mod-uers-bl'
+	# curl -s -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/bl-users/login?expandPermissions=true&fullPermissions=true
+
 	new_line
 
 	TOKEN=`awk '/x-okapi-token/ {print $2}' <headers|tr -d '[:space:]'`
@@ -789,7 +793,7 @@ set_users_bl_module_permissions() {
 	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
 	new_line
 
-	login_admin
+	login_user
 
 	reset_and_verify_password $UUID
 }
@@ -866,7 +870,7 @@ enable_module_directly() {
 	sleep 15
 
 	# Cloud Okapi login
-	login_admin_curl $CLOUD_OKAPI_URL $CLOUD_TENANT $CLOUD_USERNAME $CLOUD_PASSWORD
+	login_user_curl $CLOUD_OKAPI_URL $CLOUD_TENANT $CLOUD_USERNAME $CLOUD_PASSWORD
 	
 	log "Install (Enable) $MODULE"
 
@@ -885,7 +889,7 @@ enable_module_directly() {
 	# Local Okapi login if we should for the consecutive modules
 	should_login
 	if [[ "$STATUS_CODE" == "200" ]] || [[ "$STATUS_CODE" == "204" ]]; then
-		login_admin
+		login_user
 	fi
 }
 
@@ -923,7 +927,7 @@ get_module_version_from_pom() {
 	# Opt in the module
 	cd $MODULE_ID
 
-	MODULE_VERSION=$(grep -m1 '<version>' pom.xml | awk -F'[><]' '/version/ {print $3}')
+	MODULE_VERSION=$(xmllint --xpath "*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
 
 	# Opt out from the module
 	cd ..
@@ -956,8 +960,7 @@ pre_authenticate() {
 		return
 	fi
 
-	local AUTHTOKEN_MODULE="mod-authtoken"
-	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
+	if [ $MODULE != $LOGIN_WITH_MOD ]; then
 		return
 	fi
 
@@ -966,7 +969,7 @@ pre_authenticate() {
 	should_login
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
-		login_admin
+		login_user
 		get_user_uuid_by_username
 
 		return
@@ -980,13 +983,12 @@ pre_authenticate() {
 # Post register mod-authtoken module
 post_authenticate() {
 	local MODULE=$1
-	local AUTHTOKEN_MODULE="mod-authtoken"
 
-	if [ $MODULE != $AUTHTOKEN_MODULE ]; then
+	if [ $MODULE != $LOGIN_WITH_MOD ]; then
 		return
 	fi
 
-	login_admin
+	login_user
 }
 
 # Store new user

@@ -51,7 +51,7 @@ defaults() {
 module_defaults() {
 	# Modules directory path
 	MODULES_DIR=modules
-	
+
 	go_to_modules_dir
 
 	# Modules list file
@@ -59,6 +59,10 @@ module_defaults() {
 
 	# Configurations list file
 	CONFIG_FILE="configuration.json"
+
+	LOGIN_WITH_MOD="mod-authtoken"
+
+	OUTPUT_JSON="output.json"
 
 	SHOULD_STOP_RUNNING_MODULES=$(jq ".SHOULD_STOP_RUNNING_MODULES" $CONFIG_FILE)
 

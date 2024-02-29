@@ -432,7 +432,7 @@ register_module() {
 		error "$MODULE_DESCRIPTOR missing pwd=`pwd`"
 	fi
 
-	log "Register module $MODULE_ID"
+	log "Register module $MODULE_ID with version ($MODULE_VERSION)"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -482,7 +482,7 @@ deploy_module() {
 
 	export_next_port $SERVER_PORT
 
-	log "Deploy module $MODULE_ID on port: $SERVER_PORT"
+	log "Deploy module $MODULE_ID with version ($MODULE_VERSION) on port: $SERVER_PORT"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -542,7 +542,7 @@ install_module() {
 
 	# Validate if the list is not empty	
 	if [[ "$PAYLOAD" =~ ^\[.+\]$ ]]; then
-		log "Install (Enable) $MODULE"
+		log "Install (Enable) $MODULE with version ($MODULE_VERSION)"
 
 		get_install_params $MODULE $i $JSON_LIST
 
