@@ -6,6 +6,7 @@ FOLIO Okapi Local Environment
 * java installed locally. [click here](https://www.freecodecamp.org/news/how-to-install-java-in-ubuntu/)
 * jq linux tool to process json files. [click here](https://jqlang.github.io/jq/download/)
 * yq linux tool to process yml files. [click here](https://github.com/mikefarah/yq)
+* xmllint linux tool to process xml files. [click here](https://devicetests.com/install-xmllint-ubuntu#google_vignette)
 * lsof linux tool to check process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
 
 > First you need to run this command `sudo docker compose up --build -d` to build and run the containers inside `docker-compose.yml` file which has these services, be aware that you may not need all services located in the `docker-compose.yml` file, the basic services you need are (`postgres`, `kafka`, `zookeeper`).
