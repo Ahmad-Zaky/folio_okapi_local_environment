@@ -82,7 +82,7 @@ has_arg() {
 	local FIND=$2
 	
 	for ARG in $ARGS; do
-		if [[ "$ARG" =~ "$FIND" ]]; then
+		if [[ "$ARG" == "$FIND" ]]; then
 			return 1
 		fi
 	done
@@ -120,16 +120,34 @@ handle_cloud_okapi() {
 attach_credentials() {
 	local UUID=$1
 
-	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials -o output.txt
+	has_credentials
+	HAS_CREDENTIALS=$?
+	if [[ "$HAS_CREDENTIALS" -eq 1 ]]; then
+		return
+	fi
+
+	log "Attach credentials ..."
+
+	new_line
+	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
 	new_line
 }
 
 attach_permissions() {
 	local UUID=$1
-
 	PUUID=`uuidgen`
-	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users -o output.txt
+
+	has_user_permissions
+	HAS_USER_PERMISSIONS=$?
+	if [[ "$HAS_USER_PERMISSIONS" -eq 1 ]]; then
+		return
+	fi
+
+	log "Attach permissions ..."
+
 	new_line
+	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
+	new_line 
 }
 
 # Login to obtain the token from the header
@@ -139,7 +157,6 @@ login_admin() {
 	log "password: $PASSWORD"
 
 	login_admin_curl $OKAPI_URL $TENANT $USERNAME $PASSWORD
-	new_line
 
 	OKAPI_HEADER_TOKEN=$TOKEN
 	POSTMAN_ENV_TOKEN_VAL=$TOKEN
@@ -150,9 +167,9 @@ login_admin_curl() {
 	local TNT=$2
 	local USR=$3
 	local PWD=$4
-	
-	curl -s -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login -o output.txt
 
+	new_line
+	curl -s -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
 	new_line
 
 	TOKEN=`awk '/x-okapi-token/ {print $2}' <headers|tr -d '[:space:]'`
@@ -197,8 +214,6 @@ import_postman_openapi() {
 		-HX-API-Key:$MODULE_POSTMAN_API_KEY \
 		-Ftype="file" \
 		-Finput=@"$MODULE/$OPEN_API_FILE" | jq .
-
-	new_line
 }
 
 update_env_postman() {
@@ -210,10 +225,11 @@ update_env_postman() {
 
 	local POSTMAN_API_KEY=$1
 
+	new_line
+
 	curl -s --location -XPUT $POSTMAN_URL$POSTMAN_ENVIRONMENT_PATH'/'$POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID \
 		-H'Content-Type: application/json' \
 		-H'X-API-Key: '$POSTMAN_API_KEY \
-		--output output.txt \
 		--data '{
 			"environment": {
 				"name": "'"$POSTMAN_ENV_NAME"'",
@@ -281,6 +297,30 @@ has_user() {
 
 	# TODO: HANDLE THE FAILURE OF THE REQUEST
 	RESULT=$(okapi_curl $OKAPI_URL/users?query=username%3D%3D$USERNAME | jq ".users[] | .username | contains(\"$USERNAME\")")
+
+	has_arg "$RESULT" "true"
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+has_credentials() {
+	RESULT=$(okapi_curl $OKAPI_URL/authn/credentials-existence?userId=$UUID | jq ".credentialsExist | contains(true)")
+
+	has_arg "$RESULT" "true"
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0	
+}
+
+has_user_permissions() {
+	RESULT=$(okapi_curl $OKAPI_URL/perms/users?limit=1000 | jq ".permissionUsers[] | .userId | contains(\"$UUID\")")
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -423,8 +463,6 @@ clone_okapi() {
   	log "Cloning Okapi ..."
 
 	eval "git clone --recurse-submodules $OKAPI_REPO"
-
-  	new_line
 }
 
 build_okapi() {
@@ -458,13 +496,12 @@ rebuild_okapi() {
     	log "Rebuild Okapi ..."
 
     	build_okapi
-
-    	new_line
 	fi
 }
 
 stop_running_module_or_modules() {
 	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && ([[ -z "$STOP_OKAPI_PROT_ARG" ]] || [[ "$STOP_OKAPI_PROT_ARG" == "okapi" ]]); then
+		stop_running_modules
         stop_okapi
 
 		exit 0
@@ -506,12 +543,6 @@ stop_running_modules() {
             kill_process_port $MODULE_PORT
         fi
 	done
-
-	if [[ "$STOP_OKAPI_ARG" -eq 1 ]]; then
-        exit 0
-	fi
-
-  	new_line
 }
 
 stop_running_module() {
@@ -563,7 +594,8 @@ export_module_envs() {
 		declare ENV_VAR="$ENV_NAME"
 		export $ENV_VAR="$ENV_VALUE"
 
-		curl -s -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" $OKAPI_URL/_/env -o output.txt
+		new_line
+		curl -s -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" $OKAPI_URL/_/env
 		new_line
 	done
 }
@@ -601,10 +633,12 @@ export_next_port() {
 		export PORT="$1"
 		export SERVER_PORT="$1"
 		export HTTP_PORT="$1"
-
-		curl -s -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env -o output.txt
-		curl -s -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env -o output.txt
-		curl -s -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env -o output.txt
+		
+		new_line
+		curl -s -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env -o /dev/null
+		curl -s -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env -o /dev/null
+		curl -s -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env -o /dev/null
+		new_line
 
 		return
 	fi
@@ -627,17 +661,15 @@ get_user_uuid_by_username() {
 		return
 	fi
 
-	has_user $USERNAME
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return
-	fi
+	log "Get user UUID for username: $USERNAME"
 
 	# TODO: HANDLE FAILURE OF THE REQUEST  
 	UUID=$(curl -s $OPTIONS $OKAPI_URL/users | jq ".users[] | select(.username == \"$USERNAME\") | .id")
 
 	# Remove extra double quotes at start and end of the string
 	UUID=$(echo $UUID | sed 's/"//g')
+
+	log "User UUID: $UUID"
 
 	POSTMAN_ENV_USER_ID_VAL=$UUID
 }
@@ -693,8 +725,8 @@ get_install_params() {
 reset_and_verify_password() {
 	local UUID=$1
 
+	log "Reset and verify user password"
 	okapi_curl $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
-	new_line
 
 	get_file_content reset.json
 
@@ -720,8 +752,8 @@ reset_and_verify_password() {
 
 	log "Second token: $TOKEN_2"
 
-	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}' -o output.txt
-
+	new_line
+	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
 	new_line
 }
 
@@ -749,14 +781,15 @@ set_users_bl_module_permissions() {
 
 	get_random_permission_uuid_by_user_uuid $UUID
 
-	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}' -o output.txt
+	new_line
+	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
 	new_line
 
-	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}' -o output.txt
+	new_line
+	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
 	new_line
 
 	login_admin
-	new_line
 
 	reset_and_verify_password $UUID
 }
@@ -836,15 +869,16 @@ enable_module_directly() {
 	login_admin_curl $CLOUD_OKAPI_URL $CLOUD_TENANT $CLOUD_USERNAME $CLOUD_PASSWORD
 	
 	log "Install (Enable) $MODULE"
-	
+
+	new_line
+
 	curl --location "http://localhost:$SERVER_PORT/_/tenant" \
 		--header "x-okapi-tenant: $CLOUD_TENANT" \
 		--header "x-okapi-token: $TOKEN" \
 		--header "x-okapi-url: $CLOUD_OKAPI_URL" \
 		--header 'Content-Type: application/json' \
 		--header "x-okapi-url-to: http://localhost:$SERVER_PORT" \
-		--data "$ENABLE_PAYLOAD" \
-		--output /dev/null
+		--data "$ENABLE_PAYLOAD"
 
 	new_line
 
@@ -852,8 +886,6 @@ enable_module_directly() {
 	should_login
 	if [[ "$STATUS_CODE" == "200" ]] || [[ "$STATUS_CODE" == "204" ]]; then
 		login_admin
-
-		new_line
 	fi
 }
 
@@ -940,7 +972,9 @@ pre_authenticate() {
 		return
 	fi
 
-	make_adminuser
+	new_user
+	attach_credentials $UUID
+	attach_permissions $UUID
 }
 
 # Post register mod-authtoken module
@@ -953,27 +987,6 @@ post_authenticate() {
 	fi
 
 	login_admin
-}
-
-# New admin user with all permissions
-make_adminuser() {
-	log "Make Admin User with credentials: "
-	log "username: $USERNAME"
-	log "password: $PASSWORD"
-
-	# Delete admin user firstly if exists
-	delete_user $USERNAME
-
-	# New admin user
-	new_user
-
-	# Attach Credentials
-	UUID=`uuidgen`
-	attach_credentials $UUID
-
-	# Set permissions for the new admin user
-	attach_permissions $UUID
-	new_line
 }
 
 # Store new user
@@ -992,15 +1005,18 @@ new_user() {
 		return
 	fi
 
-	log "Add New User with username: $USERNAME"
+	log "Add New User:"
+	log "username: $USERNAME"
+	log "password: $PASSWORD"
 
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT -HContent-Type:application/json"
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS="$OPTIONS -HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
+	new_line
+
 	curl -s --location -XPOST $OKAPI_URL/users $OPTIONS \
-		--output output.txt \
 		--data '{
 		"username": "'$USERNAME'",
 		"active": '$USER_ACTIVE',
@@ -1032,12 +1048,15 @@ new_user() {
 		"scopes": []
 	}'
 
+	get_user_uuid_by_username
+
 	new_line
 }
 
 delete_user() {
 	local USERNAME=$1
 
-	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME" -o output.txt
+	new_line
+	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME"
 	new_line
 }
