@@ -28,6 +28,7 @@ has_registered() {
 	get_module_version $MODULE_ID $VERSION_FROM
 
 	local MODULE_WITH_VERSION="$MODULE_ID-$MODULE_VERSION"
+	VERSIONED_MODULE="$MODULE_WITH_VERSION"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -35,6 +36,7 @@ has_registered() {
 	fi
 
 	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/modules | jq ".[] | .id | contains(\"$MODULE_WITH_VERSION\")")
+	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -52,6 +54,7 @@ has_deployed() {
 	get_module_version $MODULE_ID $VERSION_FROM
 
 	local MODULE_WITH_VERSION="$MODULE_ID-$MODULE_VERSION"
+	VERSIONED_MODULE="$MODULE_WITH_VERSION"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -59,6 +62,7 @@ has_deployed() {
 	fi
 
 	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .srvcId | contains(\"$MODULE_WITH_VERSION\")")
+	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -77,6 +81,7 @@ has_installed() {
 	get_module_version $MODULE_ID $VERSION_FROM
 
 	local MODULE_WITH_VERSION="$MODULE_ID-$MODULE_VERSION"
+	VERSIONED_MODULE="$MODULE_WITH_VERSION"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -84,6 +89,7 @@ has_installed() {
 	fi
 
 	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules | jq ".[] | .id | contains(\"$MODULE_WITH_VERSION\")")
+	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -526,7 +532,7 @@ install_module() {
 		return
 	fi
 
-	local PAYLOAD="[{\"action\":\"$ACTION\",\"id\":\"$MODULE\"}]"
+	local PAYLOAD="[{\"action\":\"$ACTION\",\"id\":\"$VERSIONED_MODULE\"}]"
 
 	# Set Okapi Token if set
 	OPTIONS=""
@@ -537,11 +543,11 @@ install_module() {
 	# Validate if the list is not empty	
 	if [[ "$PAYLOAD" =~ ^\[.+\]$ ]]; then
 		log "Install (Enable) $MODULE"
-		
+
 		get_install_params $MODULE $i $JSON_LIST
 
 		# Install (enable) modules
-		curl -s $OPTIONS "-d$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?$INSTALL_PARAMS" -o /dev/null
+		curl -s $OPTIONS -d "$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?$INSTALL_PARAMS" -o /dev/null
 	fi
 }
 
