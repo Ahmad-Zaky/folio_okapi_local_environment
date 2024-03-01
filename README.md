@@ -54,6 +54,7 @@ okapi_purgedb       # run okapi with purgedatabase mode, removes existing tables
 > NOTICES:   
     * when you need to run some okapi modules localy you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.    
     * all curl requests output are logged in a non tracked file named `output.txt`.
+    * inside `modules.json` the modules should be sorted in a way that each dependency module is installed firstly then the modules which depends upon that module.
 
 > Modules json keys explained:
 
