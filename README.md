@@ -3,7 +3,8 @@ FOLIO Okapi Local Environment
 
 > Prerequisites
 
-* `git` should be locally installed
+* `git` should be locally installed. [click here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+* `git bash terminal` for **WINDOWS** you need to work inside a linux shell like this terminal (Git Bash) [click here](https://git-scm.com/download/win)
 * `java` should be installed locally with jdk v17. [click here](https://www.freecodecamp.org/news/how-to-install-java-in-ubuntu/)
 * `jq` linux tool to process json files. [click here](https://jqlang.github.io/jq/download/)
 * `yq` linux tool to process yml files. [click here](https://github.com/mikefarah/yq)
@@ -24,12 +25,11 @@ FOLIO Okapi Local Environment
 
 ```
 alias folio='cd <path/to/script> && bash run.sh'
-alias foliostop='cd <path/to/script> && bash stop_modules.sh'
 alias folioup='cd <path/to/script> && dkup'
 alias cdfolio='cd <path/to/script>'
-alias okapi='java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev'
-alias okapi_initdb='java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar initdatabase'
-alias okapi_purgedb='java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar purgedatabase'
+alias okapi='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev'
+alias okapi_initdb='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar initdatabase'
+alias okapi_purgedb='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar purgedatabase'
 alias iokapi='okapi_initdb && okapi'
 ```
 
