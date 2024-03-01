@@ -4,7 +4,7 @@ FOLIO Okapi Local Environment
 > Prerequisites
 
 * `git` should be locally installed. [click here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-* `git bash terminal` for **WINDOWS** you need to work inside a linux shell like this terminal (Git Bash) [click here](https://git-scm.com/download/win)
+* `git bash terminal` for **WINDOWS** users, you need to work inside a linux shell like this terminal (Git Bash) [click here](https://git-scm.com/download/win)
 * `java` should be installed locally with jdk v17. [click here](https://www.freecodecamp.org/news/how-to-install-java-in-ubuntu/)
 * `jq` linux tool to process json files. [click here](https://jqlang.github.io/jq/download/)
 * `yq` linux tool to process yml files. [click here](https://github.com/mikefarah/yq)
