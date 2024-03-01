@@ -1,13 +1,14 @@
 # FOLIO Okapi Local Environment
 FOLIO Okapi Local Environment
 
-> prerequesits
+> Prerequisites
 
-* java installed locally. [click here](https://www.freecodecamp.org/news/how-to-install-java-in-ubuntu/)
-* jq linux tool to process json files. [click here](https://jqlang.github.io/jq/download/)
-* yq linux tool to process yml files. [click here](https://github.com/mikefarah/yq)
-* xmllint linux tool to process xml files. [click here](https://devicetests.com/install-xmllint-ubuntu#google_vignette)
-* lsof linux tool to check process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
+* `git` should be locally installed
+* `java` should be installed locally with jdk v17. [click here](https://www.freecodecamp.org/news/how-to-install-java-in-ubuntu/)
+* `jq` linux tool to process json files. [click here](https://jqlang.github.io/jq/download/)
+* `yq` linux tool to process yml files. [click here](https://github.com/mikefarah/yq)
+* `xmllint` linux tool to process xml files. [click here](https://devicetests.com/install-xmllint-ubuntu#google_vignette)
+* `lsof` linux tool to check process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
 
 > First you need to run this command `sudo docker compose up --build -d` to build and run the containers inside `docker-compose.yml` file which has these services, be aware that you may not need all services located in the `docker-compose.yml` file, the basic services you need are (`postgres`, `kafka`, `zookeeper`).
 
@@ -50,7 +51,9 @@ okapi_purgedb       # run okapi with purgedatabase mode, removes existing tables
 ```
 > WARNING: issues happening during running the script are not properly handled
 
-> NOTICE: when you need to run some okapi modules localy you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.
+> NOTICES:   
+    * when you need to run some okapi modules localy you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.    
+    * all curl requests output are logged in a non tracked file named `output.txt`.
 
 > Modules json keys explained:
 
