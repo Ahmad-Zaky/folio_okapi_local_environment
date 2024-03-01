@@ -19,6 +19,8 @@ pre_process() {
 	defaults
 
 	set_args $*
+	
+	empty_output_file
 
 	stop_running_module_or_modules
 
@@ -62,7 +64,7 @@ module_defaults() {
 
 	LOGIN_WITH_MOD="mod-authtoken"
 
-	OUTPUT_JSON="output.json"
+	OUTPUT_FILE="output.txt"
 
 	SHOULD_STOP_RUNNING_MODULES=$(jq ".SHOULD_STOP_RUNNING_MODULES" $CONFIG_FILE)
 
@@ -316,6 +318,10 @@ set_without_okapi_arg() {
 	fi
 }
 
+empty_output_file() {
+	: > $OUTPUT_FILE
+}
+
 go_to_modules_dir() {
 	cd "$MODULES_DIR"
 }
@@ -383,23 +389,22 @@ set_env_vars_to_okapi() {
 
 	log "Set environment variables to okapi"
 
-	curl -s -d"{\"name\":\"DB_HOST\",\"value\":\"$DB_HOST\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"DB_PORT\",\"value\":\"$DB_PORT\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"DB_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"DB_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"DB_DATABASE\",\"value\":\"$DB_DATABASE\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"SPRING_DATASOURCE_URL\",\"value\":\"jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_DATABASE?reWriteBatchedInserts=true\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"SPRING_DATASOURCE_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"SPRING_DATASOURCE_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"OKAPI_URL\",\"value\":\"$OKAPI_URL\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"KAFKA_PORT\",\"value\":\"$KAFKA_PORT\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"KAFKA_HOST\",\"value\":\"$KAFKA_HOST\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env -o /dev/null
-	curl -s -d"{\"name\":\"ELASTICSEARCH_URL\",\"value\":\"$ELASTIC_SEARCH_URL\"}" $OKAPI_URL/_/env -o /dev/null
-
-	new_line
+	set_file_name $BASH_SOURCE
+	curl_req -d"{\"name\":\"DB_HOST\",\"value\":\"$DB_HOST\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"DB_PORT\",\"value\":\"$DB_PORT\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"DB_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"DB_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"DB_DATABASE\",\"value\":\"$DB_DATABASE\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"SPRING_DATASOURCE_URL\",\"value\":\"jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_DATABASE?reWriteBatchedInserts=true\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"SPRING_DATASOURCE_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"SPRING_DATASOURCE_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"OKAPI_URL\",\"value\":\"$OKAPI_URL\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"KAFKA_PORT\",\"value\":\"$KAFKA_PORT\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"KAFKA_HOST\",\"value\":\"$KAFKA_HOST\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"ELASTICSEARCH_URL\",\"value\":\"$ELASTIC_SEARCH_URL\"}" $OKAPI_URL/_/env
 }
 
 # Store new tenant
@@ -417,9 +422,8 @@ new_tenant() {
 
 	log "Add new tenant: $TENANT"
 
-	curl -d"{\"id\":\"$TENANT\", \"name\":\"Test Library #1\", \"description\":\"Test Libarary Number One\"}" $OKAPI_URL/_/proxy/tenants
-
-	new_line
+	set_file_name $BASH_SOURCE
+	curl_req -d"{\"id\":\"$TENANT\", \"name\":\"Test Library #1\", \"description\":\"Test Libarary Number One\"}" $OKAPI_URL/_/proxy/tenants
 }
 
 # Enable okapi module to tenant

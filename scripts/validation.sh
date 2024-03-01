@@ -33,6 +33,7 @@ validate_modules_list() {
 	fi  
 
 	if [ ! -f "$JSON_FILE" ]; then
+		set_file_name $BASH_SOURCE
 		error "JSON LIST is missing"
 	fi
 }
@@ -43,6 +44,7 @@ validate_configurations_list() {
 	fi  
 
 	if [ ! -f "$CONFIG_FILE" ]; then
+		set_file_name $BASH_SOURCE
 		error "Configuration list is missing"
 	fi
 }
@@ -53,6 +55,7 @@ validate_module_id() {
 
 	has "id" $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
+		set_file_name $BASH_SOURCE
 		error "Id property is missing"
 	fi
 
@@ -93,6 +96,7 @@ validate_module_tag_branch() {
 	local HAS_TAG=$?
 
 	if [[ "$HAS_TAG" -eq 1 ]] && [[ "$HAS_BRANCH" -eq 1 ]]; then
+		set_file_name $BASH_SOURCE
 		error "Either one of both tag, or branch should be provided"
 	fi
 
@@ -112,6 +116,30 @@ validate_module_tag_branch() {
 		BRANCH=$(echo $BRANCH | sed 's/"//g')
 		
 		REPO=$(echo "$REPO" | sed "s/^git clone/git clone -b $BRANCH/g")
+	fi
+}
+
+validate_new_module_tag() {
+	local MODULE=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+
+	has "tag" $INDEX $JSON_LIST
+	local HAS_TAG=$?
+	if [[ "$HAS_TAG" -eq 0 ]]; then
+		return
+	fi
+
+	NEW_MODULE_TAG=$(jq ".[$INDEX].tag" $JSON_LIST)
+
+	# Remove extra double quotes at start and end of the string
+	NEW_MODULE_TAG=$(echo $NEW_MODULE_TAG | sed 's/"//g')
+
+	local VERSION_FROM="pom" # for now we will keep it like this ...
+	get_module_version $MODULE_ID $VERSION_FROM
+
+	if [[ "$NEW_MODULE_TAG" != "v$MODULE_VERSION" ]]; then
+		HAS_NEW_TAG=true
 	fi
 }
 
@@ -139,7 +167,8 @@ validate_open_api_file() {
 
 	has "file" $INDEX $JSON_LIST "postman"
 	if [[ "$?" -eq 0 ]]; then
-		error "Postman Open API File is missing" 
+		set_file_name $BASH_SOURCE
+		error "Postman Open API File is missing"
 	fi
 
 	OPEN_API_FILE=$(jq ".[$INDEX].postman.file" $JSON_LIST)
@@ -149,6 +178,7 @@ validate_open_api_file() {
 
 	# Validate Open API file exists
 	if [ ! -f "$MODULE/$OPEN_API_FILE" ]; then
+		set_file_name $BASH_SOURCE
 		error "Open API file is missing"
 	fi
 }
@@ -159,7 +189,8 @@ validate_module_postman_api_key() {
 
 	has "api_key" $INDEX $JSON_LIST "postman"
 	if [[ "$?" -eq 0 ]]; then
-		error "Postman API Key is missing" 
+		set_file_name $BASH_SOURCE
+		error "Postman API Key is missing"
 	fi
 
 	MODULE_POSTMAN_API_KEY=$(jq ".[$INDEX].postman.api_key" $JSON_LIST)
@@ -168,7 +199,8 @@ validate_module_postman_api_key() {
 	MODULE_POSTMAN_API_KEY=$(echo $MODULE_POSTMAN_API_KEY | sed 's/"//g')
 
 	if [ -z "$MODULE_POSTMAN_API_KEY" ]; then
-		error "Postman API Key is empty" 
+		set_file_name $BASH_SOURCE
+		error "Postman API Key is empty"
 	fi
 }
 
@@ -178,7 +210,8 @@ validate_okapi_url() {
 
 	has "url" $INDEX $JSON_LIST "okapi"
 	if [[ "$?" -eq 0 ]]; then
-		error "Okapi Url Key is missing" 
+		set_file_name $BASH_SOURCE
+		error "Okapi Url Key is missing"
 	fi
 
 	CLOUD_OKAPI_URL=$(jq ".[$INDEX].okapi.url" $JSON_LIST)
@@ -193,7 +226,8 @@ validate_okapi_tenant() {
 
 	has "tenant" $INDEX $JSON_LIST "okapi"
 	if [[ "$?" -eq 0 ]]; then
-		error "Okapi Tenant Key is missing" 
+		set_file_name $BASH_SOURCE
+		error "Okapi Tenant Key is missing"
 	fi
 
 	SERVER_TENANT=$(jq ".[$INDEX].okapi.tenant" $JSON_LIST)
@@ -208,12 +242,14 @@ validate_okapi_credentials() {
 
 	has "username" $INDEX $JSON_LIST "okapi.credentials"
 	if [[ "$?" -eq 0 ]]; then
-		error "Okapi credentials username key is missing" 
+		set_file_name $BASH_SOURCE
+		error "Okapi credentials username key is missing"
 	fi
 
 	has "password" $INDEX $JSON_LIST "okapi.credentials"
 	if [[ "$?" -eq 0 ]]; then
-		error "Okapi credentials password key is missing" 
+		set_file_name $BASH_SOURCE
+		error "Okapi credentials password key is missing"
 	fi
 
 	SERVER_USERNAME=$(jq ".[$INDEX].okapi.credentials.username" $JSON_LIST)

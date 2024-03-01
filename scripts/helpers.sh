@@ -8,11 +8,60 @@ new_line() {
 	echo -e "\n"
 }
 
+set_line_no() {
+	LINE_NO=$1
+}
+
+set_file_name() {
+	SOURCE_FILE=$1
+}
+
+new_output_line() {
+	echo -e "" >> $OUTPUT_FILE
+	echo -e "" >> $OUTPUT_FILE
+	echo -e "" >> $OUTPUT_FILE
+}
+
+output_debug() {
+	local CALL_STACK_INDEX=$1
+	if [[ "$CALL_STACK_INDEX" =~ ^[0-9]+$ ]]; then
+		CALL_STACK_INDEX=1
+	fi
+
+	FUNCTION=${FUNCNAME[$CALL_STACK_INDEX]}
+
+	new_output_line
+	echo "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] File: $SOURCE_FILE - Line: $LINE_NO - Func: ${FUNCTION}" >> $OUTPUT_FILE
+	echo -e "" >> $OUTPUT_FILE
+}
+
+debug_line() {
+	local CALL_STACK_INDEX=$1
+	if ! [[ "$CALL_STACK_INDEX" =~ ^[0-9]+$ ]]; then
+		CALL_STACK_INDEX=1
+	fi
+
+	FUNCTION=${FUNCNAME[$CALL_STACK_INDEX]}
+
+	echo "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] File: $SOURCE_FILE - Line: $LINE_NO - Func: ${FUNCTION}"
+}
+
 # Output Error
 error() {
-    log "\n\e[1;31m ERROR: $1 \033[0m"
+	local MSG=$1
+	local CALL_STACK_INDEX=$2
+	if ! [[ "$CALL_STACK_INDEX" =~ ^[0-9]+$ ]]; then
+		CALL_STACK_INDEX=2
+	fi
+
+	set_line_no $BASH_LINENO && debug_line $CALL_STACK_INDEX
+    log "\e[1;31mERROR: $MSG \033[0m"
 
     exit 1
+}
+
+warning() {
+    log "\e[1;33mWARNING: $1 \033[0m"
 }
 
 # Check if key exists
@@ -67,15 +116,6 @@ has_value() {
 	return 0
 }
 
-# Get file content
-get_file_content() {
-	# Get the name of the JSON file.
-	local FILE_NAME=$1
-
-	# Read the contents of the JSON file.
-	JSON_DATA="$(cat $FILE_NAME)"
-}
-
 # Search in arguments
 has_arg() {
 	local ARGS=$1
@@ -90,6 +130,41 @@ has_arg() {
 	return 0
 }
 
+curl_req() {
+	local CALL_STACK_INDEX=$1
+
+	if [[ "$CALL_STACK_INDEX" =~ ^[0-9]+$ ]]; then
+		shift
+	else
+		CALL_STACK_INDEX=2
+	fi
+
+	SKIP_FAILED_REQ=false
+	if [[ $1 == true ]]; then
+		SKIP_FAILED_REQ=true
+		shift
+	fi
+
+	set_line_no $BASH_LINENO
+	output_debug $CALL_STACK_INDEX
+	
+	STATUS_CODE=$(curl -s -o response.txt -w "%{http_code}" "$@") 
+	CURL_RESPONSE=$(cat response.txt) && : > response.txt
+
+	echo $CURL_RESPONSE >> $OUTPUT_FILE
+
+	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]] && [[ $SKIP_FAILED_REQ == true ]]; then
+		warning "HTTP request failed! (Status Code: $STATUS_CODE)"
+
+		return
+	fi
+
+	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]]; then
+		set_file_name $BASH_SOURCE
+		error "HTTP request failed! (Status Code: $STATUS_CODE)"
+	fi
+}
+
 # Basic Okapi curl boilerplate
 okapi_curl() {
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
@@ -97,7 +172,8 @@ okapi_curl() {
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
-	curl -s $OPTIONS -HContent-Type:application/json $*
+	set_file_name $BASH_SOURCE
+	curl_req 3 $OPTIONS -HContent-Type:application/json $*
 }
 
 handle_cloud_okapi() {
@@ -128,9 +204,7 @@ attach_credentials() {
 
 	log "Attach credentials ..."
 
-	new_line
 	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
-	new_line
 }
 
 attach_permissions() {
@@ -145,9 +219,7 @@ attach_permissions() {
 
 	log "Attach permissions ..."
 
-	new_line
 	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
-	new_line 
 }
 
 # Login to obtain the token from the header
@@ -168,13 +240,11 @@ login_user_curl() {
 	local USR=$3
 	local PWD=$4
 
-	new_line
-	curl -s -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
+	set_file_name $BASH_SOURCE
+	curl_req -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
 	
 	# login from mod-users-bl module but the $LOGIN_WITH_MOD variable value should be 'mod-uers-bl'
-	# curl -s -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/bl-users/login?expandPermissions=true&fullPermissions=true
-
-	new_line
+	# curl_req -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/bl-users/login?expandPermissions=true&fullPermissions=true
 
 	TOKEN=`awk '/x-okapi-token/ {print $2}' <headers|tr -d '[:space:]'`
 }
@@ -211,13 +281,13 @@ import_postman_openapi() {
 	local OPEN_API_FILE=$2
 	local MODULE=$3
 
-	# TODO: HANDLE FAILURE OF THE REQUEST
-	curl -s $POSTMAN_URL$POSTMAN_IMPORT_OPENAPI_PATH \
+	set_file_name $BASH_SOURCE
+	curl_req $POSTMAN_URL$POSTMAN_IMPORT_OPENAPI_PATH \
 		-HContent-Type:multipart/form-data \
 		-HAccept:application/vnd.api.v10+json \
 		-HX-API-Key:$MODULE_POSTMAN_API_KEY \
 		-Ftype="file" \
-		-Finput=@"$MODULE/$OPEN_API_FILE" | jq .
+		-Finput=@"$MODULE/$OPEN_API_FILE"
 }
 
 update_env_postman() {
@@ -229,9 +299,8 @@ update_env_postman() {
 
 	local POSTMAN_API_KEY=$1
 
-	new_line
-
-	curl -s --location -XPUT $POSTMAN_URL$POSTMAN_ENVIRONMENT_PATH'/'$POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID \
+	set_file_name $BASH_SOURCE
+	curl_req --location -XPUT $POSTMAN_URL$POSTMAN_ENVIRONMENT_PATH'/'$POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID \
 		-H'Content-Type: application/json' \
 		-H'X-API-Key: '$POSTMAN_API_KEY \
 		--data '{
@@ -277,16 +346,17 @@ update_env_postman() {
 				]
 			}
 		}'
-
-	new_line
 }
 
 has_tenant() {
 	local TENANT=$1
-	
-	# TODO: HANDLE FAILURE OF THE REQUEST
-	RESULT=$(curl -s $OKAPI_URL/_/proxy/tenants | jq ".[] | .id | contains(\"$TENANT\")")
 
+	set_file_name $BASH_SOURCE
+	curl_req $OKAPI_URL/_/proxy/tenants
+
+	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id | contains(\"$TENANT\")")
+	RESULT=$(echo $RESULT | sed 's/"//g')
+	
 	has_arg "$RESULT" "true"
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
@@ -299,8 +369,10 @@ has_tenant() {
 has_user() {
 	local USERNAME=$1
 
-	# TODO: HANDLE THE FAILURE OF THE REQUEST
-	RESULT=$(okapi_curl $OKAPI_URL/users?query=username%3D%3D$USERNAME | jq ".users[] | .username | contains(\"$USERNAME\")")
+	okapi_curl $OKAPI_URL/users?query=username%3D%3D$USERNAME
+
+	RESULT=$(echo $CURL_RESPONSE | jq ".users[] | .username | contains(\"$USERNAME\")")
+	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -312,7 +384,10 @@ has_user() {
 }
 
 has_credentials() {
-	RESULT=$(okapi_curl $OKAPI_URL/authn/credentials-existence?userId=$UUID | jq ".credentialsExist | contains(true)")
+	okapi_curl $OKAPI_URL/authn/credentials-existence?userId=$UUID
+
+	RESULT=$(echo $CURL_RESPONSE | jq ".credentialsExist | contains(true)")
+	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -324,7 +399,10 @@ has_credentials() {
 }
 
 has_user_permissions() {
-	RESULT=$(okapi_curl $OKAPI_URL/perms/users?limit=1000 | jq ".permissionUsers[] | .userId | contains(\"$UUID\")")
+	okapi_curl $OKAPI_URL/perms/users?limit=1000
+
+	RESULT=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | .userId | contains(\"$UUID\")")
+	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -336,7 +414,6 @@ has_user_permissions() {
 }
 
 should_login() {
-	# TODO: USE THE STATUS CODE CHECK HERE FOR OTHER CURL REQUESTS TO HANDLE CURL REQUEST FAILURE
 	STATUS_CODE=$(curl -s -w "%{http_code}" -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users -o /dev/null)
 
 	if [[ "$STATUS_CODE" != "200" ]]; then
@@ -533,8 +610,10 @@ stop_running_module_or_modules() {
 stop_running_modules() {
 	log "Stop running modules ..."
 
-	# TODO: HANDLE THE FAILURE OF THE REQUEST
-	local MODULE_URLS=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .url")
+	set_file_name $BASH_SOURCE
+	curl_req true $OPTIONS $OKAPI_URL/_/discovery/modules
+
+	local MODULE_URLS=$(echo $CURL_RESPONSE | jq ".[] | .url")
 	local MODULE_URLS=$(echo $MODULE_URLS | sed 's/"//g')
 
 	for MODULE_URL in $MODULE_URLS; do
@@ -598,9 +677,8 @@ export_module_envs() {
 		declare ENV_VAR="$ENV_NAME"
 		export $ENV_VAR="$ENV_VALUE"
 
-		new_line
-		curl -s -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" $OKAPI_URL/_/env
-		new_line
+		set_file_name $BASH_SOURCE
+		curl_req -d"{\"name\":\"$ENV_VAR\",\"value\":\"$ENV_VALUE\"}" $OKAPI_URL/_/env
 	done
 }
 
@@ -638,11 +716,10 @@ export_next_port() {
 		export SERVER_PORT="$1"
 		export HTTP_PORT="$1"
 		
-		new_line
-		curl -s -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env -o /dev/null
-		curl -s -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env -o /dev/null
-		curl -s -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env -o /dev/null
-		new_line
+		set_file_name $BASH_SOURCE
+		curl_req -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env
+		curl_req -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env
+		curl_req -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env
 
 		return
 	fi
@@ -667,8 +744,10 @@ get_user_uuid_by_username() {
 
 	log "Get user UUID for username: $USERNAME"
 
-	# TODO: HANDLE FAILURE OF THE REQUEST  
-	UUID=$(curl -s $OPTIONS $OKAPI_URL/users | jq ".users[] | select(.username == \"$USERNAME\") | .id")
+	set_file_name $BASH_SOURCE
+	curl_req $OPTIONS $OKAPI_URL/users
+
+	UUID=$(echo $CURL_RESPONSE | jq ".users[] | select(.username == \"$USERNAME\") | .id")
 
 	# Remove extra double quotes at start and end of the string
 	UUID=$(echo $UUID | sed 's/"//g')
@@ -686,9 +765,11 @@ get_random_permission_uuid_by_user_uuid() {
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
-	# TODO: HANDLE FAILURE OF THE REQUEST
-	USER_PUUIDS=$(curl -s $OPTIONS $OKAPI_URL/perms/users | jq ".permissionUsers[] | select(.userId == \"$UUID\") | .id")
-	
+	set_file_name $BASH_SOURCE
+	curl_req $OPTIONS $OKAPI_URL/perms/users
+
+	USER_PUUIDS=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | select(.userId == \"$UUID\") | .id")
+
 	# Return the first incommnig PUUID
 	for USER_PUUID in $USER_PUUIDS; do
 		PUUID=$USER_PUUID
@@ -730,9 +811,9 @@ reset_and_verify_password() {
 	local UUID=$1
 
 	log "Reset and verify user password"
-	okapi_curl $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}" -o reset.json
+	okapi_curl $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}"
 
-	get_file_content reset.json
+	JSON_DATA=$CURL_RESPONSE
 
 	# Check if the JSON data contains the string "requires permission".
 	if grep -q "requires permission" <<< "$JSON_DATA"; then
@@ -752,13 +833,12 @@ reset_and_verify_password() {
 	fi
 	unset JSON_DATA
 
-	TOKEN_2=`jq -r '.link' < reset.json | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g'`
+	TOKEN_2=`jq -r '.link' < echo $CURL_RESPONSE | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g'`
 
 	log "Second token: $TOKEN_2"
 
-	new_line
-	curl -s -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
-	new_line
+	set_file_name $BASH_SOURCE
+	curl_req -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
 }
 
 # Set extra permissions related to module mod-users-bl
@@ -785,13 +865,9 @@ set_users_bl_module_permissions() {
 
 	get_random_permission_uuid_by_user_uuid $UUID
 
-	new_line
 	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
-	new_line
 
-	new_line
 	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
-	new_line
 
 	login_user
 
@@ -874,17 +950,14 @@ enable_module_directly() {
 	
 	log "Install (Enable) $MODULE"
 
-	new_line
-
-	curl --location "http://localhost:$SERVER_PORT/_/tenant" \
+	set_file_name $BASH_SOURCE
+	curl_req --location "http://localhost:$SERVER_PORT/_/tenant" \
 		--header "x-okapi-tenant: $CLOUD_TENANT" \
 		--header "x-okapi-token: $TOKEN" \
 		--header "x-okapi-url: $CLOUD_OKAPI_URL" \
 		--header 'Content-Type: application/json' \
 		--header "x-okapi-url-to: http://localhost:$SERVER_PORT" \
 		--data "$ENABLE_PAYLOAD"
-
-	new_line
 
 	# Local Okapi login if we should for the consecutive modules
 	should_login
@@ -901,31 +974,32 @@ kill_process_port() {
 
 
 get_module_version() {
-	local MODULE_ID=$1
+	local MODULE=$1
 	local VERSION_FROM=$2
 
 	if  [[ "$VERSION_FROM" == "pom" ]]; then
-		get_module_version_from_pom $MODULE_ID
+		get_module_version_from_pom $MODULE
 	fi
 
 	if  [[ "$VERSION_FROM" == "azure_pipeline" ]]; then
-		get_module_version_from_azure_pipeline $MODULE_ID
+		get_module_version_from_azure_pipeline $MODULE
 	fi
 }
 
 get_module_version_from_pom() {
-	local MODULE_ID=$1
+	local MODULE=$1
 
-	if [ ! -f "$MODULE_ID/pom.xml" ] && [ ! -f "$MODULE_ID/azure-pipelines.yml" ]; then
+	if [ ! -f "$MODULE/pom.xml" ] && [ ! -f "$MODULE/azure-pipelines.yml" ]; then
+		set_file_name $BASH_SOURCE
 		error "pom.xml file is missing"
 	fi
 
-	if [ ! -f "$MODULE_ID/pom.xml" ] && [ -f "$MODULE_ID/azure-pipelines.yml" ]; then
+	if [ ! -f "$MODULE/pom.xml" ] && [ -f "$MODULE/azure-pipelines.yml" ]; then
 		VERSION_FROM="azure_pipeline"
 	fi
 
 	# Opt in the module
-	cd $MODULE_ID
+	cd $MODULE
 
 	MODULE_VERSION=$(xmllint --xpath "*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
 
@@ -934,14 +1008,15 @@ get_module_version_from_pom() {
 }
 
 get_module_version_from_azure_pipeline() {
-	local MODULE_ID=$1
+	local MODULE=$1
 
-	if [ ! -f "$MODULE_ID/azure-pipelines.yml" ]; then
+	if [ ! -f "$MODULE/azure-pipelines.yml" ]; then
+		set_file_name $BASH_SOURCE
 		error "azure-pipelines.yml file is missing"
 	fi
 
 	# Opt in the module
-	cd $MODULE_ID
+	cd $MODULE
 
 	MODULE_VERSION=$(yq '.variables.[] | select(.name == "tag") | .value' azure-pipelines.yml)
 
@@ -1016,9 +1091,8 @@ new_user() {
 		OPTIONS="$OPTIONS -HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
-	new_line
-
-	curl -s --location -XPOST $OKAPI_URL/users $OPTIONS \
+	set_file_name $BASH_SOURCE
+	curl_req --location -XPOST $OKAPI_URL/users $OPTIONS \
 		--data '{
 		"username": "'$USERNAME'",
 		"active": '$USER_ACTIVE',
@@ -1051,14 +1125,8 @@ new_user() {
 	}'
 
 	get_user_uuid_by_username
-
-	new_line
 }
 
 delete_user() {
-	local USERNAME=$1
-
-	new_line
-	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$USERNAME"
-	new_line
+	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$1" >> $OUTPUT_FILE && output_debug
 }

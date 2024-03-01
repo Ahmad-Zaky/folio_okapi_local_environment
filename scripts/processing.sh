@@ -22,12 +22,12 @@ fi
 
 
 has_registered() {
-	local MODULE_ID=$1
+	local MODULE=$1
 	local VERSION_FROM="pom" # for now we will keep it like this ...
 
-	get_module_version $MODULE_ID $VERSION_FROM
+	get_module_version $MODULE $VERSION_FROM
 
-	local MODULE_WITH_VERSION="$MODULE_ID-$MODULE_VERSION"
+	local MODULE_WITH_VERSION="$MODULE-$MODULE_VERSION"
 	VERSIONED_MODULE="$MODULE_WITH_VERSION"
 
 	OPTIONS=""
@@ -35,7 +35,10 @@ has_registered() {
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
-	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/modules | jq ".[] | .id | contains(\"$MODULE_WITH_VERSION\")")
+	set_file_name $BASH_SOURCE
+	curl_req $OPTIONS $OKAPI_URL/_/proxy/modules
+
+	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$MODULE_WITH_VERSION\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
@@ -48,12 +51,12 @@ has_registered() {
 }
 
 has_deployed() {
-	local MODULE_ID=$1
+	local MODULE=$1
 	local VERSION_FROM="pom" # for now we will keep it like this ...
 
-	get_module_version $MODULE_ID $VERSION_FROM
+	get_module_version $MODULE $VERSION_FROM
 
-	local MODULE_WITH_VERSION="$MODULE_ID-$MODULE_VERSION"
+	local MODULE_WITH_VERSION="$MODULE-$MODULE_VERSION"
 	VERSIONED_MODULE="$MODULE_WITH_VERSION"
 
 	OPTIONS=""
@@ -61,7 +64,10 @@ has_deployed() {
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
-	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/discovery/modules | jq ".[] | .srvcId | contains(\"$MODULE_WITH_VERSION\")")
+	set_file_name $BASH_SOURCE
+	curl_req $OPTIONS $OKAPI_URL/_/discovery/modules
+
+	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .srvcId == \"$MODULE_WITH_VERSION\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
@@ -74,13 +80,13 @@ has_deployed() {
 }
 
 has_installed() {
-	local MODULE_ID=$1
+	local MODULE=$1
 	local TENANT=$2
 	local VERSION_FROM="pom" # for now we will keep it like this ...
 
-	get_module_version $MODULE_ID $VERSION_FROM
+	get_module_version $MODULE $VERSION_FROM
 
-	local MODULE_WITH_VERSION="$MODULE_ID-$MODULE_VERSION"
+	local MODULE_WITH_VERSION="$MODULE-$MODULE_VERSION"
 	VERSIONED_MODULE="$MODULE_WITH_VERSION"
 
 	OPTIONS=""
@@ -88,7 +94,10 @@ has_installed() {
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
-	RESULT=$(curl -s $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules | jq ".[] | .id | contains(\"$MODULE_WITH_VERSION\")")
+	set_file_name $BASH_SOURCE
+	curl_req $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules
+
+	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$MODULE_WITH_VERSION\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
@@ -160,8 +169,13 @@ should_build() {
 }
 
 should_rebuild() {
-	local INDEX=$1
-	local JSON_LIST=$2
+	local MODULE=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+
+	if [[ "$SHOULD_REBUILD_MODULE" == "$MODULE" ]]; then
+		return 1
+	fi
 	
 	# By default module should not be rebuilt if the key is missing
 	has "rebuild" $INDEX $JSON_LIST
@@ -249,17 +263,49 @@ pre_clone() {
 
 	# Validate Module Id
 	validate_module_id $INDEX $JSON_LIST
+	
+	local MODULE=$MODULE_ID
 
 	# Validate Module Repo
-	validate_module_repo $MODULE_ID $INDEX $JSON_LIST
+	validate_module_repo $MODULE $INDEX $JSON_LIST
 
 	# Validate Module Tags and Branches
 	validate_module_tag_branch $INDEX $JSON_LIST
 
+	# Validate New Module Tags and Branches
+	validate_new_module_tag $MODULE $INDEX $JSON_LIST
+
 	# Validate Access Token
 	validate_module_access_token $INDEX $JSON_LIST
 
-	export_module_envs $MODULE_ID $INDEX $JSON_LIST
+	export_module_envs $MODULE $INDEX $JSON_LIST
+}
+
+pre_build() {
+	local MODULE=$1
+
+	checkout_new_tag $MODULE
+}
+
+checkout_new_tag() {
+	local MODULE=$1
+
+	if [[ "$HAS_NEW_TAG" != true ]]; then
+		return
+	fi
+
+	cd $MODULE
+
+	git fetch --all
+	if git rev-parse --verify refs/tags/$NEW_MODULE_TAG > /dev/null 2>&1; then
+		SHOULD_REBUILD_MODULE="$MODULE"
+		git checkout $NEW_MODULE_TAG
+	fi
+
+	cd ..
+
+	unset $HAS_NEW_TAG
+	unset $NEW_MODULE_TAG
 }
 
 pre_register() {
@@ -327,8 +373,9 @@ post_install() {
 
 # Clone module
 clone_module() {
-	local INDEX=$1
-	local JSON_LIST=$2
+	local MODULE=$1
+	local INDEX=$2
+	local JSON_LIST=$3
 
 	should_clone $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
@@ -336,24 +383,24 @@ clone_module() {
 	fi
 
 	# Clone the module repo
-	if [ ! -d $MODULE_ID ]; then
-		log "Clone module $MODULE_ID"
+	if [ ! -d $MODULE ]; then
+		log "Clone module $MODULE"
 		
 		# Print Repo Link
-		new_line
 		log $REPO
 
 		eval "$REPO"
 	fi
 
-	if [[ ! -d "$MODULE_ID" ]]; then
-		error "$MODULE_ID is missing. git clone failed?"
+	if [[ ! -d "$MODULE" ]]; then
+		set_file_name $BASH_SOURCE
+		error "$MODULE is missing. git clone failed?"
 	fi
 }
 
 # Build (compile) module
 build_module() {
-	local MODULE_ID=$1
+	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
 
@@ -362,15 +409,15 @@ build_module() {
 		return
 	fi
 
-	should_rebuild $INDEX $JSON_LIST
+	should_rebuild $MODULE $INDEX $JSON_LIST
 	SHOULD_REBUILD=$?
-	local MODULE_DESCRIPTOR=$MODULE_ID/target/ModuleDescriptor.json
+	local MODULE_DESCRIPTOR=$MODULE/target/ModuleDescriptor.json
 	if [[ -f $MODULE_DESCRIPTOR ]] && [[ "$SHOULD_REBUILD" -eq 0 ]]; then
 		return
 	fi
 
 	# Opt in the module
-	cd $MODULE_ID
+	cd $MODULE
 
 	# Default Build command
 	BUILD="mvn -DskipTests -Dmaven.test.skip=true verify"
@@ -384,7 +431,7 @@ build_module() {
 		BUILD=$(echo $BUILD | sed 's/"//g')	
 	fi
 
-	log "Build module $MODULE_ID"
+	log "Build module $MODULE"
 
 	# build
 	eval "$BUILD"
@@ -395,10 +442,10 @@ build_module() {
 
 # Register (store) module into Okapi
 register_module() {
-	local MODULE_ID=$1
+	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
-	local MODULE_DESCRIPTOR=$MODULE_ID/target/ModuleDescriptor.json
+	local MODULE_DESCRIPTOR=$MODULE/target/ModuleDescriptor.json
 
 	should_register $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
@@ -421,7 +468,7 @@ register_module() {
 		return
 	fi
 
-	has_registered $MODULE_ID
+	has_registered $MODULE
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return
@@ -429,25 +476,27 @@ register_module() {
 
 	# Validate module descriptor file
 	if [[ ! -f $MODULE_DESCRIPTOR ]]; then
+		set_file_name $BASH_SOURCE
 		error "$MODULE_DESCRIPTOR missing pwd=`pwd`"
 	fi
 
-	log "Register module $MODULE_ID with version ($MODULE_VERSION)"
+	log "Register module $MODULE with version ($MODULE_VERSION)"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
-	curl -s $OPTIONS -d@$MODULE_DESCRIPTOR $OKAPI_URL/_/proxy/modules -o /dev/null
+	set_file_name $BASH_SOURCE
+	curl_req $OPTIONS -d@$MODULE_DESCRIPTOR $OKAPI_URL/_/proxy/modules
 }
 
 # Deploy module into Okapi
 deploy_module() {
-	local MODULE_ID=$1
+	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
-	local DEPLOY_DESCRIPTOR=$MODULE_ID/target/DeploymentDescriptor.json
+	local DEPLOY_DESCRIPTOR=$MODULE/target/DeploymentDescriptor.json
 
 	should_deploy $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
@@ -463,7 +512,7 @@ deploy_module() {
 		is_server_okapi_enabled $INDEX $JSON_LIST
 		IS_ENALBLED=$?
 		if [[ "$IS_ENALBLED" -eq 1 ]]; then
-			deploy_module_directly $MODULE_ID $INDEX $JSON_LIST
+			deploy_module_directly $MODULE $INDEX $JSON_LIST
 
 			return
 		fi
@@ -474,7 +523,7 @@ deploy_module() {
 		return
 	fi
 
-	has_deployed $MODULE_ID
+	has_deployed $MODULE
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return
@@ -482,14 +531,15 @@ deploy_module() {
 
 	export_next_port $SERVER_PORT
 
-	log "Deploy module $MODULE_ID with version ($MODULE_VERSION) on port: $SERVER_PORT"
+	log "Deploy module $MODULE with version ($MODULE_VERSION) on port: $SERVER_PORT"
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
 	fi
 
-	curl -s $OPTIONS -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules -o /dev/null
+	set_file_name $BASH_SOURCE
+	curl_req $OPTIONS -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules
 }
 
 # Install (enable) modules for a tenant
@@ -513,7 +563,7 @@ install_module() {
 		is_server_okapi_enabled $INDEX $JSON_LIST
 		IS_ENALBLED=$?
 		if [[ "$IS_ENALBLED" -eq 1 ]]; then
-			enable_module_directly $MODULE_ID $INDEX $JSON_LIST
+			enable_module_directly $MODULE $INDEX $JSON_LIST
 			unset CLOUD_OKAPI_URL
 
 			return
@@ -547,7 +597,8 @@ install_module() {
 		get_install_params $MODULE $i $JSON_LIST
 
 		# Install (enable) modules
-		curl -s $OPTIONS -d "$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?$INSTALL_PARAMS" -o /dev/null
+		set_file_name $BASH_SOURCE
+		curl_req $OPTIONS -d "$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?$INSTALL_PARAMS"
 	fi
 }
 
@@ -572,10 +623,11 @@ process() {
 		fi
 
 		# Step No. 1
-		pre_clone $i $JSON_FILE		
-		clone_module $i $JSON_FILE		
+		pre_clone $i $JSON_FILE	
+		clone_module $MODULE_ID $i $JSON_FILE	
 		
 		# Step No. 2
+		pre_build $MODULE_ID
 		build_module $MODULE_ID $i $JSON_FILE
 
 		# Step No. 3
