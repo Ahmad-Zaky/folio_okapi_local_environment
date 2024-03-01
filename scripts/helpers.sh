@@ -24,7 +24,7 @@ new_output_line() {
 
 output_debug() {
 	local CALL_STACK_INDEX=$1
-	if [[ "$CALL_STACK_INDEX" =~ ^[0-9]+$ ]]; then
+	if ! [[ "$CALL_STACK_INDEX" =~ ^[0-9]+$ ]]; then
 		CALL_STACK_INDEX=1
 	fi
 
@@ -161,6 +161,7 @@ curl_req() {
 
 	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]]; then
 		set_file_name $BASH_SOURCE
+		debug_line 2
 		error "HTTP request failed! (Status Code: $STATUS_CODE)"
 	fi
 }
@@ -414,9 +415,9 @@ has_user_permissions() {
 }
 
 should_login() {
-	STATUS_CODE=$(curl -s -w "%{http_code}" -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users -o /dev/null)
+	curl_req -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users
 
-	if [[ "$STATUS_CODE" != "200" ]]; then
+	if [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]]; then
 		return 1
 	fi
 
@@ -734,7 +735,6 @@ get_user_uuid_by_username() {
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
-
 	# Check if users api works at all
 	should_login
 	FOUND=$?
@@ -961,7 +961,8 @@ enable_module_directly() {
 
 	# Local Okapi login if we should for the consecutive modules
 	should_login
-	if [[ "$STATUS_CODE" == "200" ]] || [[ "$STATUS_CODE" == "204" ]]; then
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
 		login_user
 	fi
 }
@@ -1041,18 +1042,20 @@ pre_authenticate() {
 
 	enable_okapi $INDEX $JSON_LIST
 
+	new_user
+
 	should_login
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
-		login_user
 		get_user_uuid_by_username
+
+		attach_permissions $UUID
+		attach_credentials $UUID
+
+		login_user
 
 		return
 	fi
-
-	new_user
-	attach_credentials $UUID
-	attach_permissions $UUID
 }
 
 # Post register mod-authtoken module
