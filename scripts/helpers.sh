@@ -415,9 +415,9 @@ has_user_permissions() {
 }
 
 should_login() {
-	curl_req -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users
+	okapi_curl -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users
 
-	if [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]]; then
+	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]]; then
 		return 1
 	fi
 
@@ -745,7 +745,7 @@ get_user_uuid_by_username() {
 	log "Get user UUID for username: $USERNAME"
 
 	set_file_name $BASH_SOURCE
-	curl_req $OPTIONS $OKAPI_URL/users
+	okapi_curl $OPTIONS $OKAPI_URL/users
 
 	UUID=$(echo $CURL_RESPONSE | jq ".users[] | select(.username == \"$USERNAME\") | .id")
 
@@ -1042,20 +1042,16 @@ pre_authenticate() {
 
 	enable_okapi $INDEX $JSON_LIST
 
-	new_user
-
 	should_login
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
-		get_user_uuid_by_username
-
-		attach_permissions $UUID
-		attach_credentials $UUID
-
 		login_user
-
-		return
 	fi
+
+	new_user
+	get_user_uuid_by_username
+	attach_permissions $UUID
+	attach_credentials $UUID
 }
 
 # Post register mod-authtoken module
