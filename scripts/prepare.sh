@@ -20,7 +20,7 @@ pre_process() {
 
 	set_args $*
 	
-	empty_output_file
+	empty_logs
 
 	stop_running_module_or_modules
 
@@ -124,6 +124,9 @@ okapi_defaults() {
 
 	# Okapi Directory
 	OKAPI_DIR=okapi
+
+	# Okapi nohup.out
+	OKAPI_NOHUP_FILE="okapi/nohub.out"
 
 	# Okapi repository
 	OKAPI_REPO="git@github.com:folio-org/okapi.git"
@@ -318,8 +321,23 @@ set_without_okapi_arg() {
 	fi
 }
 
+empty_logs() {
+	empty_output_file
+
+	empty_okapi_nohup_file
+}
+
 empty_output_file() {
-	: > $OUTPUT_FILE
+	clear_file $OUTPUT_FILE
+}
+
+# TODO: it does not work, try to find a solution
+empty_okapi_nohup_file() {
+	clear_file $OKAPI_NOHUP_FILE
+}
+
+clear_file() {
+	: > $1
 }
 
 go_to_modules_dir() {
