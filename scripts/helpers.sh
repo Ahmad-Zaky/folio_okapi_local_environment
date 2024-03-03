@@ -1050,8 +1050,8 @@ pre_authenticate() {
 
 	new_user
 	get_user_uuid_by_username
-	attach_permissions $UUID
 	attach_credentials $UUID
+	attach_permissions $UUID
 }
 
 # Post register mod-authtoken module
