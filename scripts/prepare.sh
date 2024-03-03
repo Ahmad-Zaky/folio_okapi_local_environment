@@ -52,24 +52,18 @@ defaults() {
 
 module_defaults() {
 	# Modules directory path
-	MODULES_DIR=modules
+	export MODULES_DIR=modules
+	export JSON_FILE="modules.json"
+	export CONFIG_FILE="configuration.json"
+	export LOGIN_WITH_MOD="mod-authtoken"
+	export OUTPUT_FILE="output.txt"
 
 	go_to_modules_dir
-
-	# Modules list file
-	JSON_FILE="modules.json"
-
-	# Configurations list file
-	CONFIG_FILE="configuration.json"
-
-	LOGIN_WITH_MOD="mod-authtoken"
-
-	OUTPUT_FILE="output.txt"
 
 	SHOULD_STOP_RUNNING_MODULES=$(jq ".SHOULD_STOP_RUNNING_MODULES" $CONFIG_FILE)
 
 	# Remove extra double quotes at start and end of the string
-	SHOULD_STOP_RUNNING_MODULES=$(echo $SHOULD_STOP_RUNNING_MODULES | sed 's/"//g')
+	export SHOULD_STOP_RUNNING_MODULES=$(echo $SHOULD_STOP_RUNNING_MODULES | sed 's/"//g')
 }
 
 db_defaults() {
@@ -82,13 +76,13 @@ db_defaults() {
 	DB_MAXPOOLSIZE=$(jq ".DB_MAXPOOLSIZE" $CONFIG_FILE)
 	
 	# Remove extra double quotes at start and end of the string
-	DB_HOST=$(echo $DB_HOST | sed 's/"//g')
-	DB_PORT=$(echo $DB_PORT | sed 's/"//g')
-	DB_DATABASE=$(echo $DB_DATABASE | sed 's/"//g')
-	DB_USERNAME=$(echo $DB_USERNAME | sed 's/"//g')
-	DB_PASSWORD=$(echo $DB_PASSWORD | sed 's/"//g')
-	DB_QUERYTIMEOUT=$(echo $DB_QUERYTIMEOUT | sed 's/"//g')
-	DB_MAXPOOLSIZE=$(echo $DB_MAXPOOLSIZE | sed 's/"//g')
+	export DB_HOST=$(echo $DB_HOST | sed 's/"//g')
+	export DB_PORT=$(echo $DB_PORT | sed 's/"//g')
+	export DB_DATABASE=$(echo $DB_DATABASE | sed 's/"//g')
+	export DB_USERNAME=$(echo $DB_USERNAME | sed 's/"//g')
+	export DB_PASSWORD=$(echo $DB_PASSWORD | sed 's/"//g')
+	export DB_QUERYTIMEOUT=$(echo $DB_QUERYTIMEOUT | sed 's/"//g')
+	export DB_MAXPOOLSIZE=$(echo $DB_MAXPOOLSIZE | sed 's/"//g')
 }
 
 kafka_defaults() {
@@ -97,65 +91,31 @@ kafka_defaults() {
 	KAFKA_HOST=$(jq ".KAFKA_HOST" $CONFIG_FILE)
 	
 	# Remove extra double quotes at start and end of the string
-	KAFKA_PORT=$(echo $KAFKA_PORT | sed 's/"//g')
-	KAFKA_HOST=$(echo $KAFKA_HOST | sed 's/"//g')
+	export KAFKA_PORT=$(echo $KAFKA_PORT | sed 's/"//g')
+	export KAFKA_HOST=$(echo $KAFKA_HOST | sed 's/"//g')
 }
 
 okapi_defaults() {
-	# Default OKAPI Header with value which is used at setting curl request headers
-	OKAPI_HEADER_TOKEN=x
-
-	# Okapi Port
-	OKAPI_PORT=9130
-
-	# Start Port
-	START_PORT=$((OKAPI_PORT + 1))
-
-	# End Port
-	END_PORT=9200
-
-	# Server/Http Port
-	PORT=$OKAPI_PORT
-	SERVER_PORT=$OKAPI_PORT
-	HTTP_PORT=$OKAPI_PORT
-
-	# Okapi Url
-	OKAPI_URL=http://localhost:$OKAPI_PORT
-
-	# Okapi Directory
-	OKAPI_DIR=okapi
-
-	# Okapi nohup.out
-	OKAPI_NOHUP_FILE="okapi/nohub.out"
-
-	# Okapi repository
-	OKAPI_REPO="git@github.com:folio-org/okapi.git"
-
-	# Okapi Options
-	OKAPI_DB_OPTIONS="-Dpostgres_host=$DB_HOST -Dpostgres_port=$DB_PORT -Dpostgres_database=$DB_DATABASE -Dpostgres_username=$DB_USERNAME -Dpostgres_password=$DB_PASSWORD"
-	OKAPI_OPTIONS="-Denable_system_auth=false -Dport_end=$END_PORT -Dstorage=postgres -Dtrace_headers=true $OKAPI_DB_OPTIONS"
-
-	# Okapi build command
-	OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
-
-	# Okapi Command
-	OKAPI_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
-
-	# Okapi Initialize Database Command
-	OKAPI_INIT_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
-
-	# Okapi Purge Database tables Command
-	OKAPI_PURGE_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
-
-	# Elastic search url
-	ELASTIC_SEARCH_URL=http://localhost:9200
+	export OKAPI_HEADER_TOKEN=x # Default OKAPI Header value instead of the real token.
+	export OKAPI_PORT=9130
+	export PORT=$OKAPI_PORT
+	export SERVER_PORT=$OKAPI_PORT
+	export HTTP_PORT=$OKAPI_PORT
+	export OKAPI_URL=http://localhost:$OKAPI_PORT
+	export OKAPI_DIR=okapi
+	export OKAPI_NOHUP_FILE="okapi/nohub.out"
+	export OKAPI_REPO="git@github.com:folio-org/okapi.git"
+	export OKAPI_DB_OPTIONS="-Dpostgres_host=$DB_HOST -Dpostgres_port=$DB_PORT -Dpostgres_database=$DB_DATABASE -Dpostgres_username=$DB_USERNAME -Dpostgres_password=$DB_PASSWORD"
+	export OKAPI_OPTIONS="-Denable_system_auth=false -Dport_end=$END_PORT -Dstorage=postgres -Dtrace_headers=true $OKAPI_DB_OPTIONS"
+	export OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
+	export OKAPI_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
+	export OKAPI_INIT_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
+	export OKAPI_PURGE_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
+	export ELASTIC_SEARCH_URL=http://localhost:9200
 }
 
 user_defaults() {
-	# Test Tenant
 	TENANT=$(jq ".TENANT" $CONFIG_FILE)
-
-	# Test User
 	USERNAME=$(jq ".USERNAME" $CONFIG_FILE)
 	PASSWORD=$(jq ".PASSWORD" $CONFIG_FILE)
 	USER_ACTIVE=$(jq ".USER_ACTIVE" $CONFIG_FILE)
@@ -178,28 +138,27 @@ user_defaults() {
 	USER_PATRON_GROUP=$(jq ".USER_PATRON_GROUP" $CONFIG_FILE)
 
 	# Remove extra double quotes at start and end of the string
-	TENANT=$(echo $TENANT | sed 's/"//g')
-	USERNAME=$(echo $USERNAME | sed 's/"//g')
-	PASSWORD=$(echo $PASSWORD | sed 's/"//g')
-	USER_ACTIVE=$(echo $USER_ACTIVE | sed 's/"//g')
-	USER_BARCODE=$(echo $USER_BARCODE | sed 's/"//g')
-	USER_PERSONAL_FIRSTNAME=$(echo $USER_PERSONAL_FIRSTNAME | sed 's/"//g')
-	USER_PERSONAL_LASTNAME=$(echo $USER_PERSONAL_LASTNAME | sed 's/"//g')
-	USER_PERSONAL_MIDDLENAME=$(echo $USER_PERSONAL_MIDDLENAME | sed 's/"//g')
-	USER_PERSONAL_PREFERRED_FIRST_NAME=$(echo $USER_PERSONAL_PREFERRED_FIRST_NAME | sed 's/"//g')
-	USER_PERSONAL_PHONE=$(echo $USER_PERSONAL_PHONE | sed 's/"//g')
-	USER_PERSONAL_MOBILE_PHONE=$(echo $USER_PERSONAL_MOBILE_PHONE | sed 's/"//g')
-	USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID=$(echo $USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID | sed 's/"//g')
-	USER_PERSONAL_EMAIL=$(echo $USER_PERSONAL_EMAIL | sed 's/"//g')
-	USER_PERSONAL_ADDRESSES_CITY=$(echo $USER_PERSONAL_ADDRESSES_CITY | sed 's/"//g')
-	USER_PERSONAL_ADDRESSES_COUNTRY_ID=$(echo $USER_PERSONAL_ADDRESSES_COUNTRY_ID | sed 's/"//g')
-	USER_PERSONAL_ADDRESSES_POSTAL_CODE=$(echo $USER_PERSONAL_ADDRESSES_POSTAL_CODE | sed 's/"//g')
-	USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1=$(echo $USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1 | sed 's/"//g')
-	USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID=$(echo $USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID | sed 's/"//g')
-	USER_PROXY_FOR=$(echo $USER_PROXY_FOR | sed 's/"//g')
-	USER_DEPARTMENTS=$(echo $USER_DEPARTMENTS | sed 's/"//g')
-	USER_PATRON_GROUP=$(echo $USER_PATRON_GROUP | sed 's/"//g')
-	
+	export TENANT=$(echo $TENANT | sed 's/"//g')
+	export USERNAME=$(echo $USERNAME | sed 's/"//g')
+	export PASSWORD=$(echo $PASSWORD | sed 's/"//g')
+	export USER_ACTIVE=$(echo $USER_ACTIVE | sed 's/"//g')
+	export USER_BARCODE=$(echo $USER_BARCODE | sed 's/"//g')
+	export USER_PERSONAL_FIRSTNAME=$(echo $USER_PERSONAL_FIRSTNAME | sed 's/"//g')
+	export USER_PERSONAL_LASTNAME=$(echo $USER_PERSONAL_LASTNAME | sed 's/"//g')
+	export USER_PERSONAL_MIDDLENAME=$(echo $USER_PERSONAL_MIDDLENAME | sed 's/"//g')
+	export USER_PERSONAL_PREFERRED_FIRST_NAME=$(echo $USER_PERSONAL_PREFERRED_FIRST_NAME | sed 's/"//g')
+	export USER_PERSONAL_PHONE=$(echo $USER_PERSONAL_PHONE | sed 's/"//g')
+	export USER_PERSONAL_MOBILE_PHONE=$(echo $USER_PERSONAL_MOBILE_PHONE | sed 's/"//g')
+	export USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID=$(echo $USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID | sed 's/"//g')
+	export USER_PERSONAL_EMAIL=$(echo $USER_PERSONAL_EMAIL | sed 's/"//g')
+	export USER_PERSONAL_ADDRESSES_CITY=$(echo $USER_PERSONAL_ADDRESSES_CITY | sed 's/"//g')
+	export USER_PERSONAL_ADDRESSES_COUNTRY_ID=$(echo $USER_PERSONAL_ADDRESSES_COUNTRY_ID | sed 's/"//g')
+	export USER_PERSONAL_ADDRESSES_POSTAL_CODE=$(echo $USER_PERSONAL_ADDRESSES_POSTAL_CODE | sed 's/"//g')
+	export USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1=$(echo $USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1 | sed 's/"//g')
+	export USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID=$(echo $USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID | sed 's/"//g')
+	export USER_PROXY_FOR=$(echo $USER_PROXY_FOR | sed 's/"//g')
+	export USER_DEPARTMENTS=$(echo $USER_DEPARTMENTS | sed 's/"//g')
+	export USER_PATRON_GROUP=$(echo $USER_PATRON_GROUP | sed 's/"//g')	
 }
 
 postman_defaults() {
@@ -210,19 +169,19 @@ postman_defaults() {
 	POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID=$(jq ".POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID" $CONFIG_FILE)
 
 	# Environment variable's values
-	POSTMAN_ENV_NAME="Local with okapi"
-	POSTMAN_ENV_OKAPI_URL_VAL=$OKAPI_URL
-	POSTMAN_ENV_MOD_URL_VAL="http://localhost:9135"
-	POSTMAN_ENV_TENANT_VAL=$TENANT
-	POSTMAN_ENV_TOKEN_VAL=""
-	POSTMAN_ENV_USER_ID_VAL=""
+	export POSTMAN_ENV_NAME="Local with okapi"
+	export POSTMAN_ENV_OKAPI_URL_VAL=$OKAPI_URL
+	export POSTMAN_ENV_MOD_URL_VAL="http://localhost:9135"
+	export POSTMAN_ENV_TENANT_VAL=$TENANT
+	export POSTMAN_ENV_TOKEN_VAL=""
+	export POSTMAN_ENV_USER_ID_VAL=""
 
 	# Remove extra double quotes at start and end of the string
-	POSTMAN_API_KEY=$(echo $POSTMAN_API_KEY | sed 's/"//g')
-	POSTMAN_URL=$(echo $POSTMAN_URL | sed 's/"//g')
-	POSTMAN_IMPORT_OPENAPI_PATH=$(echo $POSTMAN_IMPORT_OPENAPI_PATH | sed 's/"//g')
-	POSTMAN_ENVIRONMENT_PATH=$(echo $POSTMAN_ENVIRONMENT_PATH | sed 's/"//g')
-	POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID=$(echo $POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID | sed 's/"//g')
+	export POSTMAN_API_KEY=$(echo $POSTMAN_API_KEY | sed 's/"//g')
+	export POSTMAN_URL=$(echo $POSTMAN_URL | sed 's/"//g')
+	export POSTMAN_IMPORT_OPENAPI_PATH=$(echo $POSTMAN_IMPORT_OPENAPI_PATH | sed 's/"//g')
+	export POSTMAN_ENVIRONMENT_PATH=$(echo $POSTMAN_ENVIRONMENT_PATH | sed 's/"//g')
+	export POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID=$(echo $POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID | sed 's/"//g')
 }
 
 set_args() {
@@ -381,6 +340,8 @@ run_okapi() {
 	    log "Init Okapi ..."
 
 		eval "cd $OKAPI_DIR && nohup $OKAPI_INIT_COMMAND &"
+
+		sleep 5
 	fi
 
 	# Purge Okapi
@@ -388,6 +349,8 @@ run_okapi() {
 	    log "Purge Okapi ..."
 
 		eval "cd $OKAPI_DIR && nohup $OKAPI_PURGE_COMMAND &"
+		
+		sleep 5
 	fi
 
 	# Run Okapi
