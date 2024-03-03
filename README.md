@@ -26,6 +26,8 @@ FOLIO Okapi Local Environment
 ```
 alias folio='cd <path/to/script> && bash run.sh'
 alias folioup='cd <path/to/script> && dkup'
+alias foliotest='cd <path/to/script> && bash test.sh'
+alias foliodbimport='cd <path/to/script> && bash scripts/import.db.sh'
 alias cdfolio='cd <path/to/script>'
 alias okapi='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev'
 alias okapi_initdb='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar initdatabase'
@@ -48,6 +50,11 @@ folio without-okapi # running modules without okapi, its helpful when you run a 
 okapi               # run okapi with development mode
 okapi_initdb        # run okapi with initdatabase mode, which removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
 okapi_purgedb       # run okapi with purgedatabase mode, removes existing tables and data only, does not reinitialize.
+iokapi              # init okapi first and then run it with dev mode.
+folioup             # docker compose up for our docker-compose.yml services
+foliotest           # run a test.sh script
+foliodbimport       # import the db from an export file.
+cdfolio             # move to folio working directory inside the terminal.
 ```
 > WARNING: issues happening during running the script are not properly handled
 
