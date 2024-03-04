@@ -130,6 +130,10 @@ has_arg() {
 	return 0
 }
 
+# NOTE:
+# -----
+# if you pass CALL_STACK_INDEX, SKIP_FAILED_REQ arguments it should be ordered like this,
+# firstly the call stack index argument and then the skip failed request argument
 curl_req() {
 	local CALL_STACK_INDEX=$1
 
@@ -140,6 +144,10 @@ curl_req() {
 	fi
 
 	SKIP_FAILED_REQ=false
+	if [[ $1 == false ]]; then
+		shift
+	fi
+
 	if [[ $1 == true ]]; then
 		SKIP_FAILED_REQ=true
 		shift
@@ -156,14 +164,18 @@ curl_req() {
 	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]] && [[ $SKIP_FAILED_REQ == true ]]; then
 		warning "HTTP request failed! (Status Code: $STATUS_CODE)"
 
-		return
+		return 0
 	fi
 
 	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]]; then
 		set_file_name $BASH_SOURCE
 		debug_line 2
 		error "HTTP request failed! (Status Code: $STATUS_CODE)"
+
+		return 0
 	fi
+
+	return 1
 }
 
 # Basic Okapi curl boilerplate
@@ -173,8 +185,19 @@ okapi_curl() {
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
+	SKIP_FAILED_REQ=false
+	if [[ $1 == true ]]; then
+		SKIP_FAILED_REQ=true
+		shift
+	fi
+
 	set_file_name $BASH_SOURCE
-	curl_req 3 $OPTIONS -HContent-Type:application/json $*
+	curl_req 3 $SKIP_FAILED_REQ $OPTIONS -HContent-Type:application/json $*
+	if [[ "$?" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
 }
 
 handle_cloud_okapi() {
@@ -205,7 +228,7 @@ attach_credentials() {
 
 	log "Attach credentials ..."
 
-	okapi_curl -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
+	okapi_curl true -d"{\"username\":\"$USERNAME\",\"userId\":\"$UUID\",\"password\":\"$PASSWORD\"}" $OKAPI_URL/authn/credentials
 }
 
 attach_permissions() {
@@ -220,7 +243,7 @@ attach_permissions() {
 
 	log "Attach permissions ..."
 
-	okapi_curl -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\"]}" $OKAPI_URL/perms/users
+	okapi_curl true -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\",\"inventory-storage.locations.collection.get\"]}" $OKAPI_URL/perms/users
 }
 
 # Login to obtain the token from the header
@@ -243,11 +266,19 @@ login_user_curl() {
 
 	set_file_name $BASH_SOURCE
 	curl_req -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
-	
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
 	# login from mod-users-bl module but the $LOGIN_WITH_MOD variable value should be 'mod-uers-bl'
 	# curl_req -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/bl-users/login?expandPermissions=true&fullPermissions=true
+	# if [[ "$?" -eq 0 ]]; then
+	# 	return
+	# fi
 
 	TOKEN=`awk '/x-okapi-token/ {print $2}' <headers|tr -d '[:space:]'`
+
+	log "Token: $TOKEN"
 }
 
 # Import swagger.api OpenApi Specification file as postman collection
@@ -354,6 +385,9 @@ has_tenant() {
 
 	set_file_name $BASH_SOURCE
 	curl_req $OKAPI_URL/_/proxy/tenants
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
 	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id | contains(\"$TENANT\")")
 	RESULT=$(echo $RESULT | sed 's/"//g')
@@ -370,7 +404,10 @@ has_tenant() {
 has_user() {
 	local USERNAME=$1
 
-	okapi_curl $OKAPI_URL/users?query=username%3D%3D$USERNAME
+	okapi_curl true $OKAPI_URL/users?query=username%3D%3D$USERNAME
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
 	RESULT=$(echo $CURL_RESPONSE | jq ".users[] | .username | contains(\"$USERNAME\")")
 	RESULT=$(echo $RESULT | sed 's/"//g')
@@ -385,24 +422,35 @@ has_user() {
 }
 
 has_credentials() {
-	okapi_curl $OKAPI_URL/authn/credentials-existence?userId=$UUID
-
-	RESULT=$(echo $CURL_RESPONSE | jq ".credentialsExist | contains(true)")
-	RESULT=$(echo $RESULT | sed 's/"//g')
-
-	has_arg "$RESULT" "true"
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return 1
+	okapi_curl true $OKAPI_URL/authn/credentials-existence?userId=$UUID
+	if [[ "$?" -eq 0 ]]; then
+		return
 	fi
 
-	return 0	
+	RESULT=$(echo $CURL_RESPONSE | jq ".credentialsExist == true")
+	RESULT=$(echo $RESULT | sed 's/"//g')
+	
+	if [[ $RESULT == true ]]; then
+		return 1
+	fi
+	
+	return 0
 }
 
 has_user_permissions() {
-	okapi_curl $OKAPI_URL/perms/users?limit=1000
+	okapi_curl true $OKAPI_URL/perms/users?limit=1000
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
-	RESULT=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | .userId | contains(\"$UUID\")")
+	IS_EMPTY=$(echo $CURL_RESPONSE | jq ".permissionUsers | length == 0")
+	IS_EMPTY=$(echo $IS_EMPTY | sed 's/"//g')
+
+	if [[ $IS_EMPTY == true ]]; then
+		return 0
+	fi
+
+	RESULT=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | .userId == \"$UUID\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
@@ -415,9 +463,9 @@ has_user_permissions() {
 }
 
 should_login() {
-	okapi_curl -HX-Okapi-Tenant:$TENANT $OKAPI_URL/users
-
-	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]]; then
+	has_deployed $AUTHTOKEN_MODULE
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then		
 		return 1
 	fi
 
@@ -613,6 +661,9 @@ stop_running_modules() {
 
 	set_file_name $BASH_SOURCE
 	curl_req true $OPTIONS $OKAPI_URL/_/discovery/modules
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
 	local MODULE_URLS=$(echo $CURL_RESPONSE | jq ".[] | .url")
 	local MODULE_URLS=$(echo $MODULE_URLS | sed 's/"//g')
@@ -735,17 +786,13 @@ get_user_uuid_by_username() {
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
-	# Check if users api works at all
-	should_login
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return
-	fi
-
 	log "Get user UUID for username: $USERNAME"
 
 	set_file_name $BASH_SOURCE
-	okapi_curl $OPTIONS $OKAPI_URL/users
+	okapi_curl true $OPTIONS $OKAPI_URL/users
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
 	UUID=$(echo $CURL_RESPONSE | jq ".users[] | select(.username == \"$USERNAME\") | .id")
 
@@ -767,6 +814,9 @@ get_random_permission_uuid_by_user_uuid() {
 
 	set_file_name $BASH_SOURCE
 	curl_req $OPTIONS $OKAPI_URL/perms/users
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
 	USER_PUUIDS=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | select(.userId == \"$UUID\") | .id")
 
@@ -811,7 +861,7 @@ reset_and_verify_password() {
 	local UUID=$1
 
 	log "Reset and verify user password"
-	okapi_curl $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}"
+	okapi_curl true $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}"
 
 	JSON_DATA=$CURL_RESPONSE
 
@@ -833,41 +883,37 @@ reset_and_verify_password() {
 	fi
 	unset JSON_DATA
 
-	TOKEN_2=`jq -r '.link' < echo $CURL_RESPONSE | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g'`
+	RESET_PASSWORD_TOKEN=$(echo $CURL_RESPONSE | jq -r '.link' | sed -e 's/.*\/reset-password\/\([^?]*\).*/\1/g')
 
-	log "Second token: $TOKEN_2"
+	log "Reset password token: $RESET_PASSWORD_TOKEN"
 
 	set_file_name $BASH_SOURCE
-	curl_req -HX-Okapi-Token:$TOKEN_2 $OKAPI_URL/bl-users/password-reset/validate -d'{}'
+	curl_req -HX-Okapi-Token:$RESET_PASSWORD_TOKEN $OKAPI_URL/bl-users/password-reset/validate -d'{}'
 }
 
 # Set extra permissions related to module mod-users-bl
 set_users_bl_module_permissions() {
 	local INDEX=$1
-	local USERS_BL_MODULE="mod-users-bl"
-	local PERMISSIONS_MODULE="mod-permissions"
 
 	get_user_uuid_by_username
 
 	# Validate that mod-users-bl exists in modules.json
-	has_value "id" $INDEX "$USERS_BL_MODULE" $JSON_FILE
-	FOUND=$?
-	if [[ "$FOUND" -eq 0 ]]; then
+	if [[ "$HAS_USERS_BL_MODULE" == false ]]; then
 		return
 	fi
 
 	# Validate that mod-permissions exists in modules.json
-	has_value "id" $INDEX "$PERMISSIONS_MODULE" $JSON_FILE
-	FOUND=$?
-	if [[ "$FOUND" -eq 0 ]]; then
+	if [[ "$HAS_PERMISSIONS_MODULE" == false ]]; then
 		return
 	fi
 
+	log "Set mod-users-bl permissions."
+
 	get_random_permission_uuid_by_user_uuid $UUID
 
-	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
+	okapi_curl true $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
 
-	okapi_curl $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
+	okapi_curl true $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
 
 	login_user
 
@@ -1042,12 +1088,6 @@ pre_authenticate() {
 
 	enable_okapi $INDEX $JSON_LIST
 
-	should_login
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		login_user
-	fi
-
 	new_user
 	get_user_uuid_by_username
 	attach_credentials $UUID
@@ -1056,12 +1096,6 @@ pre_authenticate() {
 
 # Post register mod-authtoken module
 post_authenticate() {
-	local MODULE=$1
-
-	if [ $MODULE != $LOGIN_WITH_MOD ]; then
-		return
-	fi
-
 	login_user
 }
 
@@ -1069,15 +1103,11 @@ post_authenticate() {
 new_user() {
 
 	# Check if users api works at all
-	should_login
-	FOUND=$?
-	if [[ "$FOUND" -eq 1 ]]; then
-		return
-	fi
-
 	has_user $USERNAME
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
+		get_user_uuid_by_username
+
 		return
 	fi
 
@@ -1091,7 +1121,7 @@ new_user() {
 	fi
 
 	set_file_name $BASH_SOURCE
-	curl_req --location -XPOST $OKAPI_URL/users $OPTIONS \
+	curl_req true --location -XPOST $OKAPI_URL/users $OPTIONS \
 		--data '{
 		"username": "'$USERNAME'",
 		"active": '$USER_ACTIVE',

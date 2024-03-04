@@ -37,6 +37,9 @@ has_registered() {
 
 	set_file_name $BASH_SOURCE
 	curl_req $OPTIONS $OKAPI_URL/_/proxy/modules
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
 	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$MODULE_WITH_VERSION\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
@@ -66,6 +69,9 @@ has_deployed() {
 
 	set_file_name $BASH_SOURCE
 	curl_req $OPTIONS $OKAPI_URL/_/discovery/modules
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
 	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .srvcId == \"$MODULE_WITH_VERSION\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
@@ -96,6 +102,9 @@ has_installed() {
 
 	set_file_name $BASH_SOURCE
 	curl_req $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
 	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$MODULE_WITH_VERSION\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
@@ -315,12 +324,29 @@ pre_register() {
 
 	handle_cloud_okapi $MODULE $INDEX $JSON_LIST
 
-	# Do not export next port for Okapi modules if the argument without-okapi has been set
-	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
-		return
+	if [[ $MODULE == $PERMISSIONS_MODULE ]]; then
+		HAS_PERMISSIONS_MODULE=true
 	fi
 
-	should_register $INDEX $JSON_LIST
+	if [[ $MODULE == $PERMISSIONS_MODULE ]]; then
+		HAS_PERMISSIONS_MODULE=true
+	fi
+
+	if [[ $MODULE == $USERS_BL_MODULE ]]; then
+		HAS_USERS_BL_MODULE=true
+	fi
+
+	if [[ $MODULE == $USERS_MODULE ]]; then
+		HAS_USERS_MODULE=true
+	fi
+}
+
+pre_install() {
+	local MODULE=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+
+	should_install $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
@@ -341,15 +367,15 @@ post_install() {
 	fi
 
 	# Add new user
-	local USERS_MODULE="mod-users"
-	if [ $MODULE = $USERS_MODULE ]; then
+	should_login
+	local SHOULD_LOGIN=$?
+	if [[ $SHOULD_LOGIN -eq 1 ]]; then
+		post_authenticate
+	fi
 
+	if [[ $HAS_USERS_MODULE == true ]]; then
 		new_user
-		
-		get_user_uuid_by_username
-
-		# Update postman environment variables
-		update_env_postman $POSTMAN_API_KEY
+		update_env_postman $POSTMAN_API_KEY # Update postman environment variables
 	fi
 
 	should_install $INDEX $JSON_LIST
@@ -357,11 +383,8 @@ post_install() {
 		return
 	fi
 
-	post_authenticate $MODULE
-
 	# Set permissions related to mod-users-bl
-	local USERS_BL_MODULE="mod-users-bl"
-	if [ $MODULE = $USERS_BL_MODULE ]; then
+	if [[ $HAS_USERS_BL_MODULE == true ]]; then
 		set_users_bl_module_permissions $INDEX
 
 		# Update postman environment variables
@@ -638,6 +661,7 @@ process() {
 		deploy_module $MODULE_ID $i $JSON_FILE
 
 		# Step No. 5
+		pre_install $MODULE_ID $i $JSON_FILE
 		install_module enable $MODULE_ID $i $JSON_FILE
 		post_install $MODULE_ID $i $JSON_FILE
 	done

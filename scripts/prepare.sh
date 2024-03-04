@@ -56,7 +56,14 @@ module_defaults() {
 	export JSON_FILE="modules.json"
 	export CONFIG_FILE="configuration.json"
 	export LOGIN_WITH_MOD="mod-authtoken"
+	export PERMISSIONS_MODULE="mod-permissions"
+	export AUTHTOKEN_MODULE="mod-authtoken"
+	export USERS_MODULE="mod-users"
+	export USERS_BL_MODULE="mod-users-bl"
 	export OUTPUT_FILE="output.txt"
+	export HAS_PERMISSIONS_MODULE=false
+	export HAS_USERS_MODULE=false
+	export HAS_USERS_BL_MODULE=false
 
 	go_to_modules_dir
 
@@ -96,6 +103,18 @@ kafka_defaults() {
 }
 
 okapi_defaults() {
+	ENABLE_SYSTEM_AUTH_FOR_OKAPI=$(jq ".ENABLE_SYSTEM_AUTH_FOR_OKAPI" $CONFIG_FILE)
+	OKAPI_STORAGE=$(jq ".OKAPI_STORAGE" $CONFIG_FILE)
+	OKAPI_TRACE_HEADERS=$(jq ".OKAPI_TRACE_HEADERS" $CONFIG_FILE)
+	OKAPI_OPTION_ENABLE_SYSTEM_AUTH=$(jq ".OKAPI_OPTION_ENABLE_SYSTEM_AUTH" $CONFIG_FILE)
+	OKAPI_OPTION_STORAGE=$(jq ".OKAPI_OPTION_STORAGE" $CONFIG_FILE)
+	OKAPI_OPTION_TRACE_HEADERS=$(jq ".OKAPI_OPTION_TRACE_HEADERS" $CONFIG_FILE)
+
+	# Remove extra double quotes at start and end of the string
+	export OKAPI_OPTION_ENABLE_SYSTEM_AUTH=$(echo $OKAPI_OPTION_ENABLE_SYSTEM_AUTH | sed 's/"//g')
+	export OKAPI_OPTION_STORAGE=$(echo $OKAPI_OPTION_STORAGE | sed 's/"//g')
+	export OKAPI_OPTION_TRACE_HEADERS=$(echo $OKAPI_OPTION_TRACE_HEADERS | sed 's/"//g')
+
 	export OKAPI_HEADER_TOKEN=x # Default OKAPI Header value instead of the real token.
 	export OKAPI_PORT=9130
 	export PORT=$OKAPI_PORT
@@ -106,7 +125,7 @@ okapi_defaults() {
 	export OKAPI_NOHUP_FILE="okapi/nohub.out"
 	export OKAPI_REPO="git@github.com:folio-org/okapi.git"
 	export OKAPI_DB_OPTIONS="-Dpostgres_host=$DB_HOST -Dpostgres_port=$DB_PORT -Dpostgres_database=$DB_DATABASE -Dpostgres_username=$DB_USERNAME -Dpostgres_password=$DB_PASSWORD"
-	export OKAPI_OPTIONS="-Denable_system_auth=false -Dport_end=$END_PORT -Dstorage=postgres -Dtrace_headers=true $OKAPI_DB_OPTIONS"
+	export OKAPI_OPTIONS="-Denable_system_auth=$OKAPI_OPTION_ENABLE_SYSTEM_AUTH -Dport_end=$END_PORT -Dstorage=$OKAPI_OPTION_STORAGE -Dtrace_headers=$OKAPI_OPTION_TRACE_HEADERS $OKAPI_DB_OPTIONS"
 	export OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
 	export OKAPI_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
 	export OKAPI_INIT_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
@@ -312,7 +331,7 @@ run_okapi() {
 	# Do nothing if Okapi is already running without setting restart argument
 	is_okapi_running
 	IS_OKAPI_RUNNING=$?
-	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 0 ]] && [[ "$START_OKAPI_ARG" -eq 0 ]]; then
+	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && [[ "$RESTART_OKAPI_ARG" -eq 0 ]] && [[ "$START_OKAPI_ARG" -eq 0 ]] && [[ "$INIT_ARG" -eq 0 ]] && [[ "$PURGE_ARG" -eq 0 ]]; then
 		return
 	fi
 
@@ -331,7 +350,7 @@ run_okapi() {
 	fi
 
 	# Restart Okapi by stopping it first and then start it again
-	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && ([[ "$RESTART_OKAPI_ARG" -eq 1 ]] || [[ "$START_OKAPI_ARG" -eq 1 ]]); then
+	if [[ "$IS_OKAPI_RUNNING" -eq 1 ]] && ([[ "$RESTART_OKAPI_ARG" -eq 1 ]] || [[ "$START_OKAPI_ARG" -eq 1 ]] || [[ "$INIT_ARG" -eq 1 ]] || [[ "$PURGE_ARG" -eq 1 ]]); then
 		stop_okapi
 	fi
 
@@ -411,6 +430,8 @@ new_tenant() {
 enable_okapi() {
 	local INDEX=$1
 	local JSON_LIST=$2
+
+	log "Enable okapi for tenant: $TENANT"
 
 	install_module enable okapi $INDEX $JSON_LIST
 }
