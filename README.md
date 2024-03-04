@@ -59,10 +59,15 @@ cdfolio             # move to folio working directory inside the terminal.
 > WARNING: issues happening during running the script are not properly handled
 
 > NOTICES:   
-    * when you need to run some okapi modules localy you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.    
-    * all curl requests output are logged in a non tracked file named `output.txt`.
-    * inside `modules.json` the modules should be sorted in a way that each dependency module is installed firstly then the modules which depends upon that module.
 
+* When you need to run some okapi modules localy you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.    
+* All curl requests output are logged in a non tracked file named `output.txt`.
+* Inside `modules.json` the modules should be sorted in a way that each dependency module is installed firstly then the modules which depends upon that module.
+* While running the script you may encounter messages like this `WARNING: HTTP request failed! (Status Code: xxx)` this is not always a problem, and does not means that the script has failed.
+* There are some options  that can be passed while running okapi instance like `OKAPI_OPTION_ENABLE_SYSTEM_AUTH`, `OKAPI_OPTION_STORAGE`, `OKAPI_OPTION_TRACE_HEADERS`.
+    * `OKAPI_OPTION_ENABLE_SYSTEM_AUTH` has boolean value `true` or `false`, if true it means the filter auth phase will be triggered with installed `mod-authtoken`, so if you run the script without authentication this config key value should be false, else it should be true.
+    * `OKAPI_OPTION_STORAGE` has multiple values like `postgres` which means that okapi will store its info within a postgres database which needs connection env variables to be provided, if not set, then it works with inmemory storage, which will be cleared on each okapi instance rerun.
+    * `OKAPI_OPTION_TRACE_HEADERS` has boolean values, if true it will return a response header of `X-Okapi-Trace`, which has the name of invoked modules through the request trip. 
 > Modules json keys explained:
 
 > The only required unique key is `id` any other keys are optional and may be conditional required
