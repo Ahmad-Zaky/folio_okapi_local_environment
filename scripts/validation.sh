@@ -66,12 +66,12 @@ validate_module_id() {
 }
 
 validate_module_repo() {
-	local MODULE_ID=$1
+	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
 
 	# Default repo url (FOLIO ORG)
-	REPO="git clone --recurse-submodules git@github.com:folio-org/$MODULE_ID"
+	REPO="git clone --recurse-submodules git@github.com:folio-org/$MODULE"
 
 	# Custom Repo url
 	has "repo" $INDEX $JSON_LIST
@@ -123,6 +123,8 @@ validate_new_module_tag() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	NEW_MODULE_TAG=""
+	HAS_NEW_TAG=false
 
 	has "tag" $INDEX $JSON_LIST
 	local HAS_TAG=$?
@@ -136,10 +138,41 @@ validate_new_module_tag() {
 	NEW_MODULE_TAG=$(echo $NEW_MODULE_TAG | sed 's/"//g')
 
 	local VERSION_FROM="pom" # for now we will keep it like this ...
-	get_module_version $MODULE_ID $VERSION_FROM
+	get_module_version $MODULE $VERSION_FROM
 
 	if [[ "$NEW_MODULE_TAG" != "v$MODULE_VERSION" ]]; then
 		HAS_NEW_TAG=true
+	fi
+}
+
+validate_new_module_branch() {
+	local MODULE=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+	NEW_MODULE_BRANCH=""
+	HAS_NEW_BRANCH=false
+
+	has "branch" $INDEX $JSON_LIST
+	local HAS_BRANCH=$?
+	if [[ "$HAS_BRANCH" -eq 0 ]]; then
+		return
+	fi
+
+	NEW_MODULE_BRANCH=$(jq ".[$INDEX].branch" $JSON_LIST)
+
+	# Remove extra double quotes at start and end of the string
+	NEW_MODULE_BRANCH=$(echo $NEW_MODULE_BRANCH | sed 's/"//g')
+
+	# Opt in the module
+	cd $MODULE
+
+	get_current_branch
+
+	# Opt out from the module
+	cd ..
+
+	if [[ "$NEW_MODULE_BRANCH" != "$CURRENT_BRANCH" ]]; then
+		HAS_NEW_BRANCH=true
 	fi
 }
 

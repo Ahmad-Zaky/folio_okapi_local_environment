@@ -20,8 +20,7 @@ FOLIO Okapi Local Environment
 * elasticsearch
 * kibana
 
-
-> for linux .bash_aliases saved aliases
+> for linux .bash_aliases saved aliases, you can import the aliases automatically by typing `./run.sh import-aliases`.
 
 ```
 alias folio='cd <path/to/script> && bash run.sh'
@@ -29,45 +28,54 @@ alias folioup='cd <path/to/script> && dkup'
 alias foliotest='cd <path/to/script> && bash test.sh'
 alias foliodbimport='cd <path/to/script> && bash scripts/import.db.sh'
 alias cdfolio='cd <path/to/script>'
+alias foliooutputlog='cdfolio && tail -f modules/output.txt'
 alias okapi='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev'
 alias okapi_initdb='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar initdatabase'
 alias okapi_purgedb='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar purgedatabase'
 alias iokapi='okapi_initdb && okapi'
+alias okapilog='cdfolio && tail -f modules/okapi/nohup.out'
 ```
 
 > `folio` commands with arguments, note that they are not  some how steps, instead they are variations on how to run/stop folio modules
 
 ```
-folio init          # removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
-folio purge         # removes existing tables and data only, does not reinitialize.
-folio start         # stop all running modules first and then start over with okapi
-folio restart       # stop all running modules first and then restart over with okapi
-folio stop          # stop all running modules.
-folio stop <port>   # stop one module by port number.
-folio stop okapi    # stop running okapi instance.
-folio stop modules  # stop okapi running modules.
-folio without-okapi # running modules without okapi, its helpful when you run a module placed in modules.json directly with an already running okapi on the cloud
-okapi               # run okapi with development mode
-okapi_initdb        # run okapi with initdatabase mode, which removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
-okapi_purgedb       # run okapi with purgedatabase mode, removes existing tables and data only, does not reinitialize.
-iokapi              # init okapi first and then run it with dev mode.
-folioup             # docker compose up for our docker-compose.yml services
-foliotest           # run a test.sh script
-foliodbimport       # import the db from an export file.
-cdfolio             # move to folio working directory inside the terminal.
+folio init              # removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
+folio purge             # removes existing tables and data only, does not reinitialize.
+folio start             # stop all running modules first and then start over with okapi
+folio restart           # stop all running modules first and then restart over with okapi
+folio stop              # stop all running modules.
+folio stop <port>       # stop one module by port number.
+folio stop okapi        # stop running okapi instance.
+folio stop modules      # stop okapi running modules.
+folio without-okapi     # running modules without okapi, its helpful when you run a module placed in modules.json directly with an already running okapi on the cloud
+folio import-aliases    # import aliases from scripts/aliases.txt into ~/.bashrc or ~/.bash_aliases file but for the first time you cannot use the folio command right a way, instead you run this one ./run.sh import-aliases.
+folioup                 # docker compose up for our docker-compose.yml services
+foliotest               # run a test.sh script
+foliodbimport           # import the db from an export file.
+cdfolio                 # move to folio working directory inside the terminal.
+foliooutputlog          # shows the log for curl output of the running folio script.
+okapi                   # run okapi with development mode
+okapi_initdb            # run okapi with initdatabase mode, which removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
+okapi_purgedb           # run okapi with purgedatabase mode, removes existing tables and data only, does not reinitialize.
+iokapi                  # init okapi first and then run it with dev mode.
+okapilog                # shows the log for running okapi instance interactively.
 ```
 > WARNING: issues happening during running the script are not properly handled
 
 > NOTICES:   
 
-* When you need to run some okapi modules localy you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.    
+* When you need to run some okapi modules locally you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.    
 * All curl requests output are logged in a non tracked file named `output.txt`.
 * Inside `modules.json` the modules should be sorted in a way that each dependency module is installed firstly then the modules which depends upon that module.
 * While running the script you may encounter messages like this `WARNING: HTTP request failed! (Status Code: xxx)` this is not always a problem, and does not means that the script has failed.
 * There are some options  that can be passed while running okapi instance like `OKAPI_OPTION_ENABLE_SYSTEM_AUTH`, `OKAPI_OPTION_STORAGE`, `OKAPI_OPTION_TRACE_HEADERS`.
     * `OKAPI_OPTION_ENABLE_SYSTEM_AUTH` has boolean value `true` or `false`, if true it means the filter auth phase will be triggered with installed `mod-authtoken`, so if you run the script without authentication this config key value should be false, else it should be true.
-    * `OKAPI_OPTION_STORAGE` has multiple values like `postgres` which means that okapi will store its info within a postgres database which needs connection env variables to be provided, if not set, then it works with inmemory storage, which will be cleared on each okapi instance rerun.
+    * `OKAPI_OPTION_STORAGE` has multiple values like `postgres` which means that okapi will store its info within a postgres database which needs connection env variables to be provided, if not set, then it works with in-memory storage, which will be cleared on each okapi instance rerun.
     * `OKAPI_OPTION_TRACE_HEADERS` has boolean values, if true it will return a response header of `X-Okapi-Trace`, which has the name of invoked modules through the request trip. 
+* tag version change, will cause a rebuild process to be  triggered.
+* branch name change, will cause a rebuild process to be  triggered.
+* changing tag/branch will may invoke reinstalling the module, if previously `mod-authtoken` has been installed on the same tenant then its better to reinitialize okapi using `folio init`.
+
 > Modules json keys explained:
 
 > The only required unique key is `id` any other keys are optional and may be conditional required

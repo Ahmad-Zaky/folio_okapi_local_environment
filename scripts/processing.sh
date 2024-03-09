@@ -281,8 +281,11 @@ pre_clone() {
 	# Validate Module Tags and Branches
 	validate_module_tag_branch $INDEX $JSON_LIST
 
-	# Validate New Module Tags and Branches
+	# Validate New Module Tags
 	validate_new_module_tag $MODULE $INDEX $JSON_LIST
+	
+	# Validate New Module Branches
+	validate_new_module_branch $MODULE $INDEX $JSON_LIST
 
 	# Validate Access Token
 	validate_module_access_token $INDEX $JSON_LIST
@@ -294,27 +297,21 @@ pre_build() {
 	local MODULE=$1
 
 	checkout_new_tag $MODULE
+	checkout_new_branch $MODULE
 }
 
-checkout_new_tag() {
+post_build() {
 	local MODULE=$1
 
-	if [[ "$HAS_NEW_TAG" != true ]]; then
-		return
+	if [[ $EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR == "true" ]]; then
+		# Opt in the module
+		cd $MODULE
+
+		empty_requires_array_in_module_desriptor
+
+		# Opt out from the module
+		cd ..
 	fi
-
-	cd $MODULE
-
-	git fetch --all
-	if git rev-parse --verify refs/tags/$NEW_MODULE_TAG > /dev/null 2>&1; then
-		SHOULD_REBUILD_MODULE="$MODULE"
-		git checkout $NEW_MODULE_TAG
-	fi
-
-	cd ..
-
-	unset $HAS_NEW_TAG
-	unset $NEW_MODULE_TAG
 }
 
 pre_register() {
@@ -652,6 +649,7 @@ process() {
 		# Step No. 2
 		pre_build $MODULE_ID
 		build_module $MODULE_ID $i $JSON_FILE
+		post_build $MODULE_ID
 
 		# Step No. 3
 		pre_register $MODULE_ID $i $JSON_FILE

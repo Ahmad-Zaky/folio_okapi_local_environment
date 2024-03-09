@@ -33,10 +33,14 @@ pre_process() {
 	validate_modules_list
 
 	validate_configurations_list
+
+	remove_authtoken_if_enabled_previously
 }
 
 # Default Variable values
 defaults() {
+	general_defaults
+
 	module_defaults
 	
 	db_defaults
@@ -48,6 +52,13 @@ defaults() {
 	user_defaults
 	
 	postman_defaults
+}
+
+general_defaults() {
+	export HOME_PATH=`echo ~`
+	export BASHRC_PATH="$HOME_PATH/.bashrc"
+	export BASH_ALIASES_PATH="$HOME_PATH/.bash_aliases"
+	export ALIASES_PATH="../scripts/aliases.txt"
 }
 
 module_defaults() {
@@ -68,9 +79,13 @@ module_defaults() {
 	go_to_modules_dir
 
 	SHOULD_STOP_RUNNING_MODULES=$(jq ".SHOULD_STOP_RUNNING_MODULES" $CONFIG_FILE)
+	EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR=$(jq ".EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR" $CONFIG_FILE)
+	REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY=$(jq ".REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY" $CONFIG_FILE)
 
 	# Remove extra double quotes at start and end of the string
 	export SHOULD_STOP_RUNNING_MODULES=$(echo $SHOULD_STOP_RUNNING_MODULES | sed 's/"//g')
+	export EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR=$(echo $EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR | sed 's/"//g')
+	export REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY=$(echo $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY | sed 's/"//g')
 }
 
 db_defaults() {
@@ -211,6 +226,7 @@ set_args() {
 		set_restart_okapi_arg $ARG
 		set_start_okapi_arg $ARG
 		set_without_okapi_arg $ARG
+		set_import_aliases_arg $ARG
 	done
 
 	set_stop_okapi_arg $ARGS
@@ -266,6 +282,17 @@ set_start_okapi_arg() {
 	if [ $ARGUMENT == "start" ]; then
 		START_OKAPI_ARG=1
 	fi
+}
+
+set_import_aliases_arg() {
+	local ARGUMENT=$1
+	
+	IMPORT_ALIASES_ARG=0
+	if [ $ARGUMENT == "import-aliases" ]; then
+		IMPORT_ALIASES_ARG=1
+	fi
+
+	import_aliases
 }
 
 set_stop_okapi_arg() {

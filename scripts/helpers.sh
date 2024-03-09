@@ -178,6 +178,51 @@ curl_req() {
 	return 1
 }
 
+delete_curl_req() {
+	local CALL_STACK_INDEX=$1
+
+	if [[ "$CALL_STACK_INDEX" =~ ^[0-9]+$ ]]; then
+		shift
+	else
+		CALL_STACK_INDEX=2
+	fi
+
+	SKIP_FAILED_REQ=false
+	if [[ $1 == false ]]; then
+		shift
+	fi
+
+	if [[ $1 == true ]]; then
+		SKIP_FAILED_REQ=true
+		shift
+	fi
+
+	set_line_no $BASH_LINENO
+	output_debug $CALL_STACK_INDEX
+
+	STATUS_CODE=$(curl -s --location --request DELETE -o response.txt -w "%{http_code}" "$@") 
+	CURL_RESPONSE=$(cat response.txt) && : > response.txt
+
+	echo $CURL_RESPONSE >> $OUTPUT_FILE
+
+	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]] && [[ $SKIP_FAILED_REQ == true ]]; then
+		warning "HTTP request failed! (Status Code: $STATUS_CODE)"
+
+		return 0
+	fi
+
+	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]]; then
+		set_file_name $BASH_SOURCE
+		debug_line 2
+		error "HTTP request failed! (Status Code: $STATUS_CODE)"
+
+		return 0
+	fi
+
+	return 1
+}
+
+
 # Basic Okapi curl boilerplate
 okapi_curl() {
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
@@ -1158,4 +1203,140 @@ new_user() {
 
 delete_user() {
 	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$1" >> $OUTPUT_FILE && output_debug
+}
+
+import_aliases() {
+	if [[ "$IMPORT_ALIASES_ARG" -eq 0 ]]; then
+		return
+	fi
+
+	log "Import aliases ..."
+
+	if [[ ! -f  "$BASHRC_PATH" ]]; then
+		error "$BASHRC_PATH does not exists !"
+	fi
+
+	if [[ ! -f "$ALIASES_PATH" ]]; then
+		error "$ALIASES_PATH does not exists !"
+	fi
+
+	if [[ -f  $BASH_ALIASES_PATH ]]; then
+		echo "" >> $BASH_ALIASES_PATH
+		cat $ALIASES_PATH >> $BASH_ALIASES_PATH
+		source $BASHRC_PATH
+
+		exit 0
+	fi
+
+	echo "" >> $BASHRC_PATH
+	cat $ALIASES_PATH >> $BASHRC_PATH
+	source $BASHRC_PATH
+	
+	exit 0
+}
+
+get_current_branch() {
+	CURRENT_BRANCH=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
+}
+
+has_tag() {
+	local TAG=$1
+
+	if git rev-parse --verify refs/tags/$TAG > /dev/null 2>&1; then
+		return 1
+	fi
+
+	return 0
+}
+
+has_branch() {
+	local BRANCH=$1
+
+	if [[ `git rev-parse --verify "$BRANCH" 2>/dev/null` ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+# NOTE: it does not work if authtoken instance is not up and running
+remove_authtoken_if_enabled_previously() {
+	has_installed $AUTHTOKEN_MODULE $TENANT
+	FOUND=$?
+	if [[ "$FOUND" -eq 0 ]]; then
+		return
+	fi
+
+	if [[ $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY == "true" ]]; then
+		remove_module_from_tenant $VERSIONED_MODULE $TENANT
+	fi
+}
+
+remove_module_from_tenant() {
+	local VERSIONED_MODULE=$1
+	local TENANT=$2
+
+	log "Remove  module (${VERSIONED_MODULE}) from tenant (${TENANT})"
+
+	delete_curl_req true --request DELETE $OKAPI_URL/_/proxy/tenants/$TENANT/modules/$VERSIONED_MODULE --header 'Content-Type: application/json'
+}
+
+empty_requires_array_in_module_desriptor() {
+	jq '.requires = []' target/ModuleDescriptor.json > tmp.json && mv tmp.json target/ModuleDescriptor.json
+}
+
+checkout_new_tag() {
+	local MODULE=$1
+
+	if [[ "$HAS_NEW_TAG" != true ]]; then
+		return
+	fi
+
+	# Opt in the module
+	cd $MODULE
+
+	git fetch --all
+
+	has_tag $NEW_MODULE_TAG
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		SHOULD_REBUILD_MODULE="$MODULE"
+		git checkout $NEW_MODULE_TAG
+	else
+		error "Tag $NEW_MODULE_TAG does not exists !"
+	fi
+
+	# Opt out from the module
+	cd ..
+
+	unset $HAS_NEW_TAG
+	unset $NEW_MODULE_TAG
+}
+
+checkout_new_branch() {
+	local MODULE=$1
+
+	if [[ "$HAS_NEW_BRANCH" != true ]]; then
+		return
+	fi
+
+	# Opt in the module
+	cd $MODULE
+
+	git fetch --all
+
+	has_branch $NEW_MODULE_BRANCH
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		SHOULD_REBUILD_MODULE="$MODULE"
+		git checkout $NEW_MODULE_BRANCH
+	else
+		error "Branch $NEW_MODULE_BRANCH does not exists !"
+	fi
+
+	# Opt out from the module
+	cd ..
+
+	unset $HAS_NEW_BRANCH
+	unset $NEW_MODULE_BRANCH
 }
