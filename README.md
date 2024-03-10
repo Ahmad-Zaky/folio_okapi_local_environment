@@ -10,6 +10,7 @@ FOLIO Okapi Local Environment
 * `yq` linux tool to process yml files. [click here](https://github.com/mikefarah/yq)
 * `xmllint` linux tool to process xml files. [click here](https://devicetests.com/install-xmllint-ubuntu#google_vignette)
 * `lsof` linux tool to check process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
+* `docker` docker tool to run modules instead of running it within a process on the host machine. [click here](https://docs.docker.com/engine/install/)
 
 > First you need to run this command `sudo docker compose up --build -d` to build and run the containers inside `docker-compose.yml` file which has these services, be aware that you may not need all services located in the `docker-compose.yml` file, the basic services you need are (`postgres`, `kafka`, `zookeeper`).
 

@@ -292,3 +292,17 @@ validate_okapi_credentials() {
 	SERVER_USERNAME=$(echo $SERVER_USERNAME | sed 's/"//g')
 	SERVER_PASSWORD=$(echo $SERVER_PASSWORD | sed 's/"//g')
 }
+
+validate_linux_tools() {
+    for TOOL in "$@"; do
+        validate_linux_tool_exists $TOOL
+    done
+}
+
+validate_linux_tool_exists() {
+    local TOOL=$1
+
+    if ! [[ -x "$(command -v $TOOL)" ]]; then
+        error "Linux tool ($TOOL) not found !"
+    fi
+}

@@ -20,6 +20,8 @@ pre_process() {
 
 	set_args $*
 	
+	validate_linux_tools $TOOLS_LIST
+
 	empty_logs
 
 	stop_running_module_or_modules
@@ -59,6 +61,7 @@ general_defaults() {
 	export BASHRC_PATH="$HOME_PATH/.bashrc"
 	export BASH_ALIASES_PATH="$HOME_PATH/.bash_aliases"
 	export ALIASES_PATH="../scripts/aliases.txt"
+	export TOOLS_LIST="git java jq yq xmllint lsof docker"
 }
 
 module_defaults() {
