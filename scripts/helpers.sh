@@ -1067,13 +1067,13 @@ kill_process_port() {
 
 get_module_version() {
 	local MODULE=$1
-	local VERSION_FROM=$2
+	local LOCAL_VERSION_FROM=$2
 
-	if  [[ "$VERSION_FROM" == "pom" ]]; then
+	if  [[ "$LOCAL_VERSION_FROM" == "pom" ]]; then
 		get_module_version_from_pom $MODULE
 	fi
 
-	if  [[ "$VERSION_FROM" == "azure_pipeline" ]]; then
+	if  [[ "$LOCAL_VERSION_FROM" == "azure_pipeline" ]]; then
 		get_module_version_from_azure_pipeline $MODULE
 	fi
 }
@@ -1259,16 +1259,52 @@ has_branch() {
 	return 0
 }
 
+get_deployed_instance_id() {
+	local MODULE=$1
+	local LOCAL_VERSION_FROM=$2
+
+	get_module_versioned $MODULE $LOCAL_VERSION_FROM
+
+	OPTIONS=""
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
+	fi
+
+	set_file_name $BASH_SOURCE
+	curl_req $OPTIONS $OKAPI_URL/_/discovery/modules
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	DEPLOYED_INSTANCE_ID=$(echo $CURL_RESPONSE | jq ".[] | first(select(.srvcId == \"$VERSIONED_MODULE\")) | .instId")
+	DEPLOYED_INSTANCE_ID=$(echo $DEPLOYED_INSTANCE_ID | sed 's/"//g')
+}
+
 # NOTE: it does not work if authtoken instance is not up and running
 remove_authtoken_if_enabled_previously() {
-	has_installed $AUTHTOKEN_MODULE $TENANT
+	has_installed $AUTHTOKEN_MODULE $TENANT $VERSION_FROM
 	FOUND=$?
 	if [[ "$FOUND" -eq 0 ]]; then
 		return
 	fi
 
 	if [[ $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY == "true" ]]; then
+		# Deploy mod-authtoken and mod-permissions to be able to remove mod-authtoken from the tenant.
+		deploy_module_request $AUTHTOKEN_MODULE
+		deploy_module_request $PERMISSIONS_MODULE
+
+		get_module_versioned $AUTHTOKEN_MODULE $VERSION_FROM
 		remove_module_from_tenant $VERSIONED_MODULE $TENANT
+
+		get_deployed_instance_id $AUTHTOKEN_MODULE $VERSION_FROM
+		remove_deployed_module $VERSIONED_MODULE $DEPLOYED_INSTANCE_ID
+		unset $DEPLOYED_INSTANCE_ID
+		unset $VERSIONED_MODULE
+
+		get_deployed_instance_id $PERMISSIONS_MODULE $VERSION_FROM
+		remove_deployed_module $VERSIONED_MODULE $DEPLOYED_INSTANCE_ID
+		unset $DEPLOYED_INSTANCE_ID
+		unset $VERSIONED_MODULE
 	fi
 }
 
@@ -1279,6 +1315,43 @@ remove_module_from_tenant() {
 	log "Remove  module (${VERSIONED_MODULE}) from tenant (${TENANT})"
 
 	delete_curl_req true --request DELETE $OKAPI_URL/_/proxy/tenants/$TENANT/modules/$VERSIONED_MODULE --header 'Content-Type: application/json'
+
+	if [[ "$?" -eq 0 ]]; then
+		return 0 
+	fi
+
+	return 1 
+}
+
+remove_deployed_module() {
+	local VERSIONED_MODULE=$1
+	local INSTANCE_ID=$2
+
+	log "Remove  deployed module (${VERSIONED_MODULE})"
+
+	delete_curl_req true --request DELETE $OKAPI_URL/_/discovery/modules/$VERSIONED_MODULE/$INSTANCE_ID --header 'Content-Type: application/json'
+
+	if [[ "$?" -eq 0 ]]; then
+		return 0 
+	fi
+
+	return 1 
+}
+
+deploy_module_request() {
+	local MODULE=$1
+	local DEPLOY_DESCRIPTOR=$MODULE/target/DeploymentDescriptor.json
+
+	has_deployed $MODULE
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	log "Deploy module (${MODULE})"
+
+	set_file_name $BASH_SOURCE
+	curl_req -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules
 }
 
 empty_requires_array_in_module_desriptor() {
@@ -1339,4 +1412,15 @@ checkout_new_branch() {
 
 	unset $HAS_NEW_BRANCH
 	unset $NEW_MODULE_BRANCH
+}
+
+get_module_versioned() {
+	local MODULE=$1
+	local LOCAL_VERSION_FROM=$2
+	unset $VERSIONED_MODULE
+	unset $MODULE_VERSION
+
+	get_module_version $MODULE $LOCAL_VERSION_FROM
+
+	VERSIONED_MODULE="$MODULE-$MODULE_VERSION"
 }

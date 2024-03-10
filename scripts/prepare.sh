@@ -78,7 +78,8 @@ module_defaults() {
 	export HAS_PERMISSIONS_MODULE=false
 	export HAS_USERS_MODULE=false
 	export HAS_USERS_BL_MODULE=false
-
+	export VERSION_FROM="pom" # for now we will keep it like this ...
+	
 	go_to_modules_dir
 
 	SHOULD_STOP_RUNNING_MODULES=$(jq ".SHOULD_STOP_RUNNING_MODULES" $CONFIG_FILE)
@@ -153,6 +154,8 @@ okapi_defaults() {
 
 user_defaults() {
 	TENANT=$(jq ".TENANT" $CONFIG_FILE)
+	TENANT_NAME=$(jq ".TENANT_NAME" $CONFIG_FILE)
+	TENANT_DESCRIPTION=$(jq ".TENANT_DESCRIPTION" $CONFIG_FILE)
 	USERNAME=$(jq ".USERNAME" $CONFIG_FILE)
 	PASSWORD=$(jq ".PASSWORD" $CONFIG_FILE)
 	USER_ACTIVE=$(jq ".USER_ACTIVE" $CONFIG_FILE)
@@ -453,7 +456,7 @@ new_tenant() {
 	log "Add new tenant: $TENANT"
 
 	set_file_name $BASH_SOURCE
-	curl_req -d"{\"id\":\"$TENANT\", \"name\":\"Test Library #1\", \"description\":\"Test Libarary Number One\"}" $OKAPI_URL/_/proxy/tenants
+	curl_req -d"{\"id\":\"$TENANT\", \"name\":\"$TENANT_NAME\", \"description\":\"$TENANT_DESCRIPTION\"}" $OKAPI_URL/_/proxy/tenants
 }
 
 # Enable okapi module to tenant

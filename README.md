@@ -75,7 +75,7 @@ okapilog                # shows the log for running okapi instance interactively
     * `OKAPI_OPTION_TRACE_HEADERS` has boolean values, if true it will return a response header of `X-Okapi-Trace`, which has the name of invoked modules through the request trip. 
 * tag version change, will cause a rebuild process to be  triggered.
 * branch name change, will cause a rebuild process to be  triggered.
-* changing tag/branch will may invoke reinstalling the module, if previously `mod-authtoken` has been installed on the same tenant then its better to reinitialize okapi using `folio init`.
+* changing tag/branch will may invoke reinstalling the module, if previously `mod-authtoken` has been installed on the same tenant it will be removed from the tenant to be able to continue the script flow.
 
 > Modules json keys explained:
 

@@ -23,12 +23,9 @@ fi
 
 has_registered() {
 	local MODULE=$1
-	local VERSION_FROM="pom" # for now we will keep it like this ...
+	local LOCAL_VERSION_FROM=$2
 
-	get_module_version $MODULE $VERSION_FROM
-
-	local MODULE_WITH_VERSION="$MODULE-$MODULE_VERSION"
-	VERSIONED_MODULE="$MODULE_WITH_VERSION"
+	get_module_versioned $MODULE $LOCAL_VERSION_FROM
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -41,7 +38,7 @@ has_registered() {
 		return
 	fi
 
-	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$MODULE_WITH_VERSION\"")
+	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$VERSIONED_MODULE\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
@@ -55,12 +52,9 @@ has_registered() {
 
 has_deployed() {
 	local MODULE=$1
-	local VERSION_FROM="pom" # for now we will keep it like this ...
+	local LOCAL_VERSION_FROM=$2
 
-	get_module_version $MODULE $VERSION_FROM
-
-	local MODULE_WITH_VERSION="$MODULE-$MODULE_VERSION"
-	VERSIONED_MODULE="$MODULE_WITH_VERSION"
+	get_module_versioned $MODULE $LOCAL_VERSION_FROM
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -73,7 +67,7 @@ has_deployed() {
 		return
 	fi
 
-	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .srvcId == \"$MODULE_WITH_VERSION\"")
+	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .srvcId == \"$VERSIONED_MODULE\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
@@ -88,12 +82,9 @@ has_deployed() {
 has_installed() {
 	local MODULE=$1
 	local TENANT=$2
-	local VERSION_FROM="pom" # for now we will keep it like this ...
+	local LOCAL_VERSION_FROM=$3
 
-	get_module_version $MODULE $VERSION_FROM
-
-	local MODULE_WITH_VERSION="$MODULE-$MODULE_VERSION"
-	VERSIONED_MODULE="$MODULE_WITH_VERSION"
+	get_module_versioned $MODULE $LOCAL_VERSION_FROM
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -106,7 +97,7 @@ has_installed() {
 		return
 	fi
 
-	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$MODULE_WITH_VERSION\"")
+	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$VERSIONED_MODULE\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
@@ -488,7 +479,7 @@ register_module() {
 		return
 	fi
 
-	has_registered $MODULE
+	has_registered $MODULE $VERSION_FROM
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return
@@ -543,7 +534,7 @@ deploy_module() {
 		return
 	fi
 
-	has_deployed $MODULE
+	has_deployed $MODULE $VERSION_FROM
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return
@@ -596,7 +587,7 @@ install_module() {
 	fi
 
 	# Build Body Json list of modules with action enable comes as argument
-	has_installed $MODULE $TENANT
+	has_installed $MODULE $TENANT $VERSION_FROM
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		return
