@@ -149,7 +149,19 @@ okapi_defaults() {
 	export OKAPI_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
 	export OKAPI_INIT_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
 	export OKAPI_PURGE_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
-	export ELASTIC_SEARCH_URL=http://localhost:9200
+
+	ELASTICSEARCH_URL=$(jq ".ELASTICSEARCH_URL" $CONFIG_FILE)
+	ELASTICSEARCH_HOST=$(jq ".ELASTICSEARCH_HOST" $CONFIG_FILE)
+	ELASTICSEARCH_PORT=$(jq ".ELASTICSEARCH_PORT" $CONFIG_FILE)
+	ELASTICSEARCH_USERNAME=$(jq ".ELASTICSEARCH_USERNAME" $CONFIG_FILE)
+	ELASTICSEARCH_PASSWORD=$(jq ".ELASTICSEARCH_PASSWORD" $CONFIG_FILE)
+
+	# Remove extra double quotes at start and end of the string
+	export ELASTICSEARCH_URL=$(echo $ELASTICSEARCH_URL | sed 's/"//g')
+	export ELASTICSEARCH_HOST=$(echo $ELASTICSEARCH_HOST | sed 's/"//g')
+	export ELASTICSEARCH_PORT=$(echo $ELASTICSEARCH_PORT | sed 's/"//g')
+	export ELASTICSEARCH_USERNAME=$(echo $ELASTICSEARCH_USERNAME | sed 's/"//g')
+	export ELASTICSEARCH_PASSWORD=$(echo $ELASTICSEARCH_PASSWORD | sed 's/"//g')
 }
 
 user_defaults() {
@@ -437,7 +449,7 @@ set_env_vars_to_okapi() {
 	curl_req -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env
 	curl_req -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env
 	curl_req -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"ELASTICSEARCH_URL\",\"value\":\"$ELASTIC_SEARCH_URL\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"ELASTICSEARCH_URL\",\"value\":\"$ELASTICSEARCH_URL\"}" $OKAPI_URL/_/env
 }
 
 # Store new tenant

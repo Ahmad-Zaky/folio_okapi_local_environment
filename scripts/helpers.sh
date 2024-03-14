@@ -1064,7 +1064,6 @@ kill_process_port() {
 	kill -9 $(lsof -i :$PORT | grep LISTEN | awk '{print $2}')
 }
 
-
 get_module_version() {
 	local MODULE=$1
 	local LOCAL_VERSION_FROM=$2
