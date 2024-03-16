@@ -191,6 +191,8 @@ user_defaults() {
 
 	# Remove extra double quotes at start and end of the string
 	export TENANT=$(echo $TENANT | sed 's/"//g')
+	export TENANT_NAME=$(echo $TENANT_NAME | sed 's/"//g')
+	export TENANT_DESCRIPTION=$(echo $TENANT_DESCRIPTION | sed 's/"//g')
 	export USERNAME=$(echo $USERNAME | sed 's/"//g')
 	export PASSWORD=$(echo $PASSWORD | sed 's/"//g')
 	export USER_ACTIVE=$(echo $USER_ACTIVE | sed 's/"//g')
