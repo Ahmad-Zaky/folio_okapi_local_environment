@@ -53,7 +53,7 @@ services:
     container_name: kafka-folio
     image: docker.io/bitnami/kafka:3.3
     ports:
-      - "9093:9093"
+      - "9092:9093"
     volumes:
       - "kafka-volume:/bitnami"
     environment:
@@ -62,40 +62,37 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
       - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9092
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
     depends_on:
       - zookeeper
 
-  # elasticsearch:
-  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.4.0
-  #   container_name: elasticsearch_folio
-  #   volumes:
-  #     - elasticsearch-data:/usr/share/elasticsearch/data
-  #   ports:
-  #     - 9200:9200
-  #   restart: always
-  #   environment:
-  #     - xpack.security.enabled=false
-  #     - discovery.type=single-node
-  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-  #   ulimits:
-  #     memlock:
-  #       soft: -1
-  #       hard: -1
+  elasticsearch:
+    container_name: elasticsearch-folio
+    image: bitnami/elasticsearch:7.17.0
+    environment:
+      - xpack.security.enabled=false
+      - "discovery.type=single-node"
+      - ELASTICSEARCH_PLUGINS=analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic
+    ports:
+      - "9200:9200"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
 
-  # kibana:
-  #   image: docker.elastic.co/kibana/kibana:8.4.0
-  #   container_name: kibana_folio
-  #   volumes:
-  #     - kibana-data:/usr/share/kibana/data
-  #   ports:
-  #    - 5601:5601
-  #   restart: always
-  #   environment:
-  #     - ELASTICSEARCH_HOSTS=http://elasticsearch_folio:9200
-  #   depends_on:
-  #     - elasticsearch_folio
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.4.0
+    container_name: kibana_folio
+    volumes:
+      - kibana-data:/usr/share/kibana/data
+    ports:
+     - 5601:5601
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch_folio:9200
+    depends_on:
+      - elasticsearch_folio
 
 volumes:
   postgres:
