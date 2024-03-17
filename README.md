@@ -65,10 +65,10 @@ okapi_purgedb                   # run okapi with purgedatabase mode, removes exi
 iokapi                          # init okapi first and then run it with dev mode.
 okapilog                        # shows the log for running okapi instance interactively.
 ```
-> WARNING: issues happening during running the script are not properly handled
 
-> NOTICES:   
+> NOTICES:
 
+* both `modules_template.json` and `configuration_template.json` files should be renamed and removed `_template` part from it names to be able to run the script, so the new file names will be turned to `modules.json`, and `configuration.json`.
 * When you need to run some okapi modules locally you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.    
 * All curl requests output are logged in a non tracked file named `output.txt`.
 * Inside `modules.json` the modules should be sorted in a way that each dependency module is installed firstly then the modules which depends upon that module.
