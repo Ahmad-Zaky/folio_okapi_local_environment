@@ -20,6 +20,16 @@ defaults() {
     PGDUMP_SCHEMA_OPTION="$PGDUMP_INCLUDE_SCHEMA_OPTION"
 }
 
+trim() {
+    TO_BE_TRIMMED=$1
+
+    # Trim leading spaces
+    TRIMMED="${TO_BE_TRIMMED#"${TO_BE_TRIMMED%%[![:space:]]*}"}"
+
+    # Trim trailing spaces
+    TRIMMED="${TRIMMED%"${TRIMMED##*[![:space:]]}"}"
+}
+
 has_arg() {
     local TO_BE_FOUND_ARG=$1
     shift
@@ -61,6 +71,9 @@ generate_schemas_substring() {
     for LINE in $(cat $SCHEMAS_PATH); do
         SCHEMAS_PATTERN="$SCHEMAS_PATTERN $PGDUMP_SCHEMA_OPTION $LINE"
     done
+
+    trim $SCHEMAS_PATTERN
+    SCHEMAS_PATTERN="$TRIMMED"
 }
 
 list_schemas() {
@@ -74,6 +87,13 @@ handle_arguments() {
         HAS_STAGING_ARG=true
         DATABASE="$DATABASE_STAGING"
         remove_one_from_arguments "staging" $ARGS
+	fi
+
+    has_arg "print" $ARGS
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+        HAS_PRINT_ARG=true
+        remove_one_from_arguments "print" $ARGS
 	fi
 
     has_arg "import" $ARGS
@@ -159,9 +179,18 @@ dump_db() {
     local WITH_SCHEMAS=$1
 
     if [[ $WITH_SCHEMAS == true ]]; then
+
         generate_schemas_substring
-        
-        eval $(printf "$COMMAND_WRAPPER" "pg_dump -b -v -U $USERNAME -d $DATABASE $SCHEMAS_PATTERN > $DUMPED_DATABASE_SQL_FILE")
+
+        local DB_DUMP_COMMAND=`printf "$COMMAND_WRAPPER" "pg_dump -b -v -U $USERNAME -d $DATABASE $SCHEMAS_PATTERN > $DUMPED_DATABASE_SQL_FILE"`
+        if [[ $HAS_PRINT_ARG == true ]]; then
+            echo $DB_DUMP_COMMAND
+
+            exit 0
+        fi
+
+        echo "Dump Database $DATABASE to $DUMPED_DATABASE_SQL_FILE"
+        eval $($DB_DUMP_COMMAND)
 
         if echo "$COMMAND_WRAPPER" | grep -q "docker"; then
             eval $DOCKER_CP_COMMAND
@@ -170,8 +199,15 @@ dump_db() {
         return
     fi
 
+    local DB_DUMP_COMMAND=`printf "$COMMAND_WRAPPER" "pg_dump -b -v -U $USERNAME -d $DATABASE > $DUMPED_DATABASE_SQL_FILE"`
+    if [[ $HAS_PRINT_ARG == true ]]; then
+        echo $DB_DUMP_COMMAND
+
+        exit 0
+    fi
+
     echo "Dump Database $DATABASE to $DUMPED_DATABASE_SQL_FILE"
-    eval $(printf "$COMMAND_WRAPPER" "pg_dump -b -v -U $USERNAME -d $DATABASE > $DUMPED_DATABASE_SQL_FILE")
+    eval $($DB_DUMP_COMMAND)
 
     if echo "$COMMAND_WRAPPER" | grep -q "docker"; then
         eval $($DOCKER_CP_COMMAND)
