@@ -62,6 +62,11 @@ general_defaults() {
 	export BASH_ALIASES_PATH="$HOME_PATH/.bash_aliases"
 	export ALIASES_PATH="../scripts/aliases.txt"
 	export TOOLS_LIST="git java jq yq xmllint lsof docker"
+
+	RUN_WITH_DOCKER=$(jq ".RUN_WITH_DOCKER" $CONFIG_FILE)
+	
+	# Remove extra double quotes at start and end of the string
+	export RUN_WITH_DOCKER=$(echo $RUN_WITH_DOCKER | sed 's/"//g')
 }
 
 module_defaults() {

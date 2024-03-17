@@ -53,5 +53,7 @@
     "POSTMAN_URL":"https://api.getpostman.com",
     "POSTMAN_IMPORT_OPENAPI_PATH":"/import/openapi",
     "POSTMAN_ENVIRONMENT_PATH":"/environments",
-    "POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID":""
+    "POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID":"",
+
+    "RUN_WITH_DOCKER":"false"
 }
