@@ -162,6 +162,10 @@ validate_new_module_branch() {
 	# Remove extra double quotes at start and end of the string
 	NEW_MODULE_BRANCH=$(echo $NEW_MODULE_BRANCH | sed 's/"//g')
 
+	if [ ! -d $MODULE ]; then
+		return
+	fi
+
 	# Opt in the module
 	cd $MODULE
 

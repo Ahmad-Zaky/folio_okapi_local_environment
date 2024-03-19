@@ -263,7 +263,7 @@ pre_clone() {
 
 	# Validate Module Id
 	validate_module_id $INDEX $JSON_LIST
-	
+
 	local MODULE=$MODULE_ID
 
 	# Validate Module Repo
