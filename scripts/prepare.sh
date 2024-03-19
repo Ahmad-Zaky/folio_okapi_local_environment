@@ -62,11 +62,6 @@ general_defaults() {
 	export BASH_ALIASES_PATH="$HOME_PATH/.bash_aliases"
 	export ALIASES_PATH="../scripts/aliases.txt"
 	export TOOLS_LIST="git java jq yq xmllint lsof docker"
-
-	RUN_WITH_DOCKER=$(jq ".RUN_WITH_DOCKER" $CONFIG_FILE)
-	
-	# Remove extra double quotes at start and end of the string
-	export RUN_WITH_DOCKER=$(echo $RUN_WITH_DOCKER | sed 's/"//g')
 }
 
 module_defaults() {
@@ -90,11 +85,13 @@ module_defaults() {
 	SHOULD_STOP_RUNNING_MODULES=$(jq ".SHOULD_STOP_RUNNING_MODULES" $CONFIG_FILE)
 	EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR=$(jq ".EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR" $CONFIG_FILE)
 	REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY=$(jq ".REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY" $CONFIG_FILE)
+	RUN_WITH_DOCKER=$(jq ".RUN_WITH_DOCKER" $CONFIG_FILE)
 
 	# Remove extra double quotes at start and end of the string
 	export SHOULD_STOP_RUNNING_MODULES=$(echo $SHOULD_STOP_RUNNING_MODULES | sed 's/"//g')
 	export EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR=$(echo $EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR | sed 's/"//g')
-	export REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY=$(echo $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY | sed 's/"//g')
+	export REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY=$(echo $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY | sed 's/"//g')	
+	export RUN_WITH_DOCKER=$(echo $RUN_WITH_DOCKER | sed 's/"//g')
 }
 
 db_defaults() {
@@ -457,6 +454,8 @@ set_env_vars_to_okapi() {
 	curl_req -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env
 	curl_req -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env
 	curl_req -d"{\"name\":\"ELASTICSEARCH_URL\",\"value\":\"$ELASTICSEARCH_URL\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"ELASTICSEARCH_HOST\",\"value\":\"$ELASTICSEARCH_HOST\"}" $OKAPI_URL/_/env
+	curl_req -d"{\"name\":\"ELASTICSEARCH_PORT\",\"value\":\"$ELASTICSEARCH_PORT\"}" $OKAPI_URL/_/env
 }
 
 # Store new tenant
