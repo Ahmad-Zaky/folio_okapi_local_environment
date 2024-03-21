@@ -260,9 +260,3 @@ ARGS=$*
 pre_process
 
 process
-
-
-
-# Turn list of args string to array
-# ARGS_ARR=( $ARGS )
-# import ${ARGS_ARR[1]}
