@@ -207,10 +207,10 @@ dump_db() {
     fi
 
     echo "Dump Database $DATABASE to $DUMPED_DATABASE_SQL_FILE"
-    eval $($DB_DUMP_COMMAND)
+    eval $DB_DUMP_COMMAND
 
     if echo "$COMMAND_WRAPPER" | grep -q "docker"; then
-        eval $($DOCKER_CP_COMMAND)
+        eval $DOCKER_CP_COMMAND
     fi
 }
 
