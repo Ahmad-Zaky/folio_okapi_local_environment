@@ -130,14 +130,17 @@ okapi_defaults() {
 	OKAPI_OPTION_ENABLE_SYSTEM_AUTH=$(jq ".OKAPI_OPTION_ENABLE_SYSTEM_AUTH" $CONFIG_FILE)
 	OKAPI_OPTION_STORAGE=$(jq ".OKAPI_OPTION_STORAGE" $CONFIG_FILE)
 	OKAPI_OPTION_TRACE_HEADERS=$(jq ".OKAPI_OPTION_TRACE_HEADERS" $CONFIG_FILE)
+	OKAPI_PORT=$(jq ".OKAPI_PORT" $CONFIG_FILE)
+	END_PORT=$(jq ".END_PORT" $CONFIG_FILE)
 
 	# Remove extra double quotes at start and end of the string
 	export OKAPI_OPTION_ENABLE_SYSTEM_AUTH=$(echo $OKAPI_OPTION_ENABLE_SYSTEM_AUTH | sed 's/"//g')
 	export OKAPI_OPTION_STORAGE=$(echo $OKAPI_OPTION_STORAGE | sed 's/"//g')
 	export OKAPI_OPTION_TRACE_HEADERS=$(echo $OKAPI_OPTION_TRACE_HEADERS | sed 's/"//g')
+	export OKAPI_PORT=$(echo $OKAPI_PORT | sed 's/"//g')
+	export END_PORT=$(echo $END_PORT | sed 's/"//g')
 
 	export OKAPI_HEADER_TOKEN=x # Default OKAPI Header value instead of the real token.
-	export OKAPI_PORT=9130
 	export PORT=$OKAPI_PORT
 	export SERVER_PORT=$OKAPI_PORT
 	export HTTP_PORT=$OKAPI_PORT
