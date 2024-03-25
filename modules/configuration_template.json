@@ -11,6 +11,7 @@
     "KAFKA_HOST":"localhost",
 
     "OKAPI_PORT":"9130",
+    "END_PORT":"9199",
     "OKAPI_DIR":"okapi",
     "OKAPI_REPO":"git@github.com:folio-org/okapi.git",
     "OKAPI_OPTION_ENABLE_SYSTEM_AUTH":"true",
