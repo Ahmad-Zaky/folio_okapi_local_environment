@@ -83,6 +83,7 @@ okapilog                        # shows the log for running okapi instance inter
 * tag version change, will cause a rebuild process to be  triggered.
 * branch name change, will cause a rebuild process to be  triggered.
 * changing tag/branch will may invoke reinstalling the module, if previously `mod-authtoken` has been installed on the same tenant it will be removed from the tenant to be able to continue the script flow.
+* If you normally use `docker` without `sudo` then you do not need to add `sudo` before your `docker` commands, and you can configure the `docker` command used in the script within `configuration.json` file by adjusting the `DOCKER_CMD` key value by default it has `sudo docker` you can change it to just `docker`.
 
 > Modules json keys explained:
 
