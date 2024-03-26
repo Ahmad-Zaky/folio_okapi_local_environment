@@ -17,6 +17,9 @@
     "OKAPI_OPTION_ENABLE_SYSTEM_AUTH":"true",
     "OKAPI_OPTION_STORAGE": "postgres",
     "OKAPI_OPTION_TRACE_HEADERS":"true",
+    "OKAPI_DOCKER_IMAGE_TAG":"okapi",
+    "OKAPI_DOCKER_CONTAINER_NAME":"okapi",
+
     "ELASTICSEARCH_URL":"http://localhost:9200",
     "ELASTICSEARCH_HOST":"localhost",
     "ELASTICSEARCH_PORT":"9200",
@@ -56,5 +59,7 @@
     "POSTMAN_ENVIRONMENT_PATH":"/environments",
     "POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID":"",
 
-    "RUN_WITH_DOCKER":"false"
+    "RUN_WITH_DOCKER":"false",
+    "DOCKER_CMD":"sudo docker",
+    "DOCKER_NETWORK":"folio"
 }
