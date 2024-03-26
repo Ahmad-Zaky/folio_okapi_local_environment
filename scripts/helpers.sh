@@ -580,6 +580,22 @@ is_okapi_exists() {
 }
 
 is_okapi_running() {
+	is_okapi_running_as_process
+	IS_PORT_USED=$?
+	if [[ "$IS_PORT_USED" -eq 1 ]]; then
+		return 1
+	fi
+
+	is_okapi_running_as_docker_container
+	IS_PORT_USED=$?
+	if [[ "$IS_PORT_USED" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+is_okapi_running_as_process() {
 	is_port_used $OKAPI_PORT
 
 	IS_PORT_USED=$?
@@ -588,6 +604,14 @@ is_okapi_running() {
 	fi
 
 	return 1
+}
+
+is_okapi_running_as_docker_container() {
+	if sudo netstat -tuln | grep -q ":$OKAPI_PORT "; then
+		return 1
+	fi
+
+	return 0
 }
 
 clone_okapi() {

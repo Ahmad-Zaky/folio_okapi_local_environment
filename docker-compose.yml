@@ -1,5 +1,19 @@
 version: "3.8"
 services:
+
+  okapi:
+    container_name: okapi-folio
+    build:
+      context: ./modules/okapi/okapi-core
+      dockerfile: Dockerfile
+    ports:
+      - 9130:9130
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["dev"]
+    environment:
+      - JAVA_OPTIONS=-Dloglevel=DEBUG -Dtrace_headers=true -Dstorage=postgres -Dport_end=9199 -Denable_system_auth=true -Dpostgres_host=postgres -Dpostgres_port=5432 -Dpostgres_database=okapi_modules -Dpostgres_username=folio_admin -Dpostgres_password=folio_admin
+
   postgres:
     container_name: postgres-folio
     image: postgres:15-alpine

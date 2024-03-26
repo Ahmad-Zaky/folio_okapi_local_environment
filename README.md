@@ -11,6 +11,7 @@ FOLIO Okapi Local Environment
 * `xmllint` linux tool to process xml files. [click here](https://devicetests.com/install-xmllint-ubuntu#google_vignette)
 * `lsof` linux tool to check process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
 * `docker` docker tool to run modules instead of running it within a process on the host machine. [click here](https://docs.docker.com/engine/install/)
+* `netstat` its a linux tool used for displaying network connections, routing tables, interface statistics, masquerade connections, and multicast memberships. However, starting from Ubuntu 20.04, netstat is considered deprecated in favor of the ss command.
 
 > First you need to run this command `sudo docker compose up --build -d` to build and run the containers inside `docker-compose.yml` file which has these services, be aware that you may not need all services located in the `docker-compose.yml` file, the basic services you need are (`postgres`, `kafka`, `zookeeper`).
 
@@ -25,7 +26,9 @@ FOLIO Okapi Local Environment
 
 ```
 alias folio='cd <path/to/script> && bash run.sh'
-alias folioup='cd <path/to/script> && dkup'
+alias folioup='cd <path/to/script> && sudo docker compose up -d'
+alias okapiup='cd <path/to/script> && sudo docker compose up okapi -d'
+alias okapistop='cd <path/to/script> && sudo docker compose stop okapi'
 alias foliotest='cd <path/to/script> && bash test.sh'
 alias foliodb='cd <path/to/script> && bash scripts/database.sh'
 alias cdfolio='cd <path/to/script>'
