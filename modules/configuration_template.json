@@ -19,6 +19,7 @@
     "OKAPI_OPTION_TRACE_HEADERS":"true",
     "OKAPI_DOCKER_IMAGE_TAG":"okapi",
     "OKAPI_DOCKER_CONTAINER_NAME":"okapi",
+    "DOCKER_MODULE_DEFAULT_PORT":"8081",
 
     "ELASTICSEARCH_URL":"http://localhost:9200",
     "ELASTICSEARCH_HOST":"localhost",
