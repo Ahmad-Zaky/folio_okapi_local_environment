@@ -606,8 +606,21 @@ is_okapi_running_as_process() {
 	return 1
 }
 
+# NOTE: Here we check on network if this port has been listend upon uring docker or any other program
 is_okapi_running_as_docker_container() {
-	if sudo netstat -tuln | grep -q ":$OKAPI_PORT "; then
+	is_port_used_by_docker_container $OKAPI_PORT
+	local IS_OKAPI_CONTAINER_USED=$?
+	if [ $IS_OKAPI_CONTAINER_USED -eq 1]
+		return 1
+	fi
+
+	return 0
+}
+
+is_port_used_by_docker_container() {
+	local PORT=$1
+
+	if sudo netstat -tuln | grep -q ":$PORT "; then
 		return 1
 	fi
 
@@ -745,7 +758,22 @@ stop_running_modules() {
         IS_PORT_USED=$?
         if [[ "$IS_PORT_USED" -eq 1 ]]; then
             kill_process_port $MODULE_PORT
+
+			continue
         fi
+
+		is_port_used_by_docker_container $MODULE_PORT
+		IS_CONTAINER_USED=$?
+		if [[ "$IS_CONTAINER_USED" -eq 1 ]]; then
+
+			local MODULE=$(echo "$MODULE_URL" | sed -n 's/.*\/\/\([^:\/]*\).*/\1/p')
+
+			log "Stopping Module ($MODULE) Container"
+
+			stop_container $MODULE
+
+			continue
+		fi
 	done
 }
 
@@ -757,9 +785,22 @@ stop_running_module() {
 		log "Stop running module with port $STOP_OKAPI_PROT_ARG ..."
 
         kill_process_port $STOP_OKAPI_PROT_ARG
-	else
-		log "Module with port $STOP_OKAPI_PROT_ARG already stopped !"
+
+		return
     fi
+
+	is_port_used_by_docker_container $STOP_OKAPI_PROT_ARG
+	IS_CONTAINER_USED=$?
+	if [[ "$IS_CONTAINER_USED" -eq 1 ]]; then
+
+		log "Stop running module with port $STOP_OKAPI_PROT_ARG ..."
+
+		stop_container_by_port $STOP_OKAPI_PROT_ARG
+
+		return
+	fi
+
+	log "Module with port $STOP_OKAPI_PROT_ARG already stopped !"
 }
 
 re_export_env_vars() {
@@ -810,9 +851,21 @@ stop_okapi() {
 		log "Stopping Okapi ..."
 
 		kill_process_port $OKAPI_PORT
-	else
-		log "Okapi already stopped !"
+
+		return
 	fi
+
+	is_okapi_running_as_docker_container
+	IS_OKAPI_CONTAINER_USED=$?
+	if [[ "$IS_OKAPI_CONTAINER_USED" -eq 1 ]]; then
+		log "Stopping Okapi ..."
+
+		stop_container $OKAPI_DOCKER_CONTAINER_NAME
+
+		return
+	fi
+
+	log "Okapi already stopped !"
 }
 
 is_port_used() {
@@ -828,14 +881,14 @@ is_port_used() {
 }
 
 export_next_port() {
-	local PORT=$1
+	local LOCAL_PORT=$1
 
-	FILTERED_PROCESSES=$(lsof -i :$1)
+	FILTERED_PROCESSES=$(lsof -i :$LOCAL_PORT)
 
 	if [ -z "$FILTERED_PROCESSES" ]; then
-		export PORT="$1"
-		export SERVER_PORT="$1"
-		export HTTP_PORT="$1"
+		export PORT="$LOCAL_PORT"
+		export SERVER_PORT="$LOCAL_PORT"
+		export HTTP_PORT="$LOCAL_PORT"
 		
 		set_file_name $BASH_SOURCE
 		curl_req -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env
@@ -845,8 +898,8 @@ export_next_port() {
 		return
 	fi
 
-	PORT=$((PORT + 1))
-	export_next_port $PORT 
+	LOCAL_PORT=$((LOCAL_PORT + 1))
+	export_next_port $LOCAL_PORT
 }
 
 get_user_uuid_by_username() {
@@ -1446,4 +1499,161 @@ get_module_versioned() {
 	get_module_version $MODULE $LOCAL_VERSION_FROM
 
 	VERSIONED_MODULE="$MODULE-$MODULE_VERSION"
+}
+
+get_okapi_docker_container_env_options() {
+	OKAPI_DOCKER_ENV_OPTIONS=""
+	while read -r LINE; do
+		OKAPI_DOCKER_ENV_OPTIONS="$OKAPI_DOCKER_ENV_OPTIONS --env $NAME=$VALUE"
+	done < <(echo "$OKAPI_ENV_VARS" | jq -c '.[]')
+
+
+    trim $OKAPI_DOCKER_ENV_OPTIONS
+    OKAPI_DOCKER_ENV_OPTIONS="$TRIMMED"
+}
+
+get_module_docker_container_env_options() {
+	local MODULE=$1
+	local INDEX=$2
+	local JSON_LIST=$3
+
+	has "env" $INDEX $JSON_LIST
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	local LENGTH=$(jq ".[$INDEX].env | length" $JSON_LIST)
+
+	MODULE_DOCKER_ENV_OPTIONS=""
+	for ((k=0; k<$LENGTH; k++))
+	do
+		ENV_NAME=$(jq ".[$INDEX].env[$k].name" $JSON_LIST)
+		ENV_VALUE=$(jq ".[$INDEX].env[$k].value" $JSON_LIST)
+
+		# Remove extra double quotes at start and end of the string
+		ENV_NAME=$(echo $ENV_NAME | sed 's/"//g')
+		ENV_VALUE=$(echo $ENV_VALUE | sed 's/"//g')
+
+		MODULE_DOCKER_ENV_OPTIONS="$MODULE_DOCKER_ENV_OPTIONS --env $ENV_NAME=$ENV_VALUE"
+	done
+
+	trim $MODULE_DOCKER_ENV_OPTIONS
+	MODULE_DOCKER_ENV_OPTIONS="$TRIMMED"
+}
+
+trim() {
+    TO_BE_TRIMMED=$1
+
+    # Trim leading spaces
+    TRIMMED="${TO_BE_TRIMMED#"${TO_BE_TRIMMED%%[![:space:]]*}"}"
+
+    # Trim trailing spaces
+    TRIMMED="${TRIMMED%"${TRIMMED##*[![:space:]]}"}"
+}
+
+stop_container_by_port() {
+	local $PORT=$1
+
+	`$DOCKER_CMD stop $($DOCKER_CMD ps --filter "expose=$PORT" -q)`
+}
+
+does_container_exists() {
+    local CONTAINER=$1
+
+    if `$DOCKER_CMD inspect "$CONTAINER" &> /dev/null`; then
+        return 1
+    fi
+
+    return 0
+}
+
+is_container_running() {
+    local CONTAINER=$1
+
+    does_container_exists $CONTAINER
+    DOES_CONTAINER_EXISTS=$?
+    if [ $DOES_CONTAINER_EXISTS -eq 0 ]; then
+        return 0
+    fi
+
+    if [ "$($DOCKER_CMD container inspect -f '{{.State.Running}}' $CONTAINER)" == "true" ]; then
+        return 1
+    fi
+
+    return 0
+}
+
+stop_container() {
+    local CONTAINER=$1
+
+	is_container_running $CONTAINER
+	IS_CONTAINER_RUNNING=$?
+	if [ $IS_CONTAINER_RUNNING -eq 1 ]; then
+		log "Stop Container $CONTAINER"
+		
+		`$DOCKER_CMD stop $CONTAINER`
+	fi
+}
+ 
+remove_container() {
+	local CONTAINER=$1
+
+	does_container_exists $CONTAINER
+	DOES_CONTAINER_EXISTS=$?
+	if [ $DOES_CONTAINER_EXISTS -eq 1 ]; then
+		log "Remove Container $CONTAINER"
+		
+		`$DOCKER_CMD rm $CONTAINER`
+	fi
+}
+
+start_container() {
+	local CONTAINER=$1
+
+	does_container_exists $CONTAINER
+	DOES_CONTAINER_EXISTS=$?
+	if [ $DOES_CONTAINER_EXISTS -eq 0 ]; then
+		return
+	fi
+
+	is_container_running $CONTAINER
+	IS_CONTAINER_RUNNING=$?
+	if [ $IS_CONTAINER_RUNNING -eq 1 ]; then
+		return
+	fi
+
+	`$DOCKER_CMD start $CONTAINER`
+}
+
+build_container() {
+	local CONTAINER=$1
+
+	stop_container $CONTAINER
+
+	remove_container $CONTAINER
+
+	`$DOCKER_CMD build -t $CONTAINER .`
+}
+
+run_container() {
+	local CONTAINER=$1
+	local MODULE=$2
+	local ARGS=$3
+	local MODULE_DOCKER_ENV_OPTIONS=$4
+
+	stop_container $CONTAINER
+
+	remove_container $CONTAINER
+	
+	get_okapi_docker_container_env_options
+
+	# NOTE: validate duplication between okapi, and module env options is not impelemneted
+	`$DOCKER_CMD run $CONTAINER \
+		--name $MODULE \
+		-p $SERVER_PORT:$DOCKER_MODULE_DEFAULT_PORT \
+		--network $DOCKER_NETWORK \
+		--add-host=$DOCKER_ADDED_HOST \
+		$OKAPI_DOCKER_ENV_OPTIONS \
+		$MODULE_DOCKER_ENV_OPTIONS \
+		$MODULE $ARGS`
 }
