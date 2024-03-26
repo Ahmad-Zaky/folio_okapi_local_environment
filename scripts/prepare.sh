@@ -51,6 +51,8 @@ defaults() {
 
 	okapi_defaults
 
+	docker_defaults
+
 	user_defaults
 	
 	postman_defaults
@@ -85,13 +87,11 @@ module_defaults() {
 	SHOULD_STOP_RUNNING_MODULES=$(jq ".SHOULD_STOP_RUNNING_MODULES" $CONFIG_FILE)
 	EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR=$(jq ".EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR" $CONFIG_FILE)
 	REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY=$(jq ".REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY" $CONFIG_FILE)
-	RUN_WITH_DOCKER=$(jq ".RUN_WITH_DOCKER" $CONFIG_FILE)
 
 	# Remove extra double quotes at start and end of the string
 	export SHOULD_STOP_RUNNING_MODULES=$(echo $SHOULD_STOP_RUNNING_MODULES | sed 's/"//g')
 	export EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR=$(echo $EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR | sed 's/"//g')
 	export REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY=$(echo $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY | sed 's/"//g')	
-	export RUN_WITH_DOCKER=$(echo $RUN_WITH_DOCKER | sed 's/"//g')
 }
 
 db_defaults() {
@@ -167,6 +167,36 @@ okapi_defaults() {
 	export ELASTICSEARCH_PORT=$(echo $ELASTICSEARCH_PORT | sed 's/"//g')
 	export ELASTICSEARCH_USERNAME=$(echo $ELASTICSEARCH_USERNAME | sed 's/"//g')
 	export ELASTICSEARCH_PASSWORD=$(echo $ELASTICSEARCH_PASSWORD | sed 's/"//g')
+
+	export OKAPI_ENV_VARS="[
+		{\"name\":\"DB_HOST\",\"value\":\"$DB_HOST\"},
+		{\"name\":\"DB_PORT\",\"value\":\"$DB_PORT\"},
+		{\"name\":\"DB_USERNAME\",\"value\":\"$DB_USERNAME\"},
+		{\"name\":\"DB_PASSWORD\",\"value\":\"$DB_PASSWORD\"},
+		{\"name\":\"DB_DATABASE\",\"value\":\"$DB_DATABASE\"},
+		{\"name\":\"SPRING_DATASOURCE_URL\",\"value\":\"jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_DATABASE?reWriteBatchedInserts=true\"},
+		{\"name\":\"SPRING_DATASOURCE_USERNAME\",\"value\":\"$DB_USERNAME\"},
+		{\"name\":\"SPRING_DATASOURCE_PASSWORD\",\"value\":\"$DB_PASSWORD\"},
+		{\"name\":\"OKAPI_URL\",\"value\":\"$OKAPI_URL\"},
+		{\"name\":\"KAFKA_PORT\",\"value\":\"$KAFKA_PORT\"},
+		{\"name\":\"KAFKA_HOST\",\"value\":\"$KAFKA_HOST\"},
+		{\"name\":\"PORT\",\"value\":\"$PORT\"},
+		{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"},
+		{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"},
+		{\"name\":\"ELASTICSEARCH_URL\",\"value\":\"$ELASTICSEARCH_URL\"},
+		{\"name\":\"ELASTICSEARCH_HOST\",\"value\":\"$ELASTICSEARCH_HOST\"},
+		{\"name\":\"ELASTICSEARCH_PORT\",\"value\":\"$ELASTICSEARCH_PORT\"}
+	]"
+}
+
+docker_defaults() {
+	RUN_WITH_DOCKER=$(jq ".RUN_WITH_DOCKER" $CONFIG_FILE)
+	DOCKER_CMD=$(jq ".DOCKER_CMD" $CONFIG_FILE)
+	DOCKER_NETWORK=$(jq ".DOCKER_NETWORK" $CONFIG_FILE)
+
+	export RUN_WITH_DOCKER=$(echo $RUN_WITH_DOCKER | sed 's/"//g')
+	export DOCKER_CMD=$(echo $DOCKER_CMD | sed 's/"//g')
+	export DOCKER_NETWORK=$(echo $DOCKER_NETWORK | sed 's/"//g')
 }
 
 user_defaults() {
@@ -442,23 +472,12 @@ set_env_vars_to_okapi() {
 	log "Set environment variables to okapi"
 
 	set_file_name $BASH_SOURCE
-	curl_req -d"{\"name\":\"DB_HOST\",\"value\":\"$DB_HOST\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"DB_PORT\",\"value\":\"$DB_PORT\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"DB_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"DB_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"DB_DATABASE\",\"value\":\"$DB_DATABASE\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"SPRING_DATASOURCE_URL\",\"value\":\"jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_DATABASE?reWriteBatchedInserts=true\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"SPRING_DATASOURCE_USERNAME\",\"value\":\"$DB_USERNAME\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"SPRING_DATASOURCE_PASSWORD\",\"value\":\"$DB_PASSWORD\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"OKAPI_URL\",\"value\":\"$OKAPI_URL\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"KAFKA_PORT\",\"value\":\"$KAFKA_PORT\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"KAFKA_HOST\",\"value\":\"$KAFKA_HOST\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"PORT\",\"value\":\"$PORT\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"SERVER_PORT\",\"value\":\"$SERVER_PORT\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"HTTP_PORT\",\"value\":\"$HTTP_PORT\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"ELASTICSEARCH_URL\",\"value\":\"$ELASTICSEARCH_URL\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"ELASTICSEARCH_HOST\",\"value\":\"$ELASTICSEARCH_HOST\"}" $OKAPI_URL/_/env
-	curl_req -d"{\"name\":\"ELASTICSEARCH_PORT\",\"value\":\"$ELASTICSEARCH_PORT\"}" $OKAPI_URL/_/env
+	while read -r LINE; do
+		NAME=$(echo "$LINE" | jq -r '.name')
+		VALUE=$(echo "$LINE" | jq -r '.value')
+
+		curl_req -d"{\"name\":\"$NAME\",\"value\":\"$VALUE\"}" $OKAPI_URL/_/env
+	done < <(echo "$OKAPI_ENV_VARS" | jq -c '.[]')
 }
 
 # Store new tenant
