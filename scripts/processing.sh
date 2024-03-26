@@ -282,6 +282,8 @@ pre_clone() {
 	validate_module_access_token $INDEX $JSON_LIST
 
 	export_module_envs $MODULE $INDEX $JSON_LIST
+
+	get_module_docker_container_env_options $MODULE $INDEX $JSON_LIST
 }
 
 pre_build() {
