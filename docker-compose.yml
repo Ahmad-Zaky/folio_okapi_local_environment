@@ -13,6 +13,8 @@ services:
     command: ["dev"]
     environment:
       - JAVA_OPTIONS=-Dloglevel=DEBUG -Dtrace_headers=true -Dstorage=postgres -Dport_end=9199 -Denable_system_auth=true -Dpostgres_host=postgres -Dpostgres_port=5432 -Dpostgres_database=okapi_modules -Dpostgres_username=folio_admin -Dpostgres_password=folio_admin
+    networks:
+      - default
 
   postgres:
     container_name: postgres-folio
@@ -33,6 +35,8 @@ services:
     ports:
       - "5432:5432"
     restart: unless-stopped
+    networks:
+      - default
 
   pgadmin:
     container_name: pgadmin-folio
@@ -46,7 +50,9 @@ services:
     ports:
       - "5050:80"
     restart: unless-stopped
-  
+    networks:
+      - default
+
   zookeeper:
     restart: always
     container_name: zookeeper-folio
@@ -57,6 +63,8 @@ services:
       - "zookeeper-volume:/bitnami"
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - default
 
   kafka:
     restart: always
@@ -76,6 +84,8 @@ services:
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
     depends_on:
       - zookeeper
+    networks:
+      - default
 
   elasticsearch:
     container_name: elasticsearch-folio
@@ -90,6 +100,8 @@ services:
       memlock:
         soft: -1
         hard: -1
+    networks:
+      - default
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.4.0
@@ -103,6 +115,8 @@ services:
       - ELASTICSEARCH_HOSTS=http://elasticsearch_folio:9200
     depends_on:
       - elasticsearch_folio
+    networks:
+      - default
 
 volumes:
   postgres:
@@ -113,3 +127,7 @@ volumes:
     driver: local
   kibana-data:
     driver: local
+
+networks:
+  default:
+    name: folio
