@@ -2,6 +2,7 @@
 
 defaults() {
     # Specify the database name
+    DOCKER_CMD="sudo docker"
     ILS_OKAPI_USERNAME="okapi"
     USERNAME="folio_admin"
     DATABASE_STAGING="okapi_modules_ils"
@@ -10,10 +11,10 @@ defaults() {
     DUMPED_DATABASE_SQL_FILE="dumped_okapi.sql"                             # dumped sql file name.
     DATABASE_SQL_PATH="modules/db/$DATABASE_SQL_FILE"                       # sql file relative path to this script's directory.
     CONTAINER="postgres-folio"                                              # service container name found in the `docker-compose.yml` file
-    COMMAND_WRAPPER="sudo docker exec $CONTAINER /bin/bash -c \"%s\" \n"    # if you use postgres on your local machine directly, replace this with "%s"
+    COMMAND_WRAPPER="$DOCKER_CMD exec $CONTAINER /bin/bash -c \"%s\" \n"    # if you use postgres on your local machine directly, replace this with "%s"
     CP_DUMP_DB_SOURCE="/$DUMPED_DATABASE_SQL_FILE"
     CP_DUMP_DB_DESTINATION="."
-    DOCKER_CP_COMMAND="sudo docker cp $CONTAINER:$CP_DUMP_DB_SOURCE $CP_DUMP_DB_DESTINATION"
+    DOCKER_CP_COMMAND="$DOCKER_CMD cp $CONTAINER:$CP_DUMP_DB_SOURCE $CP_DUMP_DB_DESTINATION"
 	SCHEMAS_PATH="scripts/schemas.txt"
     PGDUMP_INCLUDE_SCHEMA_OPTION="-n"
     PGDUMP_EXCLUDE_SCHEMA_OPTION="-N"
