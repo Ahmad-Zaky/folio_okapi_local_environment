@@ -130,14 +130,30 @@ okapi_defaults() {
 	OKAPI_OPTION_ENABLE_SYSTEM_AUTH=$(jq ".OKAPI_OPTION_ENABLE_SYSTEM_AUTH" $CONFIG_FILE)
 	OKAPI_OPTION_STORAGE=$(jq ".OKAPI_OPTION_STORAGE" $CONFIG_FILE)
 	OKAPI_OPTION_TRACE_HEADERS=$(jq ".OKAPI_OPTION_TRACE_HEADERS" $CONFIG_FILE)
+	OKAPI_OPTION_LOG_LEVEL=$(jq ".OKAPI_OPTION_LOG_LEVEL" $CONFIG_FILE)
+	OKAPI_ARG_DEV=$(jq ".OKAPI_ARG_DEV" $CONFIG_FILE)
+	OKAPI_ARG_INIT=$(jq ".OKAPI_ARG_INIT" $CONFIG_FILE)
+	OKAPI_ARG_PURGE=$(jq ".OKAPI_ARG_PURGE" $CONFIG_FILE)
 	OKAPI_PORT=$(jq ".OKAPI_PORT" $CONFIG_FILE)
+	OKAPI_DOCKER_CONTAINER_NAME=$(jq ".OKAPI_DOCKER_CONTAINER_NAME" $CONFIG_FILE)
+	OKAPI_DOCKER_IMAGE_TAG=$(jq ".OKAPI_DOCKER_IMAGE_TAG" $CONFIG_FILE)
+	OKAPI_CORE_DIR=$(jq ".OKAPI_CORE_DIR" $CONFIG_FILE)
+	RETURN_FROM_OKAPI_CORE_DIR=$(jq ".RETURN_FROM_OKAPI_CORE_DIR" $CONFIG_FILE)
 	END_PORT=$(jq ".END_PORT" $CONFIG_FILE)
 
 	# Remove extra double quotes at start and end of the string
 	export OKAPI_OPTION_ENABLE_SYSTEM_AUTH=$(echo $OKAPI_OPTION_ENABLE_SYSTEM_AUTH | sed 's/"//g')
 	export OKAPI_OPTION_STORAGE=$(echo $OKAPI_OPTION_STORAGE | sed 's/"//g')
 	export OKAPI_OPTION_TRACE_HEADERS=$(echo $OKAPI_OPTION_TRACE_HEADERS | sed 's/"//g')
+	export OKAPI_OPTION_LOG_LEVEL=$(echo $OKAPI_OPTION_LOG_LEVEL | sed 's/"//g')
+	export OKAPI_ARG_DEV=$(echo $OKAPI_ARG_DEV | sed 's/"//g')
+	export OKAPI_ARG_INIT=$(echo $OKAPI_ARG_INIT | sed 's/"//g')
+	export OKAPI_ARG_PURGE=$(echo $OKAPI_ARG_PURGE | sed 's/"//g')
 	export OKAPI_PORT=$(echo $OKAPI_PORT | sed 's/"//g')
+	export OKAPI_DOCKER_CONTAINER_NAME=$(echo $OKAPI_DOCKER_CONTAINER_NAME | sed 's/"//g')
+	export OKAPI_DOCKER_IMAGE_TAG=$(echo $OKAPI_DOCKER_IMAGE_TAG | sed 's/"//g')
+	export OKAPI_CORE_DIR=$(echo $OKAPI_CORE_DIR | sed 's/"//g')
+	export RETURN_FROM_OKAPI_CORE_DIR=$(echo $RETURN_FROM_OKAPI_CORE_DIR | sed 's/"//g')
 	export END_PORT=$(echo $END_PORT | sed 's/"//g')
 
 	export OKAPI_HEADER_TOKEN=x # Default OKAPI Header value instead of the real token.
@@ -149,12 +165,13 @@ okapi_defaults() {
 	export OKAPI_NOHUP_FILE="okapi/nohub.out"
 	export OKAPI_REPO="git@github.com:folio-org/okapi.git"
 	export OKAPI_DB_OPTIONS="-Dpostgres_host=$DB_HOST -Dpostgres_port=$DB_PORT -Dpostgres_database=$DB_DATABASE -Dpostgres_username=$DB_USERNAME -Dpostgres_password=$DB_PASSWORD"
-	export OKAPI_OPTIONS="-Denable_system_auth=$OKAPI_OPTION_ENABLE_SYSTEM_AUTH -Dport_end=$END_PORT -Dstorage=$OKAPI_OPTION_STORAGE -Dtrace_headers=$OKAPI_OPTION_TRACE_HEADERS $OKAPI_DB_OPTIONS"
+	export OKAPI_OPTIONS="-Dloglevel=$OKAPI_OPTION_LOG_LEVEL -Denable_system_auth=$OKAPI_OPTION_ENABLE_SYSTEM_AUTH -Dport_end=$END_PORT -Dstorage=$OKAPI_OPTION_STORAGE -Dtrace_headers=$OKAPI_OPTION_TRACE_HEADERS $OKAPI_DB_OPTIONS"
 	export OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
-	export OKAPI_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar dev"
-	export OKAPI_INIT_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar initdatabase"
-	export OKAPI_PURGE_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar purgedatabase"
-
+	export OKAPI_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar $OKAPI_ARG_DEV"
+	export OKAPI_INIT_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar $OKAPI_ARG_INIT"
+	export OKAPI_PURGE_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar $OKAPI_ARG_PURGE"
+	export OKAPI_JAVA_OPTIONS="$OKAPI_OPTIONS"
+	
 	ELASTICSEARCH_URL=$(jq ".ELASTICSEARCH_URL" $CONFIG_FILE)
 	ELASTICSEARCH_HOST=$(jq ".ELASTICSEARCH_HOST" $CONFIG_FILE)
 	ELASTICSEARCH_PORT=$(jq ".ELASTICSEARCH_PORT" $CONFIG_FILE)
@@ -444,26 +461,20 @@ run_okapi() {
 	if [[ "$INIT_ARG" -eq 1 ]]; then
 	    log "Init Okapi ..."
 
-		eval "cd $OKAPI_DIR && nohup $OKAPI_INIT_COMMAND &"
-
-		sleep 5
+		init_okapi
 	fi
 
 	# Purge Okapi
 	if [[ "$PURGE_ARG" -eq 1 ]]; then
 	    log "Purge Okapi ..."
 
-		eval "cd $OKAPI_DIR && nohup $OKAPI_PURGE_COMMAND &"
-		
-		sleep 5
+		purge_okapi
 	fi
 
-	# Run Okapi
+	# Start Okapi
 	log "Start Okapi ..."
-	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 
-	# wait untill okapi is fully up and running
-	sleep 5
+	start_okapi
 }
 
 # Set Environment Variables to Okapi
@@ -477,8 +488,8 @@ set_env_vars_to_okapi() {
 
 	set_file_name $BASH_SOURCE
 	while read -r LINE; do
-		NAME=$(echo "$LINE" | jq -r '.name')
-		VALUE=$(echo "$LINE" | jq -r '.value')
+		local NAME=$(echo "$LINE" | jq -r '.name')
+		local VALUE=$(echo "$LINE" | jq -r '.value')
 
 		curl_req -d"{\"name\":\"$NAME\",\"value\":\"$VALUE\"}" $OKAPI_URL/_/env
 	done < <(echo "$OKAPI_ENV_VARS" | jq -c '.[]')
