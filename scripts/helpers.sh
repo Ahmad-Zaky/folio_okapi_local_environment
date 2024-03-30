@@ -610,7 +610,7 @@ is_okapi_running_as_process() {
 is_okapi_running_as_docker_container() {
 	is_port_used_by_docker_container $OKAPI_PORT
 	local IS_OKAPI_CONTAINER_USED=$?
-	if [ $IS_OKAPI_CONTAINER_USED -eq 1]
+	if [[ $IS_OKAPI_CONTAINER_USED -eq 1 ]]; then
 		return 1
 	fi
 
@@ -867,6 +867,46 @@ stop_okapi() {
 
 	log "Okapi already stopped !"
 }
+
+start_okapi() {	
+	run_with_docker
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		run_okapi_container
+	fi
+
+	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
+
+	# wait untill okapi is fully up and running
+	sleep 5
+}
+
+init_okapi() {
+	run_with_docker
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		init_okapi_container
+	fi
+
+	eval "cd $OKAPI_DIR && nohup $OKAPI_INIT_COMMAND &"
+
+	# wait untill okapi is fully up and initialized
+	sleep 5
+}
+
+purge_okapi() {
+	run_with_docker
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		purge_okapi_container
+	fi
+
+	eval "cd $OKAPI_DIR && nohup $OKAPI_PURGE_COMMAND &"
+	
+	# wait untill okapi is fully up and purged
+	sleep 5
+}
+
 
 is_port_used() {
 	local PORT=$1
@@ -1504,12 +1544,11 @@ get_module_versioned() {
 get_okapi_docker_container_env_options() {
 	OKAPI_DOCKER_ENV_OPTIONS=""
 	while read -r LINE; do
-		OKAPI_DOCKER_ENV_OPTIONS="$OKAPI_DOCKER_ENV_OPTIONS --env $NAME=$VALUE"
+		local NAME=$(echo "$LINE" | jq -r '.name')
+		local VALUE=$(echo "$LINE" | jq -r '.value')
+
+		OKAPI_DOCKER_ENV_OPTIONS="$OKAPI_DOCKER_ENV_OPTIONS --env $NAME=$VALUE "
 	done < <(echo "$OKAPI_ENV_VARS" | jq -c '.[]')
-
-
-    trim $OKAPI_DOCKER_ENV_OPTIONS
-    OKAPI_DOCKER_ENV_OPTIONS="$TRIMMED"
 }
 
 get_module_docker_container_env_options() {
@@ -1534,11 +1573,8 @@ get_module_docker_container_env_options() {
 		ENV_NAME=$(echo $ENV_NAME | sed 's/"//g')
 		ENV_VALUE=$(echo $ENV_VALUE | sed 's/"//g')
 
-		MODULE_DOCKER_ENV_OPTIONS="$MODULE_DOCKER_ENV_OPTIONS --env $ENV_NAME=$ENV_VALUE"
+		MODULE_DOCKER_ENV_OPTIONS="$MODULE_DOCKER_ENV_OPTIONS --env $ENV_NAME=$ENV_VALUE "
 	done
-
-	trim $MODULE_DOCKER_ENV_OPTIONS
-	MODULE_DOCKER_ENV_OPTIONS="$TRIMMED"
 }
 
 trim() {
@@ -1622,6 +1658,8 @@ start_container() {
 		return
 	fi
 
+	log "Start Container $CONTAINER"
+
 	`$DOCKER_CMD start $CONTAINER`
 }
 
@@ -1638,22 +1676,82 @@ build_container() {
 run_container() {
 	local CONTAINER=$1
 	local MODULE=$2
-	local ARGS=$3
-	local MODULE_DOCKER_ENV_OPTIONS=$4
+	local OUTER_PORT=$3
+	local INNER_PORT=$4
+	local MODULE_DOCKER_ENV_OPTIONS=$5
+	
+	shift && shift && shift && shift && shift
+
+	local ARGS=$*
 
 	stop_container $CONTAINER
 
 	remove_container $CONTAINER
 	
+	build_container $CONTAINER
+
 	get_okapi_docker_container_env_options
 
 	# NOTE: validate duplication between okapi, and module env options is not impelemneted
-	`$DOCKER_CMD run $CONTAINER \
-		--name $MODULE \
-		-p $SERVER_PORT:$DOCKER_MODULE_DEFAULT_PORT \
-		--network $DOCKER_NETWORK \
-		--add-host=$DOCKER_ADDED_HOST \
-		$OKAPI_DOCKER_ENV_OPTIONS \
-		$MODULE_DOCKER_ENV_OPTIONS \
-		$MODULE $ARGS`
+	$DOCKER_CMD run -d --name $CONTAINER -p $OUTER_PORT:$INNER_PORT --network $DOCKER_NETWORK $OKAPI_DOCKER_ENV_OPTIONS $MODULE_DOCKER_ENV_OPTIONS $MODULE $ARGS
+}
+
+run_module_container() {
+	local MODULE=$1
+	
+	cd $MODULE
+
+	run_container $MODULE $MODULE $SERVER_PORT $DOCKER_MODULE_DEFAULT_PORT $MODULE_DOCKER_ENV_OPTIONS
+
+	cd ..
+}
+
+run_okapi_container() {
+	cd $OKAPI_CORE_DIR
+
+	stop_container $OKAPI_DOCKER_CONTAINER_NAME
+
+	remove_container $OKAPI_DOCKER_CONTAINER_NAME
+	
+	build_container $OKAPI_DOCKER_CONTAINER_NAME
+
+	$DOCKER_CMD run -d --name $OKAPI_DOCKER_CONTAINER_NAME -p $OKAPI_PORT:$OKAPI_PORT --network $DOCKER_NETWORK --env JAVA_OPTIONS="$OKAPI_JAVA_OPTIONS" $OKAPI_DOCKER_IMAGE_TAG $OKAPI_ARG_DEV
+
+	cd $RETURN_FROM_OKAPI_CORE_DIR
+}
+
+init_okapi_container() {
+	cd $OKAPI_CORE_DIR
+
+	stop_container $OKAPI_DOCKER_CONTAINER_NAME
+
+	remove_container $OKAPI_DOCKER_CONTAINER_NAME
+	
+	build_container $OKAPI_DOCKER_CONTAINER_NAME
+
+	$DOCKER_CMD run -d --name $OKAPI_DOCKER_CONTAINER_NAME -p $OKAPI_PORT:$OKAPI_PORT --network $DOCKER_NETWORK --env JAVA_OPTIONS="$OKAPI_JAVA_OPTIONS" $OKAPI_DOCKER_IMAGE_TAG $OKAPI_ARG_INIT
+
+	cd $RETURN_FROM_OKAPI_CORE_DIR
+}
+
+purge_okapi_container() {
+	cd $OKAPI_CORE_DIR
+
+	stop_container $OKAPI_DOCKER_CONTAINER_NAME
+
+	remove_container $OKAPI_DOCKER_CONTAINER_NAME
+
+	build_container $OKAPI_DOCKER_CONTAINER_NAME
+
+	$DOCKER_CMD run -d --name $OKAPI_DOCKER_CONTAINER_NAME -p $OKAPI_PORT:$OKAPI_PORT --network $DOCKER_NETWORK --env JAVA_OPTIONS="$OKAPI_JAVA_OPTIONS" $OKAPI_DOCKER_IMAGE_TAG $OKAPI_ARG_PURGE
+
+	cd $RETURN_FROM_OKAPI_CORE_DIR
+}
+
+run_with_docker() {
+	if [[ "$RUN_WITH_DOCKER" -eq "true" ]]; then
+		return 1
+	fi
+
+	return 0
 }
