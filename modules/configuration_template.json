@@ -17,8 +17,14 @@
     "OKAPI_OPTION_ENABLE_SYSTEM_AUTH":"true",
     "OKAPI_OPTION_STORAGE": "postgres",
     "OKAPI_OPTION_TRACE_HEADERS":"true",
+    "OKAPI_OPTION_LOG_LEVEL":"DEBUG",
+    "OKAPI_ARG_DEV": "dev",
+    "OKAPI_ARG_INIT": "initdatabase",
+    "OKAPI_ARG_PURGE": "purgedatabase",
     "OKAPI_DOCKER_IMAGE_TAG":"okapi",
     "OKAPI_DOCKER_CONTAINER_NAME":"okapi",
+    "OKAPI_CORE_DIR":"okapi/okapi-core",
+    "RETURN_FROM_OKAPI_CORE_DIR":"../..",
     "DOCKER_MODULE_DEFAULT_PORT":"8081",
 
     "ELASTICSEARCH_URL":"http://localhost:9200",
@@ -62,5 +68,6 @@
 
     "RUN_WITH_DOCKER":"false",
     "DOCKER_CMD":"sudo docker",
-    "DOCKER_NETWORK":"folio"
+    "DOCKER_NETWORK":"folio",
+    "DOCKER_ADDED_HOST":"host.docker.internal:host-gateway"
 }
