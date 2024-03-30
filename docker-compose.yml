@@ -8,8 +8,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - 9130:9130
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     command: ["dev"]
     environment:
       - JAVA_OPTIONS=-Dloglevel=DEBUG -Dtrace_headers=true -Dstorage=postgres -Dport_end=9199 -Denable_system_auth=true -Dpostgres_host=postgres -Dpostgres_port=5432 -Dpostgres_database=okapi_modules -Dpostgres_username=folio_admin -Dpostgres_password=folio_admin
@@ -114,7 +112,7 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch_folio:9200
     depends_on:
-      - elasticsearch_folio
+      - elasticsearch
     networks:
       - default
 
