@@ -153,7 +153,7 @@ curl_req() {
 		shift
 	fi
 
-	if [[ $SUPPRESS_CURRENT_LINE_NO -ne true ]]; then
+	if [[ $SUPPRESS_CURRENT_LINE_NO != true ]]; then
 		set_line_no $BASH_LINENO
 	fi
 
@@ -873,8 +873,6 @@ stop_okapi() {
 		log "Stopping Okapi ..."
 
 		kill_process_port $OKAPI_PORT
-
-		return
 	fi
 
 	is_okapi_running_as_docker_container
@@ -882,7 +880,7 @@ stop_okapi() {
 	if [[ "$IS_OKAPI_CONTAINER_USED" -eq 1 ]]; then
 		log "Stopping Okapi ..."
 
-		stop_container $OKAPI_DOCKER_CONTAINER_NAME
+		stop_container_by_port $OKAPI_PORT
 
 		return
 	fi
@@ -890,7 +888,7 @@ stop_okapi() {
 	log "Okapi already stopped !"
 }
 
-start_okapi() {	
+start_okapi() {
 	run_with_docker
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
@@ -1624,7 +1622,7 @@ trim() {
 }
 
 stop_container_by_port() {
-	local $PORT=$1
+	local PORT=$1
 
 	$DOCKER_CMD stop $($DOCKER_CMD ps --filter "expose=$PORT" -q)
 }
@@ -1769,7 +1767,7 @@ purge_okapi_container() {
 }
 
 run_with_docker() {
-	if [[ "$RUN_WITH_DOCKER" -eq "true" ]]; then
+	if [[ "$RUN_WITH_DOCKER" == "true" ]]; then
 		return 1
 	fi
 
