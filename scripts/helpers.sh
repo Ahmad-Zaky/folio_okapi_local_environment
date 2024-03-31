@@ -1581,6 +1581,11 @@ get_okapi_docker_container_env_options() {
 		local NAME=$(echo "$LINE" | jq -r '.name')
 		local VALUE=$(echo "$LINE" | jq -r '.value')
 
+		# Within docker we have the default port 8081 or what ever this variable contains $DOCKER_MODULE_DEFAULT_PORT
+		if [[ $NAME == "PORT" ]] || [[ $NAME == "SERVER_PORT" ]] || [[ $NAME == "HTTP_PORT" ]]; then
+			VALUE=$DOCKER_MODULE_DEFAULT_PORT
+		fi
+
 		OKAPI_DOCKER_ENV_OPTIONS="$OKAPI_DOCKER_ENV_OPTIONS --env $NAME=$VALUE "
 	done < <(echo "$OKAPI_ENV_VARS" | jq -c '.[]')
 }
@@ -1713,7 +1718,7 @@ run_container() {
 	local OUTER_PORT=$3
 	local INNER_PORT=$4
 	local MODULE_DOCKER_ENV_OPTIONS=$5
-	
+
 	shift && shift && shift && shift && shift
 
 	local ARGS=$*
