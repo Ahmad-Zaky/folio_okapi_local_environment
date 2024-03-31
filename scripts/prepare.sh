@@ -135,6 +135,7 @@ okapi_defaults() {
 	OKAPI_ARG_INIT=$(jq ".OKAPI_ARG_INIT" $CONFIG_FILE)
 	OKAPI_ARG_PURGE=$(jq ".OKAPI_ARG_PURGE" $CONFIG_FILE)
 	OKAPI_PORT=$(jq ".OKAPI_PORT" $CONFIG_FILE)
+	OKAPI_HOST=$(jq ".OKAPI_HOST" $CONFIG_FILE)
 	OKAPI_DOCKER_CONTAINER_NAME=$(jq ".OKAPI_DOCKER_CONTAINER_NAME" $CONFIG_FILE)
 	OKAPI_DOCKER_IMAGE_TAG=$(jq ".OKAPI_DOCKER_IMAGE_TAG" $CONFIG_FILE)
 	OKAPI_CORE_DIR=$(jq ".OKAPI_CORE_DIR" $CONFIG_FILE)
@@ -150,6 +151,8 @@ okapi_defaults() {
 	export OKAPI_ARG_INIT=$(echo $OKAPI_ARG_INIT | sed 's/"//g')
 	export OKAPI_ARG_PURGE=$(echo $OKAPI_ARG_PURGE | sed 's/"//g')
 	export OKAPI_PORT=$(echo $OKAPI_PORT | sed 's/"//g')
+	export OKAPI_HOST=$(echo $OKAPI_HOST | sed 's/"//g')
+	export OKAPI_URL=http://$OKAPI_HOST:$OKAPI_PORT
 	export OKAPI_DOCKER_CONTAINER_NAME=$(echo $OKAPI_DOCKER_CONTAINER_NAME | sed 's/"//g')
 	export OKAPI_DOCKER_IMAGE_TAG=$(echo $OKAPI_DOCKER_IMAGE_TAG | sed 's/"//g')
 	export OKAPI_CORE_DIR=$(echo $OKAPI_CORE_DIR | sed 's/"//g')
@@ -160,7 +163,7 @@ okapi_defaults() {
 	export PORT=$OKAPI_PORT
 	export SERVER_PORT=$OKAPI_PORT
 	export HTTP_PORT=$OKAPI_PORT
-	export OKAPI_URL=http://localhost:$OKAPI_PORT
+
 	export OKAPI_DIR=okapi
 	export OKAPI_NOHUP_FILE="okapi/nohub.out"
 	export OKAPI_REPO="git@github.com:folio-org/okapi.git"
@@ -170,8 +173,9 @@ okapi_defaults() {
 	export OKAPI_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar $OKAPI_ARG_DEV"
 	export OKAPI_INIT_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar $OKAPI_ARG_INIT"
 	export OKAPI_PURGE_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar $OKAPI_ARG_PURGE"
-	export OKAPI_JAVA_OPTIONS="$OKAPI_OPTIONS"
-	
+	export DOCKER_OKAPI_URL=http://$OKAPI_DOCKER_IMAGE_TAG:$OKAPI_PORT
+	export OKAPI_JAVA_OPTIONS="$OKAPI_OPTIONS -Dokapiurl=$DOCKER_OKAPI_URL"
+
 	ELASTICSEARCH_URL=$(jq ".ELASTICSEARCH_URL" $CONFIG_FILE)
 	ELASTICSEARCH_HOST=$(jq ".ELASTICSEARCH_HOST" $CONFIG_FILE)
 	ELASTICSEARCH_PORT=$(jq ".ELASTICSEARCH_PORT" $CONFIG_FILE)
@@ -207,17 +211,17 @@ okapi_defaults() {
 }
 
 docker_defaults() {
-	RUN_WITH_DOCKER=$(jq ".RUN_WITH_DOCKER" $CONFIG_FILE)
 	DOCKER_CMD=$(jq ".DOCKER_CMD" $CONFIG_FILE)
 	DOCKER_NETWORK=$(jq ".DOCKER_NETWORK" $CONFIG_FILE)
 	DOCKER_ADDED_HOST=$(jq ".DOCKER_ADDED_HOST" $CONFIG_FILE)
 	DOCKER_MODULE_DEFAULT_PORT=$(jq ".DOCKER_MODULE_DEFAULT_PORT" $CONFIG_FILE)
+	RUN_WITH_DOCKER=$(jq ".RUN_WITH_DOCKER" $CONFIG_FILE)
 
-	export RUN_WITH_DOCKER=$(echo $RUN_WITH_DOCKER | sed 's/"//g')
 	export DOCKER_CMD=$(echo $DOCKER_CMD | sed 's/"//g')
 	export DOCKER_NETWORK=$(echo $DOCKER_NETWORK | sed 's/"//g')
 	export DOCKER_ADDED_HOST=$(echo $DOCKER_ADDED_HOST | sed 's/"//g')
 	export DOCKER_MODULE_DEFAULT_PORT=$(echo $DOCKER_MODULE_DEFAULT_PORT | sed 's/"//g')
+	export RUN_WITH_DOCKER=$(echo $RUN_WITH_DOCKER | sed 's/"//g')
 }
 
 user_defaults() {
@@ -281,7 +285,7 @@ postman_defaults() {
 	# Environment variable's values
 	export POSTMAN_ENV_NAME="Local with okapi"
 	export POSTMAN_ENV_OKAPI_URL_VAL=$OKAPI_URL
-	export POSTMAN_ENV_MOD_URL_VAL="http://localhost:9135"
+	export POSTMAN_ENV_MOD_URL_VAL="http://localhost:9131"
 	export POSTMAN_ENV_TENANT_VAL=$TENANT
 	export POSTMAN_ENV_TOKEN_VAL=""
 	export POSTMAN_ENV_USER_ID_VAL=""
@@ -492,6 +496,12 @@ set_env_vars_to_okapi() {
 	while read -r LINE; do
 		local NAME=$(echo "$LINE" | jq -r '.name')
 		local VALUE=$(echo "$LINE" | jq -r '.value')
+
+		run_with_docker
+		FOUND=$?
+		if [[ $NAME == "OKAPI_URL" ]] && [[ "$FOUND" -eq 1 ]]; then
+			VALUE=$DOCKER_OKAPI_URL
+		fi
 
 		curl_req -d"{\"name\":\"$NAME\",\"value\":\"$VALUE\"}" $OKAPI_URL/_/env
 	done < <(echo "$OKAPI_ENV_VARS" | jq -c '.[]')

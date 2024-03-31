@@ -1586,6 +1586,10 @@ get_okapi_docker_container_env_options() {
 			VALUE=$DOCKER_MODULE_DEFAULT_PORT
 		fi
 
+		if [[ $NAME == "OKAPI_URL" ]]; then
+			VALUE=$DOCKER_OKAPI_URL
+		fi
+
 		OKAPI_DOCKER_ENV_OPTIONS="$OKAPI_DOCKER_ENV_OPTIONS --env $NAME=$VALUE "
 	done < <(echo "$OKAPI_ENV_VARS" | jq -c '.[]')
 }
@@ -1677,8 +1681,8 @@ remove_container() {
 	DOES_CONTAINER_EXISTS=$?
 	if [ $DOES_CONTAINER_EXISTS -eq 1 ]; then
 		log "Remove Container $CONTAINER"
-		
-		$DOCKER_CMD rm $CONTAINER
+
+		$DOCKER_CMD rm -f -v $CONTAINER
 	fi
 }
 
