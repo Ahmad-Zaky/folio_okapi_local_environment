@@ -153,7 +153,10 @@ curl_req() {
 		shift
 	fi
 
-	set_line_no $BASH_LINENO
+	if [[ $SUPPRESS_CURRENT_LINE_NO -ne true ]]; then
+		set_line_no $BASH_LINENO
+	fi
+
 	output_debug $CALL_STACK_INDEX
 	
 	STATUS_CODE=$(curl -s -o response.txt -w "%{http_code}" "$@") 
@@ -162,6 +165,8 @@ curl_req() {
 	echo $CURL_RESPONSE >> $OUTPUT_FILE
 
 	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]] && [[ $SKIP_FAILED_REQ == true ]]; then
+		set_file_name $BASH_SOURCE
+		debug_line $CALL_STACK_INDEX
 		warning "HTTP request failed! (Status Code: $STATUS_CODE)"
 
 		return 0
@@ -169,7 +174,7 @@ curl_req() {
 
 	if ! [[ $STATUS_CODE =~ ^2[0-9][0-9]$ ]]; then
 		set_file_name $BASH_SOURCE
-		debug_line 2
+		debug_line $CALL_STACK_INDEX
 		error "HTTP request failed! (Status Code: $STATUS_CODE)"
 
 		return 0
@@ -236,9 +241,16 @@ okapi_curl() {
 		shift
 	fi
 
+	SUPPRESS_CURRENT_LINE_NO=true
+
+	set_line_no $BASH_LINENO
 	set_file_name $BASH_SOURCE
 	curl_req 3 $SKIP_FAILED_REQ $OPTIONS -HContent-Type:application/json $*
-	if [[ "$?" -eq 1 ]]; then
+	RESULT=$?
+
+	SUPPRESS_CURRENT_LINE_NO=false
+
+	if [[ "$RESULT" -eq 1 ]]; then
 		return 1
 	fi
 
@@ -627,6 +639,16 @@ is_port_used_by_docker_container() {
 	return 0
 }
 
+is_docker_container_used() {
+	local MODULE=$1
+
+	if [ $( docker ps -a | grep $MODULE | wc -l ) -gt 0 ]; then
+		return 1
+	fi
+
+	return 0
+}
+
 clone_okapi() {
 
 	# Check if Okapi exists in modules.json and clone default okapi repo
@@ -747,12 +769,14 @@ stop_running_modules() {
 		return
 	fi
 
-	local MODULE_URLS=$(echo $CURL_RESPONSE | jq ".[] | .url")
-	local MODULE_URLS=$(echo $MODULE_URLS | sed 's/"//g')
+	while read -r DEPLOYED_MODULE; do
+		local MODULE_URL=$(echo "$DEPLOYED_MODULE" | jq -r '.url')
+		local SERVICE_ID=$(echo "$DEPLOYED_MODULE" | jq -r '.srvcId')
+		local INSTANCE_ID=$(echo "$DEPLOYED_MODULE" | jq -r '.instId')
 
-	for MODULE_URL in $MODULE_URLS; do
-		# Using sed to extract the port
+		# Using sed to extract the port and the module host which could be module name in case we are running with docker
 		local MODULE_PORT=$(echo "$MODULE_URL" | sed -n 's/.*:\([0-9]\+\)$/\1/p')
+		local MODULE=$(echo "$MODULE_URL" | sed -n 's/.*\/\/\([^:\/]*\).*/\1/p')
 
 		is_port_used $MODULE_PORT
         IS_PORT_USED=$?
@@ -762,19 +786,17 @@ stop_running_modules() {
 			continue
         fi
 
-		is_port_used_by_docker_container $MODULE_PORT
+		is_docker_container_used $MODULE
 		IS_CONTAINER_USED=$?
 		if [[ "$IS_CONTAINER_USED" -eq 1 ]]; then
-
-			local MODULE=$(echo "$MODULE_URL" | sed -n 's/.*\/\/\([^:\/]*\).*/\1/p')
 
 			log "Stopping Module ($MODULE) Container"
 
 			stop_container $MODULE
-
-			continue
+			remove_container $MODULE
+			delete_deployed_module $SERVICE_ID $INSTANCE_ID
 		fi
-	done
+	done < <(echo "$CURL_RESPONSE" | jq -c '.[]')	
 }
 
 stop_running_module() {
@@ -924,8 +946,9 @@ export_next_port() {
 	local LOCAL_PORT=$1
 
 	FILTERED_PROCESSES=$(lsof -i :$LOCAL_PORT)
-
-	if [ -z "$FILTERED_PROCESSES" ]; then
+	is_port_used_by_docker_container $LOCAL_PORT
+	IS_CONTAINER_USED=$?
+	if [[ -z "$FILTERED_PROCESSES" ]] && [[ $IS_CONTAINER_USED -eq 0 ]]; then
 		export PORT="$LOCAL_PORT"
 		export SERVER_PORT="$LOCAL_PORT"
 		export HTTP_PORT="$LOCAL_PORT"
@@ -1321,6 +1344,19 @@ delete_user() {
 	okapi_curl -XDELETE "$OKAPI_URL/users?query=username%3D%3D$1" >> $OUTPUT_FILE && output_debug
 }
 
+delete_deployed_module() {
+	local MODULE=$1
+	local INSTANCE_ID=$2
+
+	local OPTIONS="-HContent-Type:application/json"
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS="$OPTIONS -HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
+	fi
+
+	set_file_name $BASH_SOURCE
+	curl_req --location -XDELETE $OKAPI_URL/_/discovery/modules/$MODULE/$INSTANCE_ID $OPTIONS
+}
+
 import_aliases() {
 	if [[ "$IMPORT_ALIASES_ARG" -eq 0 ]]; then
 		return
@@ -1590,7 +1626,7 @@ trim() {
 stop_container_by_port() {
 	local $PORT=$1
 
-	`$DOCKER_CMD stop $($DOCKER_CMD ps --filter "expose=$PORT" -q)`
+	$DOCKER_CMD stop $($DOCKER_CMD ps --filter "expose=$PORT" -q)
 }
 
 does_container_exists() {
@@ -1627,7 +1663,7 @@ stop_container() {
 	if [ $IS_CONTAINER_RUNNING -eq 1 ]; then
 		log "Stop Container $CONTAINER"
 		
-		`$DOCKER_CMD stop $CONTAINER`
+		$DOCKER_CMD stop $CONTAINER
 	fi
 }
  
@@ -1639,7 +1675,7 @@ remove_container() {
 	if [ $DOES_CONTAINER_EXISTS -eq 1 ]; then
 		log "Remove Container $CONTAINER"
 		
-		`$DOCKER_CMD rm $CONTAINER`
+		$DOCKER_CMD rm $CONTAINER
 	fi
 }
 
@@ -1660,7 +1696,7 @@ start_container() {
 
 	log "Start Container $CONTAINER"
 
-	`$DOCKER_CMD start $CONTAINER`
+	$DOCKER_CMD start $CONTAINER
 }
 
 build_container() {
@@ -1670,7 +1706,7 @@ build_container() {
 
 	remove_container $CONTAINER
 
-	`$DOCKER_CMD build -t $CONTAINER .`
+	$DOCKER_CMD build -t $CONTAINER .
 }
 
 run_container() {
@@ -1684,10 +1720,6 @@ run_container() {
 
 	local ARGS=$*
 
-	stop_container $CONTAINER
-
-	remove_container $CONTAINER
-	
 	build_container $CONTAINER
 
 	get_okapi_docker_container_env_options
@@ -1709,10 +1741,6 @@ run_module_container() {
 run_okapi_container() {
 	cd $OKAPI_CORE_DIR
 
-	stop_container $OKAPI_DOCKER_CONTAINER_NAME
-
-	remove_container $OKAPI_DOCKER_CONTAINER_NAME
-	
 	build_container $OKAPI_DOCKER_CONTAINER_NAME
 
 	$DOCKER_CMD run -d --name $OKAPI_DOCKER_CONTAINER_NAME -p $OKAPI_PORT:$OKAPI_PORT --network $DOCKER_NETWORK --env JAVA_OPTIONS="$OKAPI_JAVA_OPTIONS" $OKAPI_DOCKER_IMAGE_TAG $OKAPI_ARG_DEV
@@ -1723,10 +1751,6 @@ run_okapi_container() {
 init_okapi_container() {
 	cd $OKAPI_CORE_DIR
 
-	stop_container $OKAPI_DOCKER_CONTAINER_NAME
-
-	remove_container $OKAPI_DOCKER_CONTAINER_NAME
-	
 	build_container $OKAPI_DOCKER_CONTAINER_NAME
 
 	$DOCKER_CMD run -d --name $OKAPI_DOCKER_CONTAINER_NAME -p $OKAPI_PORT:$OKAPI_PORT --network $DOCKER_NETWORK --env JAVA_OPTIONS="$OKAPI_JAVA_OPTIONS" $OKAPI_DOCKER_IMAGE_TAG $OKAPI_ARG_INIT
@@ -1736,10 +1760,6 @@ init_okapi_container() {
 
 purge_okapi_container() {
 	cd $OKAPI_CORE_DIR
-
-	stop_container $OKAPI_DOCKER_CONTAINER_NAME
-
-	remove_container $OKAPI_DOCKER_CONTAINER_NAME
 
 	build_container $OKAPI_DOCKER_CONTAINER_NAME
 
@@ -1754,4 +1774,24 @@ run_with_docker() {
 	fi
 
 	return 0
+}
+
+delete_deployed_modules() {
+	log "Delete deployed modules ..."
+
+	set_file_name $BASH_SOURCE
+	curl_req true $OPTIONS $OKAPI_URL/_/discovery/modules
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	while read -r DEPLOYED_MODULE; do
+		local MODULE_URL=$(echo "$DEPLOYED_MODULE" | jq -r '.url')
+		local SERVICE_ID=$(echo "$DEPLOYED_MODULE" | jq -r '.srvcId')
+		local INSTANCE_ID=$(echo "$DEPLOYED_MODULE" | jq -r '.instId')
+
+		log "Delete deployed Module with Service ID ($SERVICE_ID) Container"
+
+		delete_deployed_module $SERVICE_ID $INSTANCE_ID
+	done < <(echo $CURL_RESPONSE | jq -c '.[]')
 }

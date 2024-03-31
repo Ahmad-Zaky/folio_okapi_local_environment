@@ -318,10 +318,6 @@ pre_register() {
 		HAS_PERMISSIONS_MODULE=true
 	fi
 
-	if [[ $MODULE == $PERMISSIONS_MODULE ]]; then
-		HAS_PERMISSIONS_MODULE=true
-	fi
-
 	if [[ $MODULE == $USERS_BL_MODULE ]]; then
 		HAS_USERS_BL_MODULE=true
 	fi
@@ -546,6 +542,14 @@ deploy_module() {
 
 	log "Deploy module $MODULE with version ($MODULE_VERSION) on port: $SERVER_PORT"
 
+	run_with_docker
+	FOUND=$?
+	if [[ $FOUND -eq 1 ]]; then
+		deploy_module_container $MODULE
+
+		return
+	fi
+
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
@@ -553,6 +557,29 @@ deploy_module() {
 
 	set_file_name $BASH_SOURCE
 	curl_req $OPTIONS -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules
+}
+
+deploy_module_container() {
+	local MODULE=$1
+
+	run_module_container $MODULE
+
+	get_module_versioned $MODULE $VERSION_FROM
+
+	local OPTIONS="-HContent-Type:application/json"
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS="$OPTIONS -HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
+	fi
+
+	set_file_name $BASH_SOURCE
+	curl_req true --location -XPOST $OKAPI_URL/_/discovery/modules $OPTIONS \
+		--data '{
+			"instId": "'$VERSIONED_MODULE'",
+			"srvcId": "'$VERSIONED_MODULE'",
+			"url": "http://'$MODULE':8081"
+		}'
+
+	sleep 5
 }
 
 # Install (enable) modules for a tenant

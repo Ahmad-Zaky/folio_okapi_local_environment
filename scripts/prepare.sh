@@ -475,6 +475,8 @@ run_okapi() {
 	log "Start Okapi ..."
 
 	start_okapi
+
+	delete_deployed_modules
 }
 
 # Set Environment Variables to Okapi
