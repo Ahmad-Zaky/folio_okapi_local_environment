@@ -89,6 +89,8 @@ okapilog                        # shows the log for running okapi instance inter
     * `KAFKA_HOST` from `localhost` to `kafka`
     * `ELASTICSEARCH_URL` from `http://localhost:9200` to `http://elasticsearch:9200`
     * `ELASTICSEARCH_HOST` from `localhost` to `elasticsearch`
+* In some cases while you running the script, you will have user permissions issue related to listing users with this permission `users.collection.get` in that case firstly this permission may be added to `permissions` table with `dummy` value equal to `true` you will need to change it manually to false, and edit user permissions by adding this `users.collection.get` permission.
+* Related to module permissions, when you add new modules sometimes you need to manually to add these new module permissions to the user.
 
 > Modules json keys explained:
 
