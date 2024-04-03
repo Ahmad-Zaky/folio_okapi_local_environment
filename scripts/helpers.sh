@@ -384,7 +384,11 @@ update_env_postman() {
 		return 
 	fi
 
-	log "Update env postman ..."
+	log "Update env postman ... "
+
+	if [ -z "$POSTMAN_ENV_USER_ID_VAL" ]; then
+		POSTMAN_ENV_USER_ID_VAL=$UUID
+	fi
 
 	local POSTMAN_API_KEY=$1
 
@@ -1077,8 +1081,10 @@ reset_and_verify_password() {
 # Set extra permissions related to module mod-users-bl
 set_users_bl_module_permissions() {
 	local INDEX=$1
-
-	get_user_uuid_by_username
+	
+	if [[ -z "$UUID" ]]; then
+		get_user_uuid_by_username
+	fi
 
 	# Validate that mod-users-bl exists in modules.json
 	if [[ "$HAS_USERS_BL_MODULE" == false ]]; then
@@ -1270,8 +1276,11 @@ pre_authenticate() {
 
 	enable_okapi $INDEX $JSON_LIST
 
-	new_user
-	get_user_uuid_by_username
+	if [[ -z "$UUID" ]]; then
+		new_user
+		get_user_uuid_by_username
+	fi
+
 	attach_credentials $UUID
 	attach_permissions $UUID
 }
@@ -1499,6 +1508,16 @@ deploy_module_request() {
 	fi
 
 	log "Deploy module (${MODULE})"
+
+	export_next_port $SERVER_PORT
+
+	run_with_docker
+	FOUND=$?
+	if [[ $FOUND -eq 1 ]]; then
+		deploy_module_container $MODULE
+
+		return
+	fi
 
 	set_file_name $BASH_SOURCE
 	curl_req -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules

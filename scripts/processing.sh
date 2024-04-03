@@ -359,7 +359,7 @@ post_install() {
 		post_authenticate
 	fi
 
-	if [[ $HAS_USERS_MODULE == true ]]; then
+	if [[ $HAS_USERS_MODULE == true ]] && [[ -z "$UUID" ]]; then
 		new_user
 		update_env_postman $POSTMAN_API_KEY # Update postman environment variables
 	fi
