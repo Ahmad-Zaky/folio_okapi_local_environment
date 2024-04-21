@@ -115,6 +115,9 @@ validate_module_tag_branch() {
 		# Remove extra double quotes at start and end of the string
 		BRANCH=$(echo $BRANCH | sed 's/"//g')
 		
+		# Escape all forward slashes in the string
+		BRANCH=$(echo "$BRANCH" | sed 's/\//\\\//g')
+
 		REPO=$(echo "$REPO" | sed "s/^git clone/git clone -b $BRANCH/g")
 	fi
 }
