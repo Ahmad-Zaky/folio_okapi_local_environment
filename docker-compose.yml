@@ -94,6 +94,8 @@ services:
       - ELASTICSEARCH_PLUGINS=analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic
     ports:
       - "9200:9200"
+    volumes:
+      elasticsearch-data:/usr/share/elasticsearch/data
     ulimits:
       memlock:
         soft: -1
