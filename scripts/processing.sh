@@ -370,7 +370,7 @@ post_install() {
 	fi
 
 	# Set permissions related to mod-users-bl
-	if [[ $HAS_USERS_BL_MODULE == true ]]; then
+	if [[ $HAS_USERS_BL_MODULE == true ]] && [[ $MODULE == "$USERS_BL_MODULE" ]]; then
 		set_users_bl_module_permissions $INDEX
 
 		# Update postman environment variables
