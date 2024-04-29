@@ -18,6 +18,10 @@ if [ -f scripts/prepare.sh ]; then
     . scripts/prepare.sh
 fi
 
+if [ -f scripts/database.sh ]; then
+    . scripts/database.sh
+fi
+
 if [ -f scripts/validation.sh ]; then
     . scripts/validation.sh
 fi

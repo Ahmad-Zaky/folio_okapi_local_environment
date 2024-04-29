@@ -16,11 +16,15 @@ fi
 
 
 pre_process() {
+	local ARGS=$*
+
 	defaults
 
-	set_args $*
+	set_args $ARGS
 	
 	validate_linux_tools $TOOLS_LIST
+	
+	handle_db_operations $ARGS
 
 	empty_logs
 
@@ -301,6 +305,7 @@ postman_defaults() {
 set_args() {
 	ARGS=$*
 	for ARG in $ARGS; do
+		set_db_arg $ARG
 		set_init_arg $ARG
 		set_purge_arg $ARG
 		set_restart_okapi_arg $ARG
@@ -310,6 +315,19 @@ set_args() {
 	done
 
 	set_stop_okapi_arg $ARGS
+}
+
+set_db_arg() {
+	local ARGUMENT=$1
+
+	if [[ "$DB_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	DB_ARG=0
+	if [ $ARGUMENT == "db" ]; then
+		DB_ARG=1
+	fi
 }
 
 set_init_arg() {
@@ -404,6 +422,21 @@ set_without_okapi_arg() {
 	if [ $ARGUMENT == "without-okapi" ]; then
 		WITHOUT_OKAPI_ARG=1
 	fi
+}
+
+handle_db_operations() {
+	if [[ "$DB_ARG" -eq 0 ]]; then
+		return
+	fi
+
+	shift
+	DB_ARGS=$*
+
+	db_pre_process
+
+	db_process
+
+	exit 0
 }
 
 empty_logs() {

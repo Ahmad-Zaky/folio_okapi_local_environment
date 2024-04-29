@@ -30,7 +30,6 @@ alias folioup='cd <path/to/script> && sudo docker compose up -d'
 alias okapiup='cd <path/to/script> && sudo docker compose up okapi -d'
 alias okapistop='cd <path/to/script> && sudo docker compose stop okapi'
 alias foliotest='cd <path/to/script> && bash test.sh'
-alias foliodb='cd <path/to/script> && bash scripts/database.sh'
 alias cdfolio='cd <path/to/script>'
 alias foliooutputlog='cdfolio && tail -f modules/output.txt'
 alias okapi='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev'
@@ -43,30 +42,35 @@ alias okapilog='cdfolio && tail -f modules/okapi/nohup.out'
 > `folio` commands with arguments, note that they are not  some how steps, instead they are variations on how to run/stop folio modules
 
 ```
-folio init                      # removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
-folio purge                     # removes existing tables and data only, does not reinitialize.
-folio start                     # stop all running modules first and then start over with okapi
-folio restart                   # stop all running modules first and then restart over with okapi
-folio stop                      # stop all running modules.
-folio stop <port>               # stop one module by port number.
-folio stop okapi                # stop running okapi instance.
-folio stop modules              # stop okapi running modules.
-folio without-okapi             # running modules without okapi, its helpful when you run a module placed in modules.json directly with an already running okapi on the cloud
-folio import-aliases            # import aliases from scripts/aliases.txt into ~/.bashrc or ~/.bash_aliases file but for the first time you cannot use the folio command right a way, instead you run this one ./run.sh import-aliases.
-folioup                         # docker compose up for our docker-compose.yml services
-foliotest                       # run a test.sh script
-foliodb import                  # import the db from an exported file.
-foliodb dump                    # dump database with all schemas to an sql file.
-foliodb dump-include-schemas    # dump database with included schemas found in schemas.txt file to an sql file.
-foliodb dump-exclude-schemas    # dump database with excluding schemas found in schemas.txt file to an sql file.
-foliodb list-schemas            # list database schemas.
-cdfolio                         # move to folio working directory inside the terminal.
-foliooutputlog                  # shows the log for curl output of the running folio script.
-okapi                           # run okapi with development mode
-okapi_initdb                    # run okapi with initdatabase mode, which removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
-okapi_purgedb                   # run okapi with purgedatabase mode, removes existing tables and data only, does not reinitialize.
-iokapi                          # init okapi first and then run it with dev mode.
-okapilog                        # shows the log for running okapi instance interactively.
+folio init                              # removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
+folio purge                             # removes existing tables and data only, does not reinitialize.
+folio start                             # stop all running modules first and then start over with okapi
+folio restart                           # stop all running modules first and then restart over with okapi
+folio stop                              # stop all running modules.
+folio stop <port>                       # stop one module by port number.
+folio stop okapi                        # stop running okapi instance.
+folio stop modules                      # stop okapi running modules.
+folio without-okapi                     # running modules without okapi, its helpful when you run a module placed in modules.json directly with an already running okapi on the cloud
+folio import-aliases                    # import aliases from scripts/aliases.txt into ~/.bashrc or ~/.bash_aliases file but for the first time you cannot use the folio command right a way, instead you run this one ./run.sh import-aliases.
+folioup                                 # docker compose up for our docker-compose.yml services
+foliotest                               # run a test.sh script
+folio db import                         # import the db from an exported file.
+folio db staging import                 # import the db from an exported file to staging database.
+folio db dump                           # dump database with all schemas to an sql file.
+folio db staging dump                   # dump database with all schemas to an sql file to staging database.
+folio db dump-include-schemas           # dump database with included schemas found in schemas.txt file to an sql file.
+folio db staging dump-include-schemas   # dump database with included schemas found in schemas.txt file to an sql file from staging database.
+folio db dump-exclude-schemas           # dump database with excluding schemas found in schemas.txt file to an sql file.
+folio db staging dump-exclude-schemas   # dump database with excluding schemas found in schemas.txt file to an sql file from staging database.
+folio db list-schemas                   # list database schemas.
+folio db staging list-schemas           # list database schemas from staging database.
+cdfolio                                 # move to folio working directory inside the terminal.
+foliooutputlog                          # shows the log for curl output of the running folio script.
+okapi                                   # run okapi with development mode
+okapi_initdb                            # run okapi with initdatabase mode, which removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
+okapi_purgedb                           # run okapi with purgedatabase mode, removes existing tables and data only, does not reinitialize.
+iokapi                                  # init okapi first and then run it with dev mode.
+okapilog                                # shows the log for running okapi instance interactively.
 ```
 
 > NOTICES:
