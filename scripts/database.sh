@@ -20,7 +20,7 @@ fi
 # 		END - VALIDATE PREVIOUS SCRIPTS		   #
 ################################################
 
-defaults() {
+db_cmd_defaults() {
     # Specify the database name
     DB_CMD_DOCKER_CMD="sudo docker"
     DB_CMD_ILS_OKAPI_DB_CMD_USERNAME="okapi"
@@ -227,7 +227,7 @@ dump_db() {
 }
 
 db_pre_process() {
-    defaults
+    db_cmd_defaults
 
     handle_arguments
 }

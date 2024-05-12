@@ -85,7 +85,7 @@ module_defaults() {
 	export HAS_USERS_MODULE=false
 	export HAS_USERS_BL_MODULE=false
 	export VERSION_FROM="pom" # for now we will keep it like this ...
-	
+
 	go_to_modules_dir
 
 	SHOULD_STOP_RUNNING_MODULES=$(jq ".SHOULD_STOP_RUNNING_MODULES" $CONFIG_FILE)
