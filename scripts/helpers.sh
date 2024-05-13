@@ -841,6 +841,10 @@ re_export_env_vars() {
 	set_env_vars_to_okapi
 }
 
+reset_vars() {
+	CLOUD_OKAPI_URL=""
+}
+
 export_module_envs() {
 	local MODULE=$1
 	local INDEX=$2

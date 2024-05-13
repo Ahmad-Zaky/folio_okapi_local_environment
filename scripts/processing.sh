@@ -378,6 +378,8 @@ post_install() {
 	fi
 
 	re_export_env_vars
+
+	reset_vars
 }
 
 # Clone module
