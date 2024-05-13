@@ -638,7 +638,7 @@ install_module() {
 
 		# Install (enable) modules
 		set_file_name $BASH_SOURCE
-		curl_req $OPTIONS -d "$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install?$INSTALL_PARAMS"
+		curl_req $OPTIONS -d "$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install$INSTALL_PARAMS"
 	fi
 }
 

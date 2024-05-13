@@ -1023,24 +1023,37 @@ get_install_params() {
 	local INDEX=$2
 	local JSON_LIST=$3
 
-	INSTALL_PARAMS="purge=true"
+	local PURGE_KEY=".install_params.tenantParameters"
+	FOUND_PURGE=$(jq ".[$INDEX]$PURGE_KEY | first(select(.purge == \"true\")) | .purge == \"true\"" $JSON_LIST)
+	FOUND_PURGE=$(echo $FOUND_PURGE | sed 's/"//g')
 
-	local LOAD_REFERENCE_KEY=".install_params.tenantParameters.loadReference"
-	FOUND_LOAD_REFERENCE=$(jq ".[] | first(select($LOAD_REFERENCE_KEY == \"true\")) | $LOAD_REFERENCE_KEY == \"true\"" $JSON_FILE)
-	
-	local LOAD_SAMPLE_KEY=".install_params.tenantParameters.loadSample"
-	FOUND_LOAD_SAMPLE=$(jq ".[] | first(select($LOAD_SAMPLE_KEY == \"true\")) | $LOAD_SAMPLE_KEY == \"true\"" $JSON_FILE)
-	
-	if [[ "$FOUND_LOAD_REFERENCE" == "true" ]]; then
-		INSTALL_PARAMS="$INSTALL_PARAMS&tenantParameters=loadReference%3Dtrue"
+	local LOAD_REFERENCE_KEY=".install_params.tenantParameters"
+	FOUND_LOAD_REFERENCE=$(jq ".[$INDEX]$LOAD_REFERENCE_KEY | first(select(.loadReference == \"true\")) | .loadReference == \"true\"" $JSON_LIST)
+	FOUND_LOAD_REFERENCE=$(echo $FOUND_LOAD_REFERENCE | sed 's/"//g')
+
+	local LOAD_SAMPLE_KEY=".install_params.tenantParameters"
+	FOUND_LOAD_SAMPLE=$(jq ".[$INDEX]$LOAD_REFERENCE_KEY | first(select(.loadSample == \"true\")) | .loadSample == \"true\"" $JSON_LIST)
+	FOUND_LOAD_SAMPLE=$(echo $FOUND_LOAD_SAMPLE | sed 's/"//g')
+
+	INSTALL_PARAMS=""
+	if [[ "$FOUND_PURGE" == "true" ]]; then
+		INSTALL_PARAMS="?purge=true&"
 	fi
 
 	if [[ "$FOUND_LOAD_REFERENCE" == "true" ]] && [[ "$FOUND_LOAD_SAMPLE" == "true" ]]; then
-		INSTALL_PARAMS="$INSTALL_PARAMS%2C"
+		INSTALL_PARAMS=$INSTALL_PARAMS"tenantParameters=loadReference%3Dtrue%2CloadSample%3Dtrue"
+
+		return
+	fi
+
+	if [[ "$FOUND_LOAD_REFERENCE" == "true" ]]; then
+		INSTALL_PARAMS=$INSTALL_PARAMS"tenantParameters=loadReference%3Dtrue"
+
+		return
 	fi
 
 	if [[ "$FOUND_LOAD_SAMPLE" == "true" ]]; then
-		INSTALL_PARAMS="$INSTALL_PARAMS&tenantParameters=loadSample%3Dtrue"
+		INSTALL_PARAMS=$INSTALL_PARAMS"tenantParameters=loadSample%3Dtrue"
 	fi
 }
 
