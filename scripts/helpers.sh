@@ -1343,7 +1343,6 @@ new_user() {
 			"mobilePhone": "'$USER_PERSONAL_MOBILE_PHONE'",
 			"preferredContactTypeId": "'$USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID'",
 			"email": "'$USER_PERSONAL_EMAIL'",
-			"imageUrl": "",
 			"addresses": [
 				{
 					"city": "'$USER_PERSONAL_ADDRESSES_CITY'",
@@ -1357,8 +1356,7 @@ new_user() {
 		"proxyFor": '$USER_PROXY_FOR',
 		"departments": '$USER_DEPARTMENTS',
 		"patronGroup": "'$USER_PATRON_GROUP'",
-		"expirationDate": "",
-		"scopes": []
+		"expirationDate": ""
 	}'
 
 	get_user_uuid_by_username
@@ -1488,7 +1486,7 @@ remove_module_from_tenant() {
 	local VERSIONED_MODULE=$1
 	local TENANT=$2
 
-	log "Remove  module (${VERSIONED_MODULE}) from tenant (${TENANT})"
+	log "Remove module (${VERSIONED_MODULE}) from tenant (${TENANT})"
 
 	delete_curl_req true --request DELETE $OKAPI_URL/_/proxy/tenants/$TENANT/modules/$VERSIONED_MODULE --header 'Content-Type: application/json'
 
@@ -1503,7 +1501,7 @@ remove_deployed_module() {
 	local VERSIONED_MODULE=$1
 	local INSTANCE_ID=$2
 
-	log "Remove  deployed module (${VERSIONED_MODULE})"
+	log "Remove deployed module (${VERSIONED_MODULE})"
 
 	delete_curl_req true --request DELETE $OKAPI_URL/_/discovery/modules/$VERSIONED_MODULE/$INSTANCE_ID --header 'Content-Type: application/json'
 
