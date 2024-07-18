@@ -1,5 +1,6 @@
 .vscode
 modules/*
+db/*
 !modules/modules_template.json
 !modules/configuration_template.json
 test.sh
