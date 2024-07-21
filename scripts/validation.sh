@@ -142,7 +142,11 @@ validate_new_module_tag() {
 
 	# Remove extra double quotes at start and end of the string
 	NEW_MODULE_TAG=$(echo $NEW_MODULE_TAG | sed 's/"//g')
-
+	
+	if [ ! -d $MODULE ]; then
+		return
+	fi
+	
 	get_module_version $MODULE $VERSION_FROM
 
 	if [[ "$NEW_MODULE_TAG" != "v$MODULE_VERSION" ]]; then

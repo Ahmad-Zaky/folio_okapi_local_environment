@@ -25,6 +25,11 @@ has_registered() {
 	local MODULE=$1
 	local LOCAL_VERSION_FROM=$2
 
+	# Do not proceed if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
 	get_module_versioned $MODULE $LOCAL_VERSION_FROM
 
 	OPTIONS=""
@@ -53,6 +58,11 @@ has_registered() {
 has_deployed() {
 	local MODULE=$1
 	local LOCAL_VERSION_FROM=$2
+
+	# Do not proceed if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
 
 	get_module_versioned $MODULE $LOCAL_VERSION_FROM
 
@@ -83,6 +93,11 @@ has_installed() {
 	local MODULE=$1
 	local TENANT=$2
 	local LOCAL_VERSION_FROM=$3
+
+	# Do not proceed if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
 
 	get_module_versioned $MODULE $LOCAL_VERSION_FROM
 
@@ -297,6 +312,12 @@ post_build() {
 	local MODULE=$1
 
 	if [[ $EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR == "true" ]]; then
+		build_directory_exits $MODULE
+		FOUND=$?
+		if [[ $FOUND -eq 0 ]]; then
+			return
+		fi
+
 		# Opt in the module
 		cd $MODULE
 
@@ -564,6 +585,11 @@ deploy_module() {
 deploy_module_container() {
 	local MODULE=$1
 
+	# Do not proceed if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+	
 	run_module_container $MODULE
 
 	get_module_versioned $MODULE $VERSION_FROM

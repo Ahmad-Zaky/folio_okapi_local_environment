@@ -1836,3 +1836,14 @@ delete_deployed_modules() {
 		delete_deployed_module $SERVICE_ID $INSTANCE_ID
 	done < <(echo $CURL_RESPONSE | jq -c '.[]')
 }
+
+build_directory_exits() {
+	local MODULE=$1
+	local BUILD_DIR=target
+
+	if [ -d $MODULE/$BUILD_DIR ]; then
+		return 1
+	fi
+
+	return 0
+}
