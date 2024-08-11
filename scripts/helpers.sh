@@ -1455,7 +1455,7 @@ get_deployed_instance_id() {
 }
 
 # NOTE: it does not work if authtoken instance is not up and running
-remove_authtoken_if_enabled_previously() {
+remove_authtoken_and_permissions_if_enabled_previously() {
 	has_installed $AUTHTOKEN_MODULE $TENANT $VERSION_FROM
 	FOUND=$?
 	if [[ "$FOUND" -eq 0 ]]; then

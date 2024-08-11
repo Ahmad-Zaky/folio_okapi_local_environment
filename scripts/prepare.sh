@@ -40,7 +40,7 @@ pre_process() {
 
 	validate_configurations_list
 
-	remove_authtoken_if_enabled_previously
+	remove_authtoken_and_permissions_if_enabled_previously
 }
 
 # Default Variable values
