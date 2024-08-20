@@ -97,6 +97,7 @@ okapilog                                # shows the log for running okapi instan
 * Related to module permissions, when you add new modules sometimes you need to manually to add these new module permissions to the user.
 * TODO: we need to handle a case when module version of mod-authtoken has changed when I try to validate authtoken enabled within function `remove_authtoken_and_permissions_if_enabled_previously()`, and same applies for `mod_permissions`.
 * A useful tip in case some modules fail, you can navigate to that module and manually pull from remote repo the latest changes and rebuild the module.
+* before starting okapi the allocated ports will be freed from the host machine for example if the allocated ports START_PORT=9031 to END_PORT=9199
 
 > Modules json keys explained:
 

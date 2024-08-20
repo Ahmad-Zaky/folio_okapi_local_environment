@@ -30,6 +30,8 @@ pre_process() {
 
 	stop_running_module_or_modules
 
+	free_from_start_to_end_ports
+
 	run_okapi
 
 	set_env_vars_to_okapi
