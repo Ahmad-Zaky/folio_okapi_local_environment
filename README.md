@@ -96,6 +96,7 @@ okapilog                                # shows the log for running okapi instan
 * In some cases while you running the script, you will have user permissions issue related to listing users with this permission `users.collection.get` in that case firstly this permission may be added to `permissions` table with `dummy` value equal to `true` you will need to change it manually to false, and edit user permissions by adding this `users.collection.get` permission.
 * Related to module permissions, when you add new modules sometimes you need to manually to add these new module permissions to the user.
 * TODO: we need to handle a case when module version of mod-authtoken has changed when I try to validate authtoken enabled within function `remove_authtoken_and_permissions_if_enabled_previously()`, and same applies for `mod_permissions`.
+* A useful tip in case some modules fail, you can navigate to that module and manually pull from remote repo the latest changes and rebuild the module.
 
 > Modules json keys explained:
 
