@@ -99,6 +99,7 @@ okapilog                                # shows the log for running okapi instan
 * A useful tip in case some modules fail, you can navigate to that module and manually pull from remote repo the latest changes and rebuild the module.
 * before starting okapi the allocated ports will be freed from the host machine for example if the allocated ports START_PORT=9031 to END_PORT=9199
 * There is a specific case when you change db configs for mod-users while you using mod-authtoken there will be an issue as the login attempt will fails, so modules like mod-authtoken, mod-login, and mod-users should share the same db configs.
+* TODO: we need to validate input arguments stop with error if not recognized argument has been provided.
 
 > Modules json keys explained:
 
