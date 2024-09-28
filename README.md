@@ -8,7 +8,7 @@ FOLIO Okapi Local Environment
 * `java` should be installed locally with jdk v17. [click here](https://www.freecodecamp.org/news/how-to-install-java-in-ubuntu/)
 * `jq` linux tool to process json files. [click here](https://jqlang.github.io/jq/download/)
 * `yq` linux tool to process yml files. [click here](https://github.com/mikefarah/yq)
-* `xmllint` linux tool to process xml files. [click here](https://devicetests.com/install-xmllint-ubuntu#google_vignette)
+* `xmllint` linux tool to process xml files. [click here]([https://devicetests.com/install-xmllint-ubuntu#google_vignette](https://github.com/AtomLinter/linter-xmllint?tab=readme-ov-file#linter-installation))
 * `lsof` linux tool to check process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
 * `docker` docker tool to run modules instead of running it within a process on the host machine. [click here](https://docs.docker.com/engine/install/)
 * `netstat` its a linux tool used for displaying network connections, routing tables, interface statistics, masquerade connections, and multicast memberships. However, starting from Ubuntu 20.04, netstat is considered deprecated in favor of the ss command.
