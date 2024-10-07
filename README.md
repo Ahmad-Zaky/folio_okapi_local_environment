@@ -102,6 +102,12 @@ okapilog                                # shows the log for running okapi instan
 * before starting okapi the allocated ports will be freed from the host machine for example if the allocated ports START_PORT=9031 to END_PORT=9199
 * There is a specific case when you change db configs for mod-users while you using mod-authtoken there will be an issue as the login attempt will fails, so modules like mod-authtoken, mod-login, and mod-users should share the same db configs.
 * TODO: we need to validate input arguments stop with error if not recognized argument has been provided.
+* TODO: try to make parameters more professional with --help command to describe all working parameters.
+* TODO: in database `db_cmd_defaults()` method we want to offload some of the env vars to be configured from `configuration.json` file.
+* TODO: in update installed module status, we want to opt out the query to be configured from configuration.json
+* TODO: while starting we start stopping all ports with a specific range starts from `9130` we may make the stop optional either stop or fail.
+* TODO: we need to emphasize that removing mod-authtoken, and `mod-permissions` are now implemented directly with Database query because any new version comes prevents from removing the old enabled version and if there are new ways to do it.
+* TODO: explain all unused methods as most of them were functioning in the past.
 
 > Modules json keys explained:
 

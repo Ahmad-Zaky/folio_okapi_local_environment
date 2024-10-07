@@ -1,5 +1,19 @@
 #!/bin/bash
 
+####################################################
+# 		START - VALIDATE PREVIOUS SCRIPTS		   #
+####################################################
+
+if [ ! -f scripts/database.sh ]; then
+	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] \n\e[1;31m ERROR: Database script file is missing \033[0m"
+	
+    exit 1
+fi
+
+################################################
+# 		END - VALIDATE PREVIOUS SCRIPTS		   #
+################################################
+
 log() {
 	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] $1"
 }
@@ -159,8 +173,8 @@ curl_req() {
 
 	output_debug $CALL_STACK_INDEX
 	
-	STATUS_CODE=$(curl -s -o response.txt -w "%{http_code}" "$@") 
-	CURL_RESPONSE=$(cat response.txt) && : > response.txt
+	STATUS_CODE=$(curl -s -o $RESPONSE_FILE -w "%{http_code}" "$@") 
+	CURL_RESPONSE=$(cat $RESPONSE_FILE) && : > $RESPONSE_FILE
 
 	echo $CURL_RESPONSE >> $OUTPUT_FILE
 
@@ -205,8 +219,8 @@ delete_curl_req() {
 	set_line_no $BASH_LINENO
 	output_debug $CALL_STACK_INDEX
 
-	STATUS_CODE=$(curl -s --location --request DELETE -o response.txt -w "%{http_code}" "$@") 
-	CURL_RESPONSE=$(cat response.txt) && : > response.txt
+	STATUS_CODE=$(curl -s --location --request DELETE -o $RESPONSE_FILE -w "%{http_code}" "$@") 
+	CURL_RESPONSE=$(cat $RESPONSE_FILE) && : > $RESPONSE_FILE
 
 	echo $CURL_RESPONSE >> $OUTPUT_FILE
 
@@ -740,6 +754,9 @@ rebuild_okapi() {
 free_from_start_to_end_ports() {
 	local START_PORT=$((OKAPI_PORT + 1))
 	
+	new_line
+	new_line
+
 	log "Free allocated ports from $START_PORT to $END_PORT ..."
 
 	local SWAP_OKAPI_PORT=$STOP_OKAPI_PROT_ARG
@@ -749,6 +766,9 @@ free_from_start_to_end_ports() {
 		STOP_OKAPI_PROT_ARG=$k
 		stop_running_module
 	done
+	
+	new_line
+	new_line
 
 	STOP_OKAPI_PROT_ARG=$SWAP_OKAPI_PORT
 }
@@ -1472,7 +1492,23 @@ get_deployed_instance_id() {
 
 # NOTE: it does not work if authtoken instance is not up and running
 remove_authtoken_and_permissions_if_enabled_previously() {
-	has_installed $AUTHTOKEN_MODULE $TENANT $VERSION_FROM
+	module_dir_exists $AUTHTOKEN_MODULE
+	local EXISTS=$?
+	if [[ "$EXISTS" -eq 0 ]]; then
+		get_module_index_by_id $AUTHTOKEN_MODULE $JSON_FILE
+		process_module $MODULE_INDEX $JSON_FILE build 1
+		unset $MODULE_INDEX
+	fi
+
+	module_dir_exists $PERMISSIONS_MODULE
+	local EXISTS=$?
+	if [[ "$EXISTS" -eq 0 ]]; then
+		get_module_index_by_id $PERMISSIONS_MODULE $JSON_FILE
+		process_module $MODULE_INDEX $JSON_FILE build 1
+		unset $MODULE_INDEX
+	fi
+
+	has_installed $AUTHTOKEN_MODULE $TENANT
 	FOUND=$?
 	if [[ "$FOUND" -eq 0 ]]; then
 		return
@@ -1483,7 +1519,10 @@ remove_authtoken_and_permissions_if_enabled_previously() {
 		deploy_module_request $AUTHTOKEN_MODULE
 		deploy_module_request $PERMISSIONS_MODULE
 
-		get_module_versioned $AUTHTOKEN_MODULE $VERSION_FROM
+		install_module_request enable $AUTHTOKEN_MODULE
+		install_module_request enable $PERMISSIONS_MODULE
+
+		get_module_versioned $AUTHTOKEN_MODULE
 		remove_module_from_tenant $VERSIONED_MODULE $TENANT
 
 		get_deployed_instance_id $AUTHTOKEN_MODULE $VERSION_FROM
@@ -1552,6 +1591,99 @@ deploy_module_request() {
 
 	set_file_name $BASH_SOURCE
 	curl_req -d@$DEPLOY_DESCRIPTOR $OKAPI_URL/_/deployment/modules
+}
+
+install_module_request() {
+	local ACTION=$1
+	local MODULE=$2
+
+	# Build Body Json list of modules with action enable comes as argument
+	has_installed $MODULE $TENANT $VERSION_FROM
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		return
+	fi
+
+	local PAYLOAD="[{\"action\":\"$ACTION\",\"id\":\"$VERSIONED_MODULE\"}]"
+
+	# Set Okapi Token if set
+	OPTIONS=""
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
+	fi
+
+	# Validate if the list is not empty	
+	if [[ "$PAYLOAD" =~ ^\[.+\]$ ]]; then
+		log "Install (Enable) $MODULE with version ($MODULE_VERSION)"
+
+		# Install (enable) modules
+		set_file_name $BASH_SOURCE
+		curl_req $OPTIONS -d "$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install"
+	fi
+}
+
+disable_installed_module() {
+	local MODULE=$1
+	
+	get_installed_module_versioned $MODULE
+
+	log "Disable installed (enabled) module ($VERSIONED_MODULE)"
+
+	update_installed_module_status $VERSIONED_MODULE false
+}
+
+enable_installed_module() {
+	local MODULE=$1
+	
+	get_installed_module_versioned $MODULE
+	
+	log "Enable installed (enabled) module ($VERSIONED_MODULE)"
+	
+	update_installed_module_status $VERSIONED_MODULE true
+}
+
+delete_installed_module() {
+	local MODULE=$1
+	
+	get_installed_module_versioned $MODULE
+	
+	delete_installed_module_from_enabled_modules $VERSIONED_MODULE
+
+	unset $VERSIONED_MODULE
+}
+
+update_installed_module_status() {
+	local VERSIONED_MODULE=$1
+	local STATUS=$2
+
+	get_update_installed_module_status_query $VERSIONED_MODULE $STATUS
+
+	db_run_query "$QUERY"
+}
+
+delete_installed_module_from_enabled_modules() {
+	local VERSIONED_MODULE=$1
+
+	log "Remove installed (enabled) module ($VERSIONED_MODULE)"
+
+	get_delete_installed_module_query $VERSIONED_MODULE
+
+	db_run_query "$QUERY"
+}
+
+# TODO: we want to opt out the query to be configured from configuration.json
+get_update_installed_module_status_query() {
+	local VERSIONED_MODULE=$1
+	local STATUS=$2
+	
+	QUERY="UPDATE tenants SET tenantjson = jsonb_set(tenantjson::jsonb, '{enabled}', (tenantjson->'enabled')::jsonb || '{\\\"$VERSIONED_MODULE\\\": $STATUS}'::jsonb) WHERE tenantjson->'descriptor'->>'id' = '$TENANT';"
+}
+
+get_delete_installed_module_query() {
+	local VERSIONED_MODULE=$1
+	local STATUS=$2
+	
+	QUERY="UPDATE tenants SET tenantjson = jsonb_set(tenantjson::jsonb, '{enabled}', (tenantjson->'enabled') - '"$VERSIONED_MODULE"') WHERE tenantjson->'descriptor'->>'id' = '$TENANT';"
 }
 
 empty_requires_array_in_module_desriptor() {
@@ -1623,6 +1755,28 @@ get_module_versioned() {
 	get_module_version $MODULE $LOCAL_VERSION_FROM
 
 	VERSIONED_MODULE="$MODULE-$MODULE_VERSION"
+}
+
+get_installed_module_versioned() {
+	local MODULE=$1
+	unset $VERSIONED_MODULE
+	unset $MODULE_VERSION
+
+	OPTIONS=""
+	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+		OPTIONS=-HX-Okapi-Token:$OKAPI_HEADER_TOKEN
+	fi
+
+	set_file_name $BASH_SOURCE
+	curl_req $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	RESULT=$(echo $CURL_RESPONSE | jq '[.[] | select(.id | contains("'$MODULE'"))] | .[0].id')
+	RESULT=$(echo $RESULT | sed 's/"//g')
+
+	VERSIONED_MODULE="$RESULT"
 }
 
 get_okapi_docker_container_env_options() {
@@ -1853,7 +2007,7 @@ delete_deployed_modules() {
 	done < <(echo $CURL_RESPONSE | jq -c '.[]')
 }
 
-build_directory_exits() {
+build_directory_exists() {
 	local MODULE=$1
 	local BUILD_DIR=target
 
@@ -1862,4 +2016,72 @@ build_directory_exits() {
 	fi
 
 	return 0
+}
+
+module_dir_exists() {
+	local MODULE=$1
+	if [ -d $MODULE ]; then
+		return 1
+	fi
+
+	return 0
+}
+
+set_module_id() {
+	local INDEX=$1
+	local JSON_LIST=$2
+
+	# Validate Module Id
+	validate_module_id $INDEX $JSON_LIST
+}
+
+filter_modules_json() {
+	local MODULES_JSON_FILE=$1
+	local FILTERED_MODULES=$2
+	local ALL_MODULES_JSON=$(jq '.' $MODULES_JSON_FILE)
+	FILTERED_MODULES_JSON=$ALL_MODULES_JSON
+	for FILTERED_MODULE in $FILTERED_MODULES; do
+		FILTERED_MODULES_JSON=$(echo $FILTERED_MODULES_JSON | jq 'map(select(.id | test("'$FILTERED_MODULE'") | not))')
+	done
+	
+	echo $FILTERED_MODULES_JSON > $FILTERED_JSON_FILE
+}
+
+filter_disabled_modules() {
+	local MODULES_JSON_FILE=$1
+
+	local ENABLED_MODULES_JSON=$(jq '[.[] | select((has("enabled") and .enabled == "true") or (has("enabled") | not))]' $MODULES_JSON_FILE)
+
+	echo $ENABLED_MODULES_JSON > $FILTERED_JSON_FILE
+}
+
+delete_files() {
+	local DELETED_FILES=$1
+	
+	for DELETED_FILE in $DELETED_FILES; do
+		delete_file $DELETED_FILE
+	done
+}
+
+delete_file() {
+	local DELETED_FILE=$1
+
+	log "Delete file: $DELETED_FILE"
+
+	rm -f $DELETED_FILE
+}
+
+get_module_index_by_id() {
+    local MODULE=$1
+    local FILE=$2
+
+    MODULE_INDEX=$(jq 'map(.id) | index("'$MODULE'")' $FILE)
+}
+
+function_exists() {
+    if command -v "$1" &>/dev/null; then
+        return 0 # Function exists
+    else
+        return 1 # Function does not exist
+    fi
 }

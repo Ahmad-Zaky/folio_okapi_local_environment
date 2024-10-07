@@ -1,25 +1,5 @@
 #!/bin/bash
 
-####################################################
-# 		START - VALIDATE PREVIOUS SCRIPTS		   #
-####################################################
-
-if [ ! -f scripts/helpers.sh ]; then
-	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] \n\e[1;31m ERROR: Helpers script file is missing \033[0m"
-	
-    exit 1
-fi
-
-if [ ! -f scripts/prepare.sh ]; then
-	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] \n\e[1;31m ERROR: Prepare script file is missing \033[0m"
-	
-    exit 1
-fi
-
-################################################
-# 		END - VALIDATE PREVIOUS SCRIPTS		   #
-################################################
-
 db_cmd_defaults() {
     # Specify the database name
     DB_CMD_DOCKER_CMD="sudo docker"
@@ -32,6 +12,7 @@ db_cmd_defaults() {
     DB_CMD_DATABASE_SQL_PATH="db/$DB_CMD_DATABASE_SQL_FILE"         # sql file relative path to this script's directory.
     DB_CMD_CONTAINER="postgres-folio"                               # service container name found in the `docker-compose.yml` file
     DB_CMD_COMMAND_WRAPPER="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER /bin/bash -c \"%s\" \n"    # if you use postgres on your local machine directly, replace this with "%s"
+    DB_CMD_COMMAND_WRAPPER_ALT="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER %s \n"    # if you use postgres on your local machine directly, replace this with "%s"
     DB_CMD_CP_DUMP_DB_SOURCE="/$DB_CMD_DUMPED_DATABASE_SQL_FILE"
     DB_CMD_CP_DUMP_DB_DESTINATION="../db/"
     DB_CMD_DOCKER_CP_COMMAND="$DB_CMD_DOCKER_CMD cp $DB_CMD_CONTAINER:$DB_CMD_CP_DUMP_DB_SOURCE $DB_CMD_CP_DUMP_DB_DESTINATION"
@@ -176,7 +157,7 @@ import() {
     # NOTE: we will not use this snippet and we will replace the role name used inside the sql file with existing role instead
     # # Create new role
     # if ! [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -tAc \\\"SELECT 1 FROM pg_roles WHERE rolname='$DB_CMD_ILS_OKAPI_DB_CMD_USERNAME'\\\"")) == 1 ]]; then
-    #     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c "CREATE ROLE $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME WITH LOGIN; GRANT $DB_CMD_USERNAME TO $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME;")
+    #     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \"CREATE ROLE $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME WITH LOGIN; GRANT $DB_CMD_USERNAME TO $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME;\"")
     # fi
 
     echo "Replace OWNER $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME to $DB_CMD_USERNAME in $DB_CMD_DATABASE_SQL_FILE file."
@@ -230,6 +211,14 @@ db_pre_process() {
     db_cmd_defaults
 
     handle_arguments
+}
+
+db_run_query() {
+    local QUERY=$1
+
+    db_cmd_defaults
+
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER_ALT" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \"$QUERY\"")
 }
 
 db_process() {

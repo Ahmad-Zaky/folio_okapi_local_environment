@@ -50,7 +50,7 @@ defaults() {
 	general_defaults
 
 	module_defaults
-	
+
 	db_defaults
 
 	kafka_defaults
@@ -76,6 +76,7 @@ module_defaults() {
 	# Modules directory path
 	export MODULES_DIR=modules
 	export JSON_FILE="modules.json"
+	export FILTERED_JSON_FILE="filtered_modules.json"
 	export CONFIG_FILE="configuration.json"
 	export LOGIN_WITH_MOD="mod-authtoken"
 	export PERMISSIONS_MODULE="mod-permissions"
@@ -83,6 +84,7 @@ module_defaults() {
 	export USERS_MODULE="mod-users"
 	export USERS_BL_MODULE="mod-users-bl"
 	export OUTPUT_FILE="output.txt"
+	export RESPONSE_FILE="response.txt"
 	export HAS_PERMISSIONS_MODULE=false
 	export HAS_USERS_MODULE=false
 	export HAS_USERS_BL_MODULE=false

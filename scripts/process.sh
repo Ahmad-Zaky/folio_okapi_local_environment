@@ -10,8 +10,8 @@ if [ ! -f scripts/helpers.sh ]; then
     exit 1
 fi
 
-if [ ! -f scripts/prepare.sh ]; then
-	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] \n\e[1;31m ERROR: Prepare script file is missing \033[0m"
+if [ ! -f scripts/preprocess.sh ]; then
+	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] \n\e[1;31m ERROR: Preprocess script file is missing \033[0m"
 	
     exit 1
 fi
@@ -99,7 +99,9 @@ has_installed() {
 		return
 	fi
 
-	get_module_versioned $MODULE $LOCAL_VERSION_FROM
+	if [[ -n "$LOCAL_VERSION_FROM" ]]; then
+		get_module_versioned $MODULE $LOCAL_VERSION_FROM
+	fi
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -112,7 +114,12 @@ has_installed() {
 		return
 	fi
 
-	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$VERSIONED_MODULE\"")
+	if [[ -n "$LOCAL_VERSION_FROM" ]]; then
+		RESULT=$(echo $CURL_RESPONSE | jq ".[] | .id == \"$VERSIONED_MODULE\"")
+	else
+		RESULT=$(echo $CURL_RESPONSE | jq '[.[] | select(.id | contains("'$MODULE'"))] | length > 0')
+	fi
+
 	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
@@ -127,6 +134,15 @@ has_installed() {
 should_clone() {
 	local INDEX=$1
 	local JSON_LIST=$2
+	local SUPPRESS_STEP=$3
+
+	if [[ $SUPPRESS_STEP == "clone" ]] || [[ $SUPPRESS_STEP == "build" ]] || [[ $SUPPRESS_STEP == "register" ]] || [[ $SUPPRESS_STEP == "deploy" ]] || [[ $SUPPRESS_STEP == "install" ]]; then
+		return 1
+	fi
+
+	if [[ ! -z "$SUPPRESS_STEP" ]]; then
+		return 0
+	fi
 
 	has "step" $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
@@ -158,6 +174,15 @@ should_clone() {
 should_build() {
 	local INDEX=$1
 	local JSON_LIST=$2
+	local SUPPRESS_STEP=$3
+
+	if [[ $SUPPRESS_STEP == "build" ]] || [[ $SUPPRESS_STEP == "register" ]] || [[ $SUPPRESS_STEP == "deploy" ]] || [[ $SUPPRESS_STEP == "install" ]]; then
+		return 1
+	fi
+
+	if [[ ! -z "$SUPPRESS_STEP" ]]; then
+		return 0
+	fi
 
 	has "step" $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
@@ -187,6 +212,15 @@ should_rebuild() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	local SUPPRESS_STEP=$3
+
+	if [[ $SUPPRESS_STEP == "rebuild" ]]; then
+		return 1
+	fi
+
+	if [[ ! -z "$SUPPRESS_STEP" ]]; then
+		return 0
+	fi
 
 	if [[ "$SHOULD_REBUILD_MODULE" == "$MODULE" ]]; then
 		return 1
@@ -209,6 +243,15 @@ should_rebuild() {
 should_register() {
 	local INDEX=$1
 	local JSON_LIST=$2
+	local SUPPRESS_STEP=$3
+
+	if [[ $SUPPRESS_STEP == "register" ]] || [[ $SUPPRESS_STEP == "deploy" ]] || [[ $SUPPRESS_STEP == "install" ]]; then
+		return 1
+	fi
+
+	if [[ ! -z "$SUPPRESS_STEP" ]]; then
+		return 0
+	fi
 
 	has "step" $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
@@ -234,6 +277,15 @@ should_register() {
 should_deploy() {
 	local INDEX=$1
 	local JSON_LIST=$2
+	local SUPPRESS_STEP=$3
+
+	if [[ $SUPPRESS_STEP == "deploy" ]] || [[ $SUPPRESS_STEP == "install" ]]; then
+		return 1
+	fi
+
+	if [[ ! -z "$SUPPRESS_STEP" ]]; then
+		return 0
+	fi
 
 	has "step" $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
@@ -256,6 +308,15 @@ should_deploy() {
 should_install() {
 	local INDEX=$1
 	local JSON_LIST=$2
+	local SUPPRESS_STEP=$3
+
+	if [[ $SUPPRESS_STEP == "install" ]]; then
+		return 1
+	fi
+
+	if [[ ! -z "$SUPPRESS_STEP" ]]; then
+		return 0
+	fi
 
 	has "step" $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
@@ -275,11 +336,8 @@ should_install() {
 pre_clone() {
 	local INDEX=$1
 	local JSON_LIST=$2
-
-	# Validate Module Id
-	validate_module_id $INDEX $JSON_LIST
-
-	local MODULE=$MODULE_ID
+	local MODULE=$3
+	local SUPPRESS_STEP=$4
 
 	# Validate Module Repo
 	validate_module_repo $MODULE $INDEX $JSON_LIST
@@ -303,6 +361,7 @@ pre_clone() {
 
 pre_build() {
 	local MODULE=$1
+	local SUPPRESS_STEP=$2
 
 	checkout_new_tag $MODULE
 	checkout_new_branch $MODULE
@@ -310,9 +369,10 @@ pre_build() {
 
 post_build() {
 	local MODULE=$1
+	local SUPPRESS_STEP=$2
 
 	if [[ $EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR == "true" ]]; then
-		build_directory_exits $MODULE
+		build_directory_exists $MODULE
 		FOUND=$?
 		if [[ $FOUND -eq 0 ]]; then
 			return
@@ -332,6 +392,7 @@ pre_register() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	local SUPPRESS_STEP=$4
 
 	handle_cloud_okapi $MODULE $INDEX $JSON_LIST
 
@@ -352,8 +413,9 @@ pre_install() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	local SUPPRESS_STEP=$4
 
-	should_install $INDEX $JSON_LIST
+	should_install $INDEX $JSON_LIST $SUPPRESS_STEP
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
@@ -365,6 +427,7 @@ post_install() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	local SUPPRESS_STEP=$4
 
 	postman $MODULE $INDEX $JSON_LIST
 
@@ -385,7 +448,7 @@ post_install() {
 		update_env_postman $POSTMAN_API_KEY # Update postman environment variables
 	fi
 
-	should_install $INDEX $JSON_LIST
+	should_install $INDEX $JSON_LIST $SUPPRESS_STEP
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
@@ -408,8 +471,9 @@ clone_module() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	local SUPPRESS_STEP=$4
 
-	should_clone $INDEX $JSON_LIST
+	should_clone $INDEX $JSON_LIST $SUPPRESS_STEP
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
@@ -435,8 +499,9 @@ build_module() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	local SUPPRESS_STEP=$4
 
-	should_build $INDEX $JSON_LIST
+	should_build $INDEX $JSON_LIST $SUPPRESS_STEP
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
@@ -477,9 +542,10 @@ register_module() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	local SUPPRESS_STEP=$4
 	local MODULE_DESCRIPTOR=$MODULE/target/ModuleDescriptor.json
 
-	should_register $INDEX $JSON_LIST
+	should_register $INDEX $JSON_LIST $SUPPRESS_STEP
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
@@ -528,9 +594,10 @@ deploy_module() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+	local SUPPRESS_STEP=$4
 	local DEPLOY_DESCRIPTOR=$MODULE/target/DeploymentDescriptor.json
 
-	should_deploy $INDEX $JSON_LIST
+	should_deploy $INDEX $JSON_LIST $SUPPRESS_STEP
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
@@ -616,8 +683,9 @@ install_module() {
 	local MODULE=$2
 	local INDEX=$3
 	local JSON_LIST=$4
+	local SUPPRESS_STEP=$5
 
-	should_install $INDEX $JSON_LIST
+	should_install $INDEX $JSON_LIST $SUPPRESS_STEP
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
@@ -662,7 +730,7 @@ install_module() {
 	if [[ "$PAYLOAD" =~ ^\[.+\]$ ]]; then
 		log "Install (Enable) $MODULE with version ($MODULE_VERSION)"
 
-		get_install_params $MODULE $i $JSON_LIST
+		get_install_params $MODULE $INDEX $JSON_LIST
 
 		# Install (enable) modules
 		set_file_name $BASH_SOURCE
@@ -670,45 +738,67 @@ install_module() {
 	fi
 }
 
-# Clone, Build (compile), Register (declare), Deploy, Install (enable) modules one by one
 process() {
-	local LENGTH=$(jq '. | length' $JSON_FILE)
+	# Skip okapi module if exists with other modules sent as a parameter to the process method
+	FILTERED_MODULE="okapi"
+	if [ -n "$1" ]; then
+		local FILTERED_MODULE="$FILTERED_MODULE $1"
+	fi
 
+	filter_modules_json $JSON_FILE $FILTERED_MODULE
+
+	# Do not filter if SKIP_ENABLE_CHECK is 1
+	if [[ $SKIP_ENABLE_CHECK -eq 0 ]]; then
+		filter_disabled_modules $FILTERED_JSON_FILE
+	fi
+
+	local LENGTH=$(jq '. | length' $FILTERED_JSON_FILE)
 	for ((i=0; i<$LENGTH; i++))
 	do
-		# Skip okapi module if exists
-		has_value "id" $i "okapi" $JSON_FILE
-		FOUND=$?
-		if [[ "$FOUND" -eq 1 ]]; then
-			continue
-		fi
-
-		# Skip disabled modules
-		is_enabled $i $JSON_FILE
-		IS_ENALBLED=$?
-		if [[ "$IS_ENALBLED" -eq 0 ]]; then
-			continue
-		fi
-
-		# Step No. 1
-		pre_clone $i $JSON_FILE	
-		clone_module $MODULE_ID $i $JSON_FILE	
-		
-		# Step No. 2
-		pre_build $MODULE_ID
-		build_module $MODULE_ID $i $JSON_FILE
-		post_build $MODULE_ID
-
-		# Step No. 3
-		pre_register $MODULE_ID $i $JSON_FILE
-		register_module $MODULE_ID $i $JSON_FILE
-
-		# Step No. 4
-		deploy_module $MODULE_ID $i $JSON_FILE
-
-		# Step No. 5
-		pre_install $MODULE_ID $i $JSON_FILE
-		install_module enable $MODULE_ID $i $JSON_FILE
-		post_install $MODULE_ID $i $JSON_FILE
+		process_module $i $FILTERED_JSON_FILE
 	done
+}
+
+# Clone, Build (compile), Register (declare), Deploy, Install (enable) the module
+process_module() {
+	local INDEX=$1
+	local JSON_LIST=$2
+	local SUPPRESS_STEP=$3
+	
+	# skip enable check for each module
+	local SKIP_ENABLE_CHECK=0
+	if [ -n "$4" ]; then
+		SKIP_ENABLE_CHECK=$4
+	fi
+
+	# Skip disabled module
+	is_enabled $INDEX $JSON_LIST
+	IS_ENALBLED=$?
+	if [[ "$IS_ENALBLED" -eq 0 ]] && [[ "$SKIP_ENABLE_CHECK" -eq 0 ]]; then
+		return
+	fi
+
+	# Set $MODULE_ID variable to proceed
+	set_module_id $INDEX $JSON_LIST
+
+	# Step No. 1
+	pre_clone $INDEX $JSON_LIST	$MODULE_ID $SUPPRESS_STEP
+	clone_module $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
+
+	# Step No. 2
+	pre_build $MODULE_ID $SUPPRESS_STEP
+	build_module $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
+	post_build $MODULE_ID $SUPPRESS_STEP
+
+	# Step No. 3
+	pre_register $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
+	register_module $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
+
+	# Step No. 4
+	deploy_module $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
+
+	# Step No. 5
+	pre_install $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
+	install_module enable $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
+	post_install $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
 }

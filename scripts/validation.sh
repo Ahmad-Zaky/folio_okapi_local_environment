@@ -10,14 +10,14 @@ if [ ! -f scripts/helpers.sh ]; then
     exit 1
 fi
 
-if [ ! -f scripts/prepare.sh ]; then
-	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] \n\e[1;31m ERROR: Prepare script file is missing \033[0m"
+if [ ! -f scripts/preprocess.sh ]; then
+	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] \n\e[1;31m ERROR: Preprocess script file is missing \033[0m"
 	
     exit 1
 fi
 
-if [ ! -f scripts/processing.sh ]; then
-	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] \n\e[1;31m ERROR: Processing script file is missing \033[0m"
+if [ ! -f scripts/process.sh ]; then
+	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] \n\e[1;31m ERROR: Process script file is missing \033[0m"
 	
     exit 1
 fi

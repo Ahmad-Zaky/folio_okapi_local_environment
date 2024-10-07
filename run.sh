@@ -2,34 +2,42 @@
 
 #############################################################################################
 # - Sections order:																			#
+#	+ Database  																			#
 # 	+ Helpers																				#
-# 	+ Prepare																				#
+# 	+ Preprocess																			#
 #	+ Validation																			#
-# 	+ Processing (Clone, Build (Compile), Register (Declare), Deploy, Install (Enable))		#
+# 	+ Process (Clone, Build (Compile), Register (Declare), Deploy, Install (Enable))		#
+# 	+ Postprocess																			#
 # 	+ Run																					#
 #############################################################################################
 
+
+if [ -f scripts/database.sh ]; then
+    . scripts/database.sh
+fi
 
 if [ -f scripts/helpers.sh ]; then
     . scripts/helpers.sh
 fi
 
-if [ -f scripts/prepare.sh ]; then
-    . scripts/prepare.sh
-fi
-
-if [ -f scripts/database.sh ]; then
-    . scripts/database.sh
+if [ -f scripts/preprocess.sh ]; then
+    . scripts/preprocess.sh
 fi
 
 if [ -f scripts/validation.sh ]; then
     . scripts/validation.sh
 fi
 
-if [ -f scripts/processing.sh ]; then
-    . scripts/processing.sh
+if [ -f scripts/process.sh ]; then
+    . scripts/process.sh
+fi
+
+if [ -f scripts/postprocess.sh ]; then
+    . scripts/postprocess.sh
 fi
 
 pre_process $*
 
 process
+
+post_process
