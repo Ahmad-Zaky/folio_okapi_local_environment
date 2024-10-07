@@ -108,6 +108,8 @@ okapilog                                # shows the log for running okapi instan
 * TODO: while starting we start stopping all ports with a specific range starts from `9130` we may make the stop optional either stop or fail.
 * TODO: we need to emphasize that removing mod-authtoken, and `mod-permissions` are now implemented directly with Database query because any new version comes prevents from removing the old enabled version and if there are new ways to do it.
 * TODO: explain all unused methods as most of them were functioning in the past.
+* TODO: update folio aliases and add dump from remote db as command option.
+* TODO: update aliases for folio bash commands with new existing aliases.
 
 > Modules json keys explained:
 
