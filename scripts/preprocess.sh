@@ -32,6 +32,9 @@ pre_process() {
 
 	free_from_start_to_end_ports
 
+	# we remove them before running okapi as okapi cache the enabled modules list so any db change will not affect the cached list
+	remove_authtoken_and_permissions_if_enabled_previously
+
 	run_okapi
 
 	set_env_vars_to_okapi
@@ -41,8 +44,6 @@ pre_process() {
 	validate_modules_list
 
 	validate_configurations_list
-
-	remove_authtoken_and_permissions_if_enabled_previously
 }
 
 # Default Variable values

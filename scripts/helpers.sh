@@ -1492,48 +1492,29 @@ get_deployed_instance_id() {
 
 # NOTE: it does not work if authtoken instance is not up and running
 remove_authtoken_and_permissions_if_enabled_previously() {
-	module_dir_exists $AUTHTOKEN_MODULE
-	local EXISTS=$?
-	if [[ "$EXISTS" -eq 0 ]]; then
-		get_module_index_by_id $AUTHTOKEN_MODULE $JSON_FILE
-		process_module $MODULE_INDEX $JSON_FILE build 1
-		unset $MODULE_INDEX
-	fi
-
-	module_dir_exists $PERMISSIONS_MODULE
-	local EXISTS=$?
-	if [[ "$EXISTS" -eq 0 ]]; then
-		get_module_index_by_id $PERMISSIONS_MODULE $JSON_FILE
-		process_module $MODULE_INDEX $JSON_FILE build 1
-		unset $MODULE_INDEX
-	fi
-
-	has_installed $AUTHTOKEN_MODULE $TENANT
-	FOUND=$?
-	if [[ "$FOUND" -eq 0 ]]; then
-		return
-	fi
-
 	if [[ $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY == "true" ]]; then
-		# Deploy mod-authtoken and mod-permissions to be able to remove mod-authtoken from the tenant.
-		deploy_module_request $AUTHTOKEN_MODULE
-		deploy_module_request $PERMISSIONS_MODULE
+		new_line
 
-		install_module_request enable $AUTHTOKEN_MODULE
-		install_module_request enable $PERMISSIONS_MODULE
+		module_dir_exists $AUTHTOKEN_MODULE
+		local EXISTS=$?
+		if [[ "$EXISTS" -eq 0 ]]; then
+			get_module_index_by_id $AUTHTOKEN_MODULE $JSON_FILE
+			process_module $MODULE_INDEX $JSON_FILE build 1
+			unset $MODULE_INDEX
+		fi
 
-		get_module_versioned $AUTHTOKEN_MODULE
-		remove_module_from_tenant $VERSIONED_MODULE $TENANT
+		module_dir_exists $PERMISSIONS_MODULE
+		local EXISTS=$?
+		if [[ "$EXISTS" -eq 0 ]]; then
+			get_module_index_by_id $PERMISSIONS_MODULE $JSON_FILE
+			process_module $MODULE_INDEX $JSON_FILE build 1
+			unset $MODULE_INDEX
+		fi
 
-		get_deployed_instance_id $AUTHTOKEN_MODULE $VERSION_FROM
-		remove_deployed_module $VERSIONED_MODULE $DEPLOYED_INSTANCE_ID
-		unset $DEPLOYED_INSTANCE_ID
-		unset $VERSIONED_MODULE
+		delete_installed_module $AUTHTOKEN_MODULE
+		delete_installed_module $PERMISSIONS_MODULE
 
-		get_deployed_instance_id $PERMISSIONS_MODULE $VERSION_FROM
-		remove_deployed_module $VERSIONED_MODULE $DEPLOYED_INSTANCE_ID
-		unset $DEPLOYED_INSTANCE_ID
-		unset $VERSIONED_MODULE
+		new_line
 	fi
 }
 
@@ -1627,19 +1608,27 @@ disable_installed_module() {
 	
 	get_installed_module_versioned $MODULE
 
-	log "Disable installed (enabled) module ($VERSIONED_MODULE)"
+	if [[ -n "$VERSIONED_MODULE" ]]; then
+		log "Disable installed (enabled) module ($VERSIONED_MODULE)"
 
-	update_installed_module_status $VERSIONED_MODULE false
+		update_installed_module_status $VERSIONED_MODULE false
+	fi
+
+	unset $VERSIONED_MODULE
 }
 
 enable_installed_module() {
 	local MODULE=$1
 	
 	get_installed_module_versioned $MODULE
-	
-	log "Enable installed (enabled) module ($VERSIONED_MODULE)"
-	
-	update_installed_module_status $VERSIONED_MODULE true
+		
+	if [[ -n "$VERSIONED_MODULE" ]]; then
+		log "Enable installed (enabled) module ($VERSIONED_MODULE)"
+		
+		update_installed_module_status $VERSIONED_MODULE true
+	fi
+
+	unset $VERSIONED_MODULE
 }
 
 delete_installed_module() {
@@ -1647,7 +1636,9 @@ delete_installed_module() {
 	
 	get_installed_module_versioned $MODULE
 	
-	delete_installed_module_from_enabled_modules $VERSIONED_MODULE
+	if [[ -n "$VERSIONED_MODULE" ]]; then
+		delete_installed_module_from_enabled_modules $VERSIONED_MODULE
+	fi
 
 	unset $VERSIONED_MODULE
 }
@@ -1775,8 +1766,10 @@ get_installed_module_versioned() {
 
 	RESULT=$(echo $CURL_RESPONSE | jq '[.[] | select(.id | contains("'$MODULE'"))] | .[0].id')
 	RESULT=$(echo $RESULT | sed 's/"//g')
-
-	VERSIONED_MODULE="$RESULT"
+	
+	if [[ -n "$RESULT" ]] && [[ "$RESULT" != "null" ]]; then
+		VERSIONED_MODULE="$RESULT"
+	fi
 }
 
 get_okapi_docker_container_env_options() {
