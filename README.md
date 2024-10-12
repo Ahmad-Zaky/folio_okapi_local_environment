@@ -110,6 +110,10 @@ okapilog                                # shows the log for running okapi instan
 * TODO: explain all unused methods as most of them were functioning in the past.
 * TODO: update folio aliases and add dump from remote db as command option.
 * TODO: update aliases for folio bash commands with new existing aliases.
+* TODO: list some sample of group of modules work together ex fot work with mod-circulation you need to some other modules to be enabled as well.
+* TODO: explain how to use empty required array in ModuleDescriptor.json file.
+* TODO: try to use tags as versioning for your repo in the future if it gains attention
+* TODO: try to add feature to get all module dependencies (other modules) try to use the okapi.json which is populated with each release.
 
 > Modules json keys explained:
 
