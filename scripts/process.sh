@@ -755,7 +755,9 @@ process() {
 	local LENGTH=$(jq '. | length' $FILTERED_JSON_FILE)
 	for ((i=0; i<$LENGTH; i++))
 	do
+		new_line
 		process_module $i $FILTERED_JSON_FILE
+		new_line
 	done
 }
 
