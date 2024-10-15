@@ -3,6 +3,8 @@ FOLIO Okapi Local Environment
 
 This repository is based on another repository which started to help developers to run the FOLIO environment locally in an automated manner. [click here](https://github.com/adamdickmeiss/folio-local-run)
 
+Here you can find documentation for running a local FOLIO system. [click here](https://dev.folio.org/guides/run-local-folio)
+
 > Prerequisites
 
 * `git` should be locally installed. [click here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
