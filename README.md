@@ -116,6 +116,7 @@ okapilog                                # shows the log for running okapi instan
 * TODO: explain how to use empty required array in ModuleDescriptor.json file.
 * TODO: try to use tags as versioning for your repo in the future if it gains attention
 * TODO: try to add feature to get all module dependencies (other modules) try to use the okapi.json which is populated with each release.
+* TODO: the configuration `EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR` could be applied on each module independently instead of a general configuration on all modules.
 
 > Modules json keys explained:
 
