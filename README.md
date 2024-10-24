@@ -120,6 +120,8 @@ okapilog                                # shows the log for running okapi instan
 * TODO: if I run folio without `start` or `restart` command and the okapi instance is already up and running the problem with old enabled `mod-authtoken` and `mod-permissions` will not be solved as the cache prevents reading the new db updates so you need to invalidate the cache or restarting okapi forcefully.
 * TODO: we need a way to pass environment variables to okapi while start/restart in both ways running in the host machine or in a docker container. [read more](https://medium.com/@manishbansal8843/environment-variables-vs-system-properties-or-vm-arguments-vs-program-arguments-or-command-line-1aefce7e722c)
 * TODO: some new user creation information like `patron group`, and `address type`.
+* TODO: if pom.xml version is different from `target/ModuleDescriptor.json` we should rebuild the project.
+* TODO: Review all configuration keys and explain them if they are not.
 
 > Modules json keys explained:
 

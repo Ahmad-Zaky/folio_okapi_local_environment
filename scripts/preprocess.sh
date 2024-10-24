@@ -137,6 +137,7 @@ okapi_defaults() {
 	OKAPI_STORAGE=$(jq ".OKAPI_STORAGE" $CONFIG_FILE)
 	OKAPI_TRACE_HEADERS=$(jq ".OKAPI_TRACE_HEADERS" $CONFIG_FILE)
 	OKAPI_OPTION_ENABLE_SYSTEM_AUTH=$(jq ".OKAPI_OPTION_ENABLE_SYSTEM_AUTH" $CONFIG_FILE)
+	OKAPI_OPTION_ENABLE_VERTX_METRICS=$(jq ".OKAPI_OPTION_ENABLE_VERTX_METRICS" $CONFIG_FILE)
 	OKAPI_OPTION_STORAGE=$(jq ".OKAPI_OPTION_STORAGE" $CONFIG_FILE)
 	OKAPI_OPTION_TRACE_HEADERS=$(jq ".OKAPI_OPTION_TRACE_HEADERS" $CONFIG_FILE)
 	OKAPI_OPTION_LOG_LEVEL=$(jq ".OKAPI_OPTION_LOG_LEVEL" $CONFIG_FILE)
@@ -153,6 +154,7 @@ okapi_defaults() {
 
 	# Remove extra double quotes at start and end of the string
 	export OKAPI_OPTION_ENABLE_SYSTEM_AUTH=$(echo $OKAPI_OPTION_ENABLE_SYSTEM_AUTH | sed 's/"//g')
+	export OKAPI_OPTION_ENABLE_VERTX_METRICS=$(echo $OKAPI_OPTION_ENABLE_VERTX_METRICS | sed 's/"//g')
 	export OKAPI_OPTION_STORAGE=$(echo $OKAPI_OPTION_STORAGE | sed 's/"//g')
 	export OKAPI_OPTION_TRACE_HEADERS=$(echo $OKAPI_OPTION_TRACE_HEADERS | sed 's/"//g')
 	export OKAPI_OPTION_LOG_LEVEL=$(echo $OKAPI_OPTION_LOG_LEVEL | sed 's/"//g')
@@ -177,7 +179,7 @@ okapi_defaults() {
 	export OKAPI_NOHUP_FILE="okapi/nohub.out"
 	export OKAPI_REPO="git@github.com:folio-org/okapi.git"
 	export OKAPI_DB_OPTIONS="-Dpostgres_host=$DB_HOST -Dpostgres_port=$DB_PORT -Dpostgres_database=$DB_DATABASE -Dpostgres_username=$DB_USERNAME -Dpostgres_password=$DB_PASSWORD"
-	export OKAPI_OPTIONS="-Dloglevel=$OKAPI_OPTION_LOG_LEVEL -Denable_system_auth=$OKAPI_OPTION_ENABLE_SYSTEM_AUTH -Dport_end=$END_PORT -Dstorage=$OKAPI_OPTION_STORAGE -Dtrace_headers=$OKAPI_OPTION_TRACE_HEADERS $OKAPI_DB_OPTIONS"
+	export OKAPI_OPTIONS="-Dloglevel=$OKAPI_OPTION_LOG_LEVEL -Denable_system_auth=$OKAPI_OPTION_ENABLE_SYSTEM_AUTH -Dvertx.metrics.options.enabled=$OKAPI_OPTION_ENABLE_VERTX_METRICS -Dport_end=$END_PORT -Dstorage=$OKAPI_OPTION_STORAGE -Dtrace_headers=$OKAPI_OPTION_TRACE_HEADERS $OKAPI_DB_OPTIONS"
 	export OKAPI_BUILD_COMMAND="mvn install -DskipTests $OKAPI_DB_OPTIONS"
 	export OKAPI_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar $OKAPI_ARG_DEV"
 	export OKAPI_INIT_COMMAND="java $OKAPI_OPTIONS -jar okapi-core/target/okapi-core-fat.jar $OKAPI_ARG_INIT"

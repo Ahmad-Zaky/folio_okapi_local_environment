@@ -16,6 +16,7 @@
     "OKAPI_DIR":"okapi",
     "OKAPI_REPO":"git@github.com:folio-org/okapi.git",
     "OKAPI_OPTION_ENABLE_SYSTEM_AUTH":"true",
+    "OKAPI_OPTION_ENABLE_VERTX_METRICS":"false",
     "OKAPI_OPTION_STORAGE": "postgres",
     "OKAPI_OPTION_TRACE_HEADERS":"true",
     "OKAPI_OPTION_LOG_LEVEL":"DEBUG",
