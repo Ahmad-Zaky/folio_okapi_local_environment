@@ -757,7 +757,6 @@ process() {
 	do
 		new_line
 		process_module $i $FILTERED_JSON_FILE
-		new_line
 	done
 }
 
