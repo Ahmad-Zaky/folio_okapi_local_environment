@@ -117,7 +117,8 @@ okapilog                                # shows the log for running okapi instan
 * TODO: try to use tags as versioning for your repo in the future if it gains attention
 * TODO: try to add feature to get all module dependencies (other modules) try to use the okapi.json which is populated with each release.
 * TODO: the configuration `EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR` could be applied on each module independently instead of a general configuration on all modules.
-
+* TODO: if I run folio without `start` or `restart` command and the okapi instance is already up and running the problem with old enabled `mod-authtoken` and `mod-permissions` will not be solved as the cache prevents reading the new db updates so you need to invalidate the cache or restarting okapi forcefully.
+* TODO: we need a way to pass environment variables to okapi while start/restart in both ways running in the host machine or in a docker container. [read more](https://medium.com/@manishbansal8843/environment-variables-vs-system-properties-or-vm-arguments-vs-program-arguments-or-command-line-1aefce7e722c)
 > Modules json keys explained:
 
 > The only required unique key is `id` any other keys are optional and may be conditional required
