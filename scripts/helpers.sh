@@ -1379,19 +1379,10 @@ new_user() {
 			"mobilePhone": "'$USER_PERSONAL_MOBILE_PHONE'",
 			"preferredContactTypeId": "'$USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID'",
 			"email": "'$USER_PERSONAL_EMAIL'",
-			"addresses": [
-				{
-					"city": "'$USER_PERSONAL_ADDRESSES_CITY'",
-					"countryId": "'$USER_PERSONAL_ADDRESSES_COUNTRY_ID'",
-					"postalCode": "'$USER_PERSONAL_ADDRESSES_POSTAL_CODE'",
-					"addressLine1": "'$USER_PERSONAL_ADDRESSES_ADDRESS_LINE_1'",
-					"addressTypeId": "'$USER_PERSONAL_ADDRESSES_ADDRESS_TYPE_ID'"
-				}
-			]
+			"addresses": []
 		},
 		"proxyFor": '$USER_PROXY_FOR',
 		"departments": '$USER_DEPARTMENTS',
-		"patronGroup": "'$USER_PATRON_GROUP'",
 		"expirationDate": ""
 	}'
 
