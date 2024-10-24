@@ -122,6 +122,7 @@ okapilog                                # shows the log for running okapi instan
 * TODO: some new user creation information like `patron group`, and `address type`.
 * TODO: if pom.xml version is different from `target/ModuleDescriptor.json` we should rebuild the project.
 * TODO: Review all configuration keys and explain them if they are not.
+* TODO: do not free all ports at once at the beginning instead free it before each use
 
 > Modules json keys explained:
 
