@@ -9,7 +9,7 @@ db_cmd_defaults() {
     DB_CMD_DATABASE="okapi_modules"
     DB_CMD_DATABASE_SQL_FILE="okapi.sql"                            # sql file name located inside the DB_CMD_DATABASE_SQL_PATH directory declared below.
     DB_CMD_DUMPED_DATABASE_SQL_FILE="dumped_okapi.sql"              # dumped sql file name.
-    DB_CMD_DATABASE_SQL_PATH="db/$DB_CMD_DATABASE_SQL_FILE"         # sql file relative path to this script's directory.
+    DB_CMD_DATABASE_SQL_PATH="../db/$DB_CMD_DATABASE_SQL_FILE"         # sql file relative path to this script's directory.
     DB_CMD_CONTAINER="postgres-folio"                               # service container name found in the `docker-compose.yml` file
     DB_CMD_COMMAND_WRAPPER="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER /bin/bash -c \"%s\" \n"    # if you use postgres on your local machine directly, replace this with "%s"
     DB_CMD_COMMAND_WRAPPER_ALT="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER %s \n"    # if you use postgres on your local machine directly, replace this with "%s"
@@ -21,7 +21,6 @@ db_cmd_defaults() {
     DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION="-N"
     DB_CMD_PGDUMP_SCHEMA_OPTION="$DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION"
 }
-
 
 db_has_arg() {
     local TO_BE_FOUND_ARG=$1
@@ -164,7 +163,7 @@ import() {
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_CMD_DATABASE_SQL_FILE")
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_CMD_DATABASE_SQL_FILE")
 
-    echo "Dump $DB_CMD_DATABASE_SQL_FILE into $DB_CMD_DATABASE database"
+    echo "Import $DB_CMD_DATABASE_SQL_FILE into $DB_CMD_DATABASE database"
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -f $DB_CMD_DATABASE_SQL_FILE")
 }
 

@@ -123,6 +123,8 @@ okapilog                                # shows the log for running okapi instan
 * TODO: if pom.xml version is different from `target/ModuleDescriptor.json` we should rebuild the project.
 * TODO: Review all configuration keys and explain them if they are not.
 * TODO: do not free all ports at once at the beginning instead free it before each use
+* TODO: in `database.sh` file we can enhance logging as it uses primitive echo "..." approach.
+* TODO: in `database.sh` file if we run `folio db staging import` or without staging the sql file may contain casts that are not present in the local db so you need to add them manually.
 
 > Modules json keys explained:
 
