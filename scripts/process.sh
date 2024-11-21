@@ -381,7 +381,7 @@ post_build() {
 		# Opt in the module
 		cd $MODULE
 
-		empty_requires_array_in_module_desriptor
+		empty_requires_array_in_module_descriptor
 
 		# Opt out from the module
 		cd ..

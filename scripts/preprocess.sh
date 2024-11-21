@@ -32,10 +32,13 @@ pre_process() {
 
 	free_from_start_to_end_ports
 
+	# we need to run okapi first because we cannot fetch mod-authtoken and mod-permissions module version unless okapi is up and running
+	run_okapi
+
 	# we remove them before running okapi as okapi cache the enabled modules list so any db change will not affect the cached list
 	remove_authtoken_and_permissions_if_enabled_previously
 
-	run_okapi
+	rerun_okapi
 
 	set_env_vars_to_okapi
 
@@ -455,6 +458,19 @@ clear_file() {
 
 go_to_modules_dir() {
 	cd "$MODULES_DIR"
+}
+
+rerun_okapi() {
+	if [[ "$RESTART_OKAPI_ARG" -eq 0 ]]; then
+		REVERT_RESTART_OKAPI_ARG=1
+	fi
+
+	RESTART_OKAPI_ARG=1
+	run_okapi
+
+	if [[ "$REVERT_RESTART_OKAPI_ARG" -eq 1 ]]; then
+		REVERT_RESTART_OKAPI_ARG=0
+	fi
 }
 
 run_okapi() {

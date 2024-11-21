@@ -336,12 +336,12 @@ login_user_curl() {
 	local PWD=$4
 
 	set_file_name $BASH_SOURCE
-	curl_req -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
+	curl_req -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -HAccept:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
 
-	# login from mod-users-bl module but the $LOGIN_WITH_MOD variable value should be 'mod-uers-bl'
+	# login from mod-users-bl module but the $LOGIN_WITH_MOD variable value should be 'mod-users-bl'
 	# curl_req -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/bl-users/login?expandPermissions=true&fullPermissions=true
 	# if [[ "$?" -eq 0 ]]; then
 	# 	return
@@ -394,6 +394,8 @@ import_postman_openapi() {
 }
 
 update_env_postman() {
+	return
+
 	if [ -z "$POSTMAN_API_KEY" ] || [ -z "$POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID" ] || [ -z "$POSTMAN_URL" ] || [ -z "$POSTMAN_ENVIRONMENT_PATH" ]; then
 		return 
 	fi
@@ -1624,9 +1626,9 @@ enable_installed_module() {
 
 delete_installed_module() {
 	local MODULE=$1
-	
+
 	get_installed_module_versioned $MODULE
-	
+
 	if [[ -n "$VERSIONED_MODULE" ]]; then
 		delete_installed_module_from_enabled_modules $VERSIONED_MODULE
 	fi
@@ -1668,7 +1670,7 @@ get_delete_installed_module_query() {
 	QUERY="UPDATE tenants SET tenantjson = jsonb_set(tenantjson::jsonb, '{enabled}', (tenantjson->'enabled') - '"$VERSIONED_MODULE"') WHERE tenantjson->'descriptor'->>'id' = '$TENANT';"
 }
 
-empty_requires_array_in_module_desriptor() {
+empty_requires_array_in_module_descriptor() {
 	jq '.requires = []' target/ModuleDescriptor.json > tmp.json && mv tmp.json target/ModuleDescriptor.json
 }
 
@@ -1757,7 +1759,7 @@ get_installed_module_versioned() {
 
 	RESULT=$(echo $CURL_RESPONSE | jq '[.[] | select(.id | contains("'$MODULE'"))] | .[0].id')
 	RESULT=$(echo $RESULT | sed 's/"//g')
-	
+
 	if [[ -n "$RESULT" ]] && [[ "$RESULT" != "null" ]]; then
 		VERSIONED_MODULE="$RESULT"
 	fi
@@ -2003,8 +2005,8 @@ build_directory_exists() {
 }
 
 module_dir_exists() {
-	local MODULE=$1
-	if [ -d $MODULE ]; then
+	local MODULE="$1"
+	if [[ -d "$MODULE" ]]; then
 		return 1
 	fi
 
