@@ -461,16 +461,15 @@ go_to_modules_dir() {
 }
 
 rerun_okapi() {
-	if [[ "$RESTART_OKAPI_ARG" -eq 0 ]]; then
-		REVERT_RESTART_OKAPI_ARG=1
+
+	if [[ "$RESTART_OKAPI_ARG" -eq 0 ]] && [[ "$START_OKAPI_ARG" -eq 0 ]]; then
+		return
 	fi
 
+	REVERT_RESTART_OKAPI_ARG=1
 	RESTART_OKAPI_ARG=1
 	run_okapi
-
-	if [[ "$REVERT_RESTART_OKAPI_ARG" -eq 1 ]]; then
-		REVERT_RESTART_OKAPI_ARG=0
-	fi
+	REVERT_RESTART_OKAPI_ARG=0
 }
 
 run_okapi() {
