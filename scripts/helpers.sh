@@ -319,6 +319,10 @@ attach_permissions() {
 
 # Login to obtain the token from the header
 login_user() {
+	if [[ "$OKAPI_OPTION_ENABLE_SYSTEM_AUTH" == "false" ]]; then
+		return
+	fi
+
 	log "Login with credentials: "
 	log "username: $USERNAME"
 	log "password: $PASSWORD"
