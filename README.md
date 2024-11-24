@@ -125,6 +125,8 @@ okapilog                                # shows the log for running okapi instan
 * TODO: do not free all ports at once at the beginning instead free it before each use
 * TODO: in `database.sh` file we can enhance logging as it uses primitive echo "..." approach.
 * TODO: in `database.sh` file if we run `folio db staging import` or without staging the sql file may contain casts that are not present in the local db so you need to add them manually.
+* TODO: in `modules.json` in the `okapi` object we need a key to add custom java options.
+* TODO: in `modules.json` in the `okapi` object we want the env key value option like in the other modules.
 
 > Modules json keys explained:
 
