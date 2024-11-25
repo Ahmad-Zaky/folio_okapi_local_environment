@@ -127,6 +127,7 @@ okapilog                                # shows the log for running okapi instan
 * TODO: in `database.sh` file if we run `folio db staging import` or without staging the sql file may contain casts that are not present in the local db so you need to add them manually.
 * TODO: in `modules.json` in the `okapi` object we need a key to add custom java options.
 * TODO: in `modules.json` in the `okapi` object we want the env key value option like in the other modules.
+* TOOD: we need to only import schemas option so we do not need to drop the whole db and recreate it again.
 
 > Modules json keys explained:
 
