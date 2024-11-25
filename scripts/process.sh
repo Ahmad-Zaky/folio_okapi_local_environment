@@ -449,16 +449,14 @@ post_install() {
 	fi
 
 	should_install $INDEX $JSON_LIST $SUPPRESS_STEP
-	if [[ "$?" -eq 0 ]]; then
-		return
-	fi
+	if [[ "$?" -eq 1 ]]; then
+		# Set permissions related to mod-users-bl
+		if [[ $HAS_USERS_BL_MODULE == true ]] && [[ $MODULE == "$USERS_BL_MODULE" ]]; then
+			set_users_bl_module_permissions $INDEX
 
-	# Set permissions related to mod-users-bl
-	if [[ $HAS_USERS_BL_MODULE == true ]] && [[ $MODULE == "$USERS_BL_MODULE" ]]; then
-		set_users_bl_module_permissions $INDEX
-
-		# Update postman environment variables
-		update_env_postman $POSTMAN_API_KEY
+			# Update postman environment variables
+			update_env_postman $POSTMAN_API_KEY
+		fi
 	fi
 
 	re_export_env_vars
