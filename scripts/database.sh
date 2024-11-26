@@ -7,12 +7,13 @@ db_cmd_defaults() {
     DB_CMD_USERNAME="folio_admin"
     DB_CMD_DATABASE_STAGING="okapi_modules_ils"
     DB_CMD_DATABASE="okapi_modules"
-    DB_CMD_DATABASE_SQL_FILE="okapi.sql"                            # sql file name located inside the DB_CMD_DATABASE_SQL_PATH directory declared below.
-    DB_CMD_DUMPED_DATABASE_SQL_FILE="dumped_okapi.sql"              # dumped sql file name.
-    DB_CMD_DATABASE_SQL_PATH="../db/$DB_CMD_DATABASE_SQL_FILE"         # sql file relative path to this script's directory.
-    DB_CMD_CONTAINER="postgres-folio"                               # service container name found in the `docker-compose.yml` file
-    DB_CMD_COMMAND_WRAPPER="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER /bin/bash -c \"%s\" \n"    # if you use postgres on your local machine directly, replace this with "%s"
-    DB_CMD_COMMAND_WRAPPER_ALT="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER %s \n"    # if you use postgres on your local machine directly, replace this with "%s"
+    DB_CMD_DATABASE_SQL_FILE="okapi.sql"                                                        # sql file name located inside the DB_CMD_DATABASE_SQL_PATH directory declared below.
+    DB_CMD_DUMPED_DATABASE_SQL_FILE="dumped_okapi.sql"                                          # dumped sql file name.
+    DB_CMD_DATABASE_SQL_DIR_PATH="../db"                                                        # sql file relative path to this script's directory.
+    DB_CMD_DATABASE_SQL_PATH="$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DATABASE_SQL_FILE"          # sql file relative path to this script's directory.
+    DB_CMD_CONTAINER="postgres-folio"                                                           # service container name found in the `docker-compose.yml` file
+    DB_CMD_COMMAND_WRAPPER="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER /bin/bash -c \"%s\" \n"   # if you use postgres on your local machine directly, replace this with "%s"
+    DB_CMD_COMMAND_WRAPPER_ALT="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER %s \n"                # if you use postgres on your local machine directly, replace this with "%s"
     DB_CMD_CP_DUMP_DB_SOURCE="/$DB_CMD_DUMPED_DATABASE_SQL_FILE"
     DB_CMD_CP_DUMP_DB_DESTINATION="../db/"
     DB_CMD_DOCKER_CP_COMMAND="$DB_CMD_DOCKER_CMD cp $DB_CMD_CONTAINER:$DB_CMD_CP_DUMP_DB_SOURCE $DB_CMD_CP_DUMP_DB_DESTINATION"
@@ -33,6 +34,19 @@ db_has_arg() {
     done
 
     return 0
+}
+
+db_get_arg() {
+    local INDEX=$1
+    shift
+    local ARGS=$*
+    FOUND_ARGUMENT="" # reinitialize the variable for next call
+
+    # Split the arguments into positional parameters
+    set -- $ARGS
+
+    # Access the specific argument by index
+    FOUND_ARGUMENT=$(eval echo \$$INDEX)
 }
 
 remove_one_from_arguments() {
@@ -72,7 +86,7 @@ list_schemas() {
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \\\"\\dn\\\"")
 }
 
-handle_arguments() {    
+handle_arguments() {
     db_has_arg "staging" $DB_ARGS
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
@@ -92,6 +106,14 @@ handle_arguments() {
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
         DB_CMD_HAS_IMPORT_ARG=true
+	fi
+
+    db_has_arg "import_schema" $DB_ARGS
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+        db_get_arg 2 $DB_ARGS
+        DB_SCHEMA=$FOUND_ARGUMENT
+        DB_CMD_HAS_IMPORT_SCHEMA_ARG=true
 	fi
 
     db_has_arg "dump" $DB_ARGS
@@ -138,6 +160,7 @@ import() {
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "createdb -U $DB_CMD_USERNAME $DB_CMD_DATABASE")
     echo "Database $DB_CMD_DATABASE created successfully."
 
+    # Remove old database sql file inside Docker image
     if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == true ]]; then
         echo "Remove old $DB_CMD_DATABASE_SQL_FILE file."
         eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_CMD_DATABASE_SQL_FILE")
@@ -165,6 +188,51 @@ import() {
 
     echo "Import $DB_CMD_DATABASE_SQL_FILE into $DB_CMD_DATABASE database"
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -f $DB_CMD_DATABASE_SQL_FILE")
+
+    # Remove new schema sql file inside Docker image
+    if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == true ]]; then
+        echo "Remove new $DB_CMD_DATABASE_SQL_FILE file."
+        eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_CMD_DATABASE_SQL_FILE")
+    fi
+}
+
+import_schema() {
+    DB_SCHEMA_FILE="$DB_SCHEMA.sql"
+    DB_CMD_SCHEMA_SQL_PATH="$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_SCHEMA_FILE"
+
+    # Drop schema if already exists
+    echo "Drop Schema $DB_SCHEMA if exists."
+
+    db_run_query "DROP SCHEMA IF EXISTS $DB_SCHEMA CASCADE"
+
+    # Remove old schema sql file inside Docker image
+    if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == true ]]; then
+        echo "Remove old $DB_SCHEMA_FILE file."
+        eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_SCHEMA_FILE")
+    fi
+
+    # Copy SQL file to Docker container
+    echo "Copy $DB_SCHEMA_FILE to $DB_CMD_CONTAINER container"
+    sudo docker cp $DB_CMD_SCHEMA_SQL_PATH $DB_CMD_CONTAINER:/
+
+    if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_SCHEMA_FILE ]; then echo true; else echo false; fi")) == false ]]; then
+        echo "Failed to copy $DB_SCHEMA_FILE file."
+
+        exit 1
+    fi
+
+    echo "Replace OWNER $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME to $DB_CMD_USERNAME in $DB_SCHEMA_FILE file."
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_SCHEMA_FILE")
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_ILS_OKAPI_DB_CMD_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_SCHEMA_FILE")
+
+    echo "Import $DB_SCHEMA_FILE schema into $DB_CMD_DATABASE database"
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -f $DB_SCHEMA_FILE")
+
+    # Remove new schema sql file inside Docker image
+    if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == true ]]; then
+        echo "Remove new $DB_SCHEMA_FILE file."
+        eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_SCHEMA_FILE")
+    fi
 }
 
 dump_db() {
@@ -217,12 +285,22 @@ db_run_query() {
 
     db_cmd_defaults
 
+    if [[ $DB_CMD_HAS_STAGING_ARG == true ]]; then
+        DB_CMD_DATABASE="$DB_CMD_DATABASE_STAGING"
+    fi
+    
     eval $(printf "$DB_CMD_COMMAND_WRAPPER_ALT" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \"$QUERY\"")
 }
 
 db_process() {
     if [[ $DB_CMD_HAS_IMPORT_ARG == true ]]; then
         import
+
+        return
+    fi
+    
+    if [[ $DB_CMD_HAS_IMPORT_SCHEMA_ARG == true ]]; then
+        import_schema
 
         return
     fi

@@ -60,6 +60,8 @@ folioup                                 # docker compose up for our docker-compo
 foliotest                               # run a test.sh script
 folio db import                         # import the db from an exported file.
 folio db staging import                 # import the db from an exported file to staging database.
+folio db import_schema                  # import the db schema from an exported file.
+folio db staging import_schema          # import the db schema from an exported file to staging database.
 folio db dump                           # dump database with all schemas to an sql file.
 folio db staging dump                   # dump database with all schemas to an sql file to staging database.
 folio db dump-include-schemas           # dump database with included schemas found in schemas.txt file to an sql file.
@@ -128,6 +130,7 @@ okapilog                                # shows the log for running okapi instan
 * TODO: in `modules.json` in the `okapi` object we need a key to add custom java options.
 * TODO: in `modules.json` in the `okapi` object we want the env key value option like in the other modules.
 * TOOD: we need to only import schemas option so we do not need to drop the whole db and recreate it again.
+* TODO: user permissions should be handled properly as new modules have new permissions, these new permissions should be granted to the logged in user.
 
 > Modules json keys explained:
 
