@@ -131,6 +131,7 @@ okapilog                                # shows the log for running okapi instan
 * TODO: in `modules.json` in the `okapi` object we want the env key value option like in the other modules.
 * TOOD: we need to only import schemas option so we do not need to drop the whole db and recreate it again.
 * TODO: user permissions should be handled properly as new modules have new permissions, these new permissions should be granted to the logged in user.
+* TODO: while creating new db on importing a db sql file consider crate Database Objects as it should be like casts and extensions like (btree_gin, pg_trgm, pgcrypto, unaccent, uuid-ossp)
 
 > Modules json keys explained:
 
