@@ -1489,6 +1489,10 @@ get_deployed_instance_id() {
 
 # NOTE: it does not work if authtoken instance is not up and running
 remove_authtoken_and_permissions_if_enabled_previously() {
+	if [[ "$OKAPI_OPTION_ENABLE_SYSTEM_AUTH" == "false" ]]; then
+		return
+	fi
+
 	if [[ $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY == "true" ]]; then
 		new_line
 
