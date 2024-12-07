@@ -1,12 +1,18 @@
-alias folio='cd </path/to_repo> && bash run.sh'
-alias foliotest='cd </path/to_repo> && bash test.sh'
-alias cdfolio='cd /home/zaky/Me/WORK/NASEEJ_MEDAD_ILS'
-alias folioup='cd </path/to_repo> && dkup'
+# folio
+alias cdfolio='cd </path/to_repo>'
+alias folio='cdfolio && bash run.sh'
+alias folioup='cdfolio && sudo docker compose up -d' # remove sudo if your docker does not need sudo
+alias foliocode='cdfolio && code .' # open in vscode
 alias foliooutputlog='cdfolio && tail -f modules/output.txt'
-alias okapiup='cd </path/to_repo> && sudo docker compose up okapi -d'
-alias okapistop='cd </path/to/repo> && sudo docker compose stop okapi'
-alias okapi='cdfolio && cd modules/okapi && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev'
-alias okapi_initdb='cdfolio && cd modules/okapi && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar initdatabase'
-alias okapi_purgedb='cdfolio && cd modules/okapi && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar purgedatabase'
-alias okapilog='cdfolio && tail -f modules/okapi/nohup.out'
+
+# okapi
+alias cdokapi='cdfolio && cd modules/okapi'
+alias okapi='cdokapi && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev'
+alias okapi_initdb='cdokapi && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar initdatabase'
+alias okapi_purgedb='cdokapi && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar purgedatabase'
 alias iokapi='okapi_initdb && okapi'
+alias okapiup='cdfolio && sudo docker compose up okapi -d'
+alias okapistop='cdfolio && sudo docker compose stop okapi'
+alias okapistopprocess='folio stop 9130' # NOTE: be sure that you use that port for okapi and folio command has been aliased as well
+alias okapilog='cdfolio && tail -f modules/okapi/nohup.out'
+alias buildokapi="cdokapi && mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dcheckstyle.skip"
