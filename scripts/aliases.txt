@@ -1,5 +1,5 @@
 # folio
-alias cdfolio='cd </path/to_repo>'
+alias cdfolio='cd </path/to/repo>'
 alias folio='cdfolio && bash run.sh'
 alias folioup='cdfolio && sudo docker compose up -d' # remove sudo if your docker does not need sudo
 alias foliocode='cdfolio && code .' # open in vscode
