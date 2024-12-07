@@ -132,7 +132,22 @@ okapilog                                # shows the log for running okapi instan
 * TOOD: we need to only import schemas option so we do not need to drop the whole db and recreate it again.
 * TODO: user permissions should be handled properly as new modules have new permissions, these new permissions should be granted to the logged in user.
 * TODO: while creating new db on importing a db sql file consider crate Database Objects as it should be like casts and extensions like (btree_gin, pg_trgm, pgcrypto, unaccent, uuid-ossp)
+* TODO: in env json array objects its better to use `key` value as the key of environment variable instead of `name`.
+    - From    
+    ```json
+    {
+        "name": "OTEL_SERVICE_NAME",
+        "value": "mod-authtoken-ot"
+    }
+    ```
 
+    - To    
+    ```json
+    {
+        "key": "OTEL_SERVICE_NAME",
+        "value": "mod-authtoken-ot"
+    }
+    ```
 > Modules json keys explained:
 
 > The only required unique key is `id` any other keys are optional and may be conditional required
