@@ -1417,7 +1417,7 @@ import_aliases() {
 		return
 	fi
 
-	log "Import aliases ..."
+	log "Import aliases started ..."
 
 	if [[ ! -f  "$BASHRC_PATH" ]]; then
 		error "$BASHRC_PATH does not exists !"
@@ -1428,17 +1428,19 @@ import_aliases() {
 	fi
 
 	if [[ -f  $BASH_ALIASES_PATH ]]; then
-		echo "" >> $BASH_ALIASES_PATH
+		echo "" >> $BASH_ALIASES_PATH & echo "" >> $BASH_ALIASES_PATH
 		cat $ALIASES_PATH >> $BASH_ALIASES_PATH
 		source $BASHRC_PATH
-
-		exit 0
 	fi
 
-	echo "" >> $BASHRC_PATH
-	cat $ALIASES_PATH >> $BASHRC_PATH
-	source $BASHRC_PATH
-	
+	if [[ ! -f  $BASH_ALIASES_PATH ]]; then
+		echo "" >> $BASHRC_PATH & echo "" >> $BASHRC_PATH
+		cat $ALIASES_PATH >> $BASHRC_PATH
+		source $BASHRC_PATH
+	fi
+
+	log "Import aliases finished ..."
+
 	exit 0
 }
 
