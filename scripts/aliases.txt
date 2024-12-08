@@ -2,3 +2,7 @@
 alias cdfolio='cd </path/to/repo>'
 alias folio='cdfolio && bash run.sh'
 alias folioup='cdfolio && sudo docker compose up -d' # remove sudo if your docker does not need sudo
+
+# okapi
+alias cdokapi='cdfolio && cd modules/okapi'
+alias okapilog='cdokapi && tail -f nohup.out'

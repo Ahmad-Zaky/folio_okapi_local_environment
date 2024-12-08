@@ -950,8 +950,8 @@ start_okapi() {
 
 	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 
-	# wait untill okapi is fully up and running
-	sleep 5
+	log "Wait a little until Okapi is fully up an running"
+	sleep 10
 }
 
 init_okapi() {
