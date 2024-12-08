@@ -9,7 +9,7 @@ services:
       - 9130:9130
     command: ["dev"]
     environment:
-      - JAVA_OPTIONS=-Dloglevel=DEBUG -Dtrace_headers=true -Dstorage=postgres -Dport_end=9199 -Denable_system_auth=true -Dpostgres_host=postgres -Dpostgres_port=5432 -Dpostgres_database=okapi_modules -Dpostgres_username=folio_admin -Dpostgres_password=folio_admin
+      - JAVA_OPTIONS=-Dloglevel=${OKAPI_LOG_LEVEL:-DEBUG} -Dtrace_headers=${OKAPI_TRACE_HEADERS:-true} -Dstorage=${OKAPI_STORAGE:-postgres} -Dport_end=${OKAPI_PORT_END:-9200} -Denable_system_auth=${OKAPI_ENABLE_SYSTEM_AUTH:-true} -Dpostgres_host=${PG_HOST:-postgres} -Dpostgres_port=${PG_PORT:-5432} -Dpostgres_database=${PG_DATABASE:-okapi_modules} -Dpostgres_username=${PG_USERNAME:-folio_admin} -Dpostgres_password=${PG_PASSWORD:-folio_admin}
     networks:
       - default
 
@@ -17,11 +17,11 @@ services:
     container_name: postgres-folio
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=okapi_modules
-      - POSTGRES_USER=folio_admin
-      - POSTGRES_PASSWORD=folio_admin
-      - PGDATA=/data/postgres
-      - POSTGRES_SUPERUSER_USERNAME=postgres
+      - POSTGRES_DB=${PG_DATABASE:-okapi_modules}
+      - POSTGRES_USER=${PG_USERNAME:-folio_admin}
+      - POSTGRES_PASSWORD=${PG_PASSWORD:-folio_admin}
+      - PGDATA=${PG_DATA:-/data/postgres}
+      - POSTGRES_SUPERUSER_USERNAME=${PG_SUPERUSER_USERNAME:-postgres}
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres", "-d", "postgres"]
       interval: 10s
@@ -41,7 +41,7 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: ${PGADMIN_CONFIG_SERVER_MODE:-False}
     volumes:
       - pgadmin:/var/lib/pgadmin
     ports:
@@ -51,7 +51,6 @@ services:
       - default
 
   zookeeper:
-    restart: always
     container_name: zookeeper-folio
     image: docker.io/bitnami/zookeeper:3.8
     ports:
@@ -59,12 +58,12 @@ services:
     volumes:
       - "zookeeper-volume:/bitnami"
     environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ALLOW_ANONYMOUS_LOGIN=${ALLOW_ANONYMOUS_LOGIN:-yes}
+    restart: always
     networks:
       - default
 
   kafka:
-    restart: always
     container_name: kafka-folio
     image: docker.io/bitnami/kafka:3.3
     ports:
@@ -72,15 +71,16 @@ services:
     volumes:
       - "kafka-volume:/bitnami"
     environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9092
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
+      - KAFKA_BROKER_ID=${KAFKA_BROKER_ID:-1}
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=${KAFKA_CFG_ZOOKEEPER_CONNECT:-zookeeper:2181}
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=${KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP:-CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT}
+      - KAFKA_CFG_LISTENERS=${KAFKA_CFG_LISTENERS:-CLIENT://:9092,EXTERNAL://:9093}
+      - KAFKA_CFG_ADVERTISED_LISTENERS=${KAFKA_CFG_ADVERTISED_LISTENERS:-CLIENT://kafka:9092,EXTERNAL://localhost:9092}
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=${KAFKA_CFG_INTER_BROKER_LISTENER_NAME:-CLIENT}
+      - ALLOW_PLAINTEXT_LISTENER=${ALLOW_PLAINTEXT_LISTENER:-yes}
     depends_on:
       - zookeeper
+    restart: always
     networks:
       - default
 
@@ -90,7 +90,7 @@ services:
     environment:
       - xpack.security.enabled=false
       - "discovery.type=single-node"
-      - ELASTICSEARCH_PLUGINS=analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic
+      - ELASTICSEARCH_PLUGINS=${ELASTICSEARCH_PLUGINS:-analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic}
     ports:
       - "9200:9200"
     volumes:
@@ -111,7 +111,7 @@ services:
      - 5601:5601
     restart: always
     environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch_folio:9200
+      - ELASTICSEARCH_HOSTS=${ELASTICSEARCH_HOSTS:-http://elasticsearch_folio:9200}
     depends_on:
       - elasticsearch
     networks:
@@ -127,8 +127,8 @@ services:
       - "9009:9000"
       - "9090:9090"
     environment:
-      MINIO_ROOT_USER: "admin"
-      MINIO_ROOT_PASSWORD: "password"
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-password}
 
 volumes:
   postgres:

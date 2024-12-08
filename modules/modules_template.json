@@ -1,43 +1,112 @@
 [
     {
         "id": "okapi",
-        "repo": "git@github.com:folio-org/okapi.git",
-        "tag": "v5.1.0",
+        "repo": "https://github.com/folio-org/okapi.git",
+        "tag": "v5.3.0",
         "build": "mvn clean install -DskipTests",
         "rebuild": "false"
     },
     {
-        "id": "mod-users",
-        "enabled": "false"
-    },
-    {
-        "id": "mod-login",
-        "enabled": "false"
-    },
-    {
         "id": "mod-permissions",
-        "enabled": "false"
+        "tag": "v6.5.0",
+        "enabled": "true"
+    },
+    {
+        "id": "mod-inventory-storage",
+        "repo": "https://github.com/folio-org/mod-inventory-storage.git",
+        "tag": "v28.0.2",
+        "step": "install",
+        "build": "mvn clean install -DskipTests -Dcheckstyle.skip",
+        "rebuild": "false",
+        "env": [
+            {
+                "name": "DB_HOST",
+                "value": "localhost"
+            },
+            {
+                "name": "DB_PORT",
+                "value": "5432"
+            },
+            {
+                "name": "DB_USERNAME",
+                "value": "folio_admin"
+            },
+            {
+                "name": "DB_PASSWORD",
+                "value": "folio_admin"
+            },
+            {
+                "name": "DB_DATABASE",
+                "value": "okapi_modules_staging"
+            },
+            {
+                "name": "DB_QUERYTIMEOUT",
+                "value": "60000"
+            },
+            {
+                "name": "DB_MAXPOOLSIZE",
+                "value": "5"
+            }
+        ],
+        "enabled": "true"
+    },
+    {
+        "id": "mod-users",
+        "tag": "v19.4.4",
+        "step": "install",
+        "build": "mvn clean install -DskipTests -Dcheckstyle.skip",
+        "rebuild": "false",
+        "enabled": "true"
     },
     {
         "id": "mod-configuration",
-        "build":"mvn -DskipTests -Dcheckstyle.skip package",
-        "enabled": "false"
+        "tag": "v5.10.0",
+        "step": "install",
+        "build": "mvn clean install -DskipTests -Dcheckstyle.skip",
+        "rebuild": "false",
+        "enabled": "true"
     },
     {
-        "id": "mod-authtoken",
-        "enabled": "false"
+        "id": "mod-login",
+        "tag": "v7.12.1",
+        "step": "install",
+        "build": "mvn clean install -DskipTests -Dcheckstyle.skip",
+        "rebuild": "false",
+        "enabled": "true"
     },
     {
         "id": "mod-password-validator",
-        "enabled": "false"
+        "tag": "v3.2.0",
+        "enabled": "true"
     },
     {
-        "comment": "java.lang.IllegalStateException: Cannot find proxyClass: org.folio.services.audit.AuditServiceVertxProxyHandler",
-        "id": "mod-pubsub",
+        "id": "mod-authtoken",
+        "tag": "v2.16.1",
+        "step": "install",
+        "build": "mvn clean install -DskipTests -Dcheckstyle.skip",
+        "rebuild": "false",
         "env": [
             {
-                "name": "REPLICATION_FACTOR",
-                "value": "1"
+                "name": "TOKEN_EXPIRATION_SECONDS",
+                "value": 600
+            }
+        ],
+        "enabled": "true"
+    },
+    {
+        "id": "mod-pubsub",
+        "tag": "v2.15.2",
+        "step": "install",
+        "build": "mvn -DskipTests -Dcheckstyle.skip install",
+        "rebuild": "false",
+        "env": [
+            {
+                "name": "KAFKA_HOST",
+                "value": "localhost"
+            },
+            {
+                "name": "KAFKA_PORT",
+                "value": "9092"
             },
             {
                 "name": "NUMBER_OF_PARTITIONS",
@@ -49,7 +118,7 @@
             },
             {
                 "name": "ENV",
-                "value": "folio-testing"
+                "value": "folio"
             },
             {
                 "name": "SYSTEM_USER_NAME",
@@ -60,129 +129,32 @@
                 "value": "pubsub"
             }
         ],
-        "enabled": "false"
+        "enabled": "true"
     },
     {
         "id": "mod-email",
+        "tag": "v1.17.0",
         "enabled": "false"
     },
     {
         "id": "mod-users-bl",
-        "enabled": "false"
-    },
-    {
-        "id": "mod-mylibrary",
-        "repo": "git@github.com:Ahmad-Zaky/mod-mylibrary.git",
-        "tag": "latest",
-        "build": "mvn -DskipTests -Dmaven.test.skip=true clean package",
+        "tag": "v7.9.3",
         "step": "install",
-        "enabled": "false"
-    },
-    {
-        "comment": "the module descriptor is pointing to mod-worklists !!!",
-        "id": "mod-assets",
-        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-assets",
-        "branch": "develop",
-        "access_token": "<access_token>",
-        "okapi": {
-            "url": "https://okapi.medadstg.com",
-            "tenant": "medad",
-            "credentials": {
-                "username": "ui_admin",
-                "password": "U!@dm!n123"
-            }
-        },
-        "step": "install",
-        "enabled": "false"
-    },
-    {
-        "id": "mod-worklists",
-        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-worklists",
-        "okapi": {
-            "url": "https://okapi.medadstg.com",
-            "tenant": "medad",
-            "credentials": {
-                "username": "ui_admin",
-                "password": "U!@dm!n123"
-            }
-        },
-        "postman": {
-            "file": "src/main/resources/swagger.api/work-lists.yaml",
-            "api_key": "<postman_api_key>",
-            "enabled": "false"
-        },
-        "enabled": "false"
-    },
-    {
-        "id": "mod-inventory",
-        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-inventory",
-        "branch": "develop",
-        "okapi": {
-            "url": "https://okapi.medadstg.com",
-            "tenant": "medad",
-            "credentials": {
-                "username": "ui_admin",
-                "password": "U!@dm!n123"
-            }
-        },
-        "step": "build",
-        "enabled": "false"
-    },
-    {
-        "id": "mod-copycat",
-        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-copycat",
-        "branch": "develop",
-        "okapi": {
-            "url": "https://okapi.medadstg.com",
-            "tenant": "medad",
-            "credentials": {
-                "username": "ui_admin",
-                "password": "U!@dm!n123"
-            }
-        },
-        "install_params": {
-            "tenantParameters": {
-                "loadReference": "true"
-            }
-        },
+        "build": "mvn -DskipTests -Dcheckstyle.skip install",
         "rebuild": "false",
-        "step": "deploy",
-        "enabled": "false"
+        "enabled": "true"
     },
     {
-        "id": "mod-source-record-manager",
-        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-source-record-manager",
-        "branch": "develop",
-        "okapi": {
-            "url": "https://okapi.medadstg.com",
-            "tenant": "medad",
-            "credentials": {
-                "username": "ui_admin",
-                "password": "U!@dm!n123"
-            }
-        },
-        "step": "build",
-        "enabled": "false"
-    },
-    {
-        "id": "mod-label-printing",
-        "repo": "https://tfs.aas.com.sa/Medad/Medad%20ILS/_git/mod-label-printing",
-        "branch": "develop",
-        "okapi": {
-            "url": "https://okapi.medadstg.com",
-            "tenant": "medad",
-            "credentials": {
-                "username": "ui_admin",
-                "password": "U!@dm!n123"
-            }
-        },
-        "postman": {
-            "file": "src/main/resources/swagger.api/api.yaml",
-            "api_key": "<postman_api_key>",
-            "enabled": "false"
-        },
-        "rebuild": "false",
+        "id": "mod-settings",
         "step": "install",
+        "tag": "v1.1.0",
         "enabled": "false"
+    },
+    {
+        "id": "mod-reporting",
+        "repo": "https://github.com/folio-org/mod-reporting.git",
+        "step": "clone",
+        "tag": "v1.2.1",
+        "enabled": "true"
     }
 ]
