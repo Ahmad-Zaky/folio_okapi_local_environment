@@ -12,7 +12,7 @@
 
     "OKAPI_PORT":"9130",
     "OKAPI_HOST":"localhost",
-    "END_PORT":"9199",
+    "END_PORT":"9200",
     "OKAPI_DIR":"okapi",
     "OKAPI_REPO":"https://github.com/folio-org/okapi.git",
     "OKAPI_OPTION_ENABLE_SYSTEM_AUTH":"true",
