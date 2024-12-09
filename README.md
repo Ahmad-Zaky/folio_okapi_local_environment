@@ -264,6 +264,12 @@ okapilog                                # shows the log for running okapi instan
 * TODO: we want a command to init the script to run like import aliases and rename _template files.
 * TODO: configure wait time after running okapi before continue the script in `start_okapi()` method
 * TODO: add create db command for folio db commands.
+* TODO: consider add this manual creation script for `okapi_modules` database to the docs
+    ```sql
+    CREATE USER folio_admin  WITH PASSWORD 'folio_admin';
+    CREATE DATABASE okapi_modules OWNER folio_admin;
+    GRANT ALL PRIVILEGES ON DATABASE okapi_modules TO folio_admin;
+    ```
 
 
 > Modules json keys explained:
