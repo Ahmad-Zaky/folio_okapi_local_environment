@@ -263,7 +263,7 @@ okapilog                                # shows the log for running okapi instan
 * TODO: for the README.md file could we show it in a github pages site.
 * TODO: we want a command to init the script to run like import aliases and rename _template files.
 * TODO: configure wait time after running okapi before continue the script in `start_okapi()` method
-
+* TODO: add create db command for folio db commands.
 
 
 > Modules json keys explained:
