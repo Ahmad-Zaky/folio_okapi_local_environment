@@ -28,8 +28,5 @@ fi
 
 
 post_process() {
-    new_line
-	log "Delete temporary files ..."
-
-	delete_files "$OUTPUT_FILE $RESPONSE_FILE $FILTERED_JSON_FILE"
+	delete_tmp_files
 }

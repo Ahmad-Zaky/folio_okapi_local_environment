@@ -15,7 +15,7 @@ services:
 
   postgres:
     container_name: postgres-folio
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_DB=${PG_DATABASE:-okapi_modules}
       - POSTGRES_USER=${PG_USERNAME:-folio_admin}

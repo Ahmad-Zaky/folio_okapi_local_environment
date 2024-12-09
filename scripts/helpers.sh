@@ -784,20 +784,23 @@ free_from_start_to_end_ports() {
 
 stop_running_module_or_modules() {
 	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && ([[ -z "$STOP_OKAPI_PROT_ARG" ]] || [[ "$STOP_OKAPI_PROT_ARG" == "okapi" ]]); then
-		stop_running_modules
+		stop_okapi_deployed_modules
         stop_okapi
+		delete_tmp_files
 
 		exit 0
 	fi
 
     if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ "$STOP_OKAPI_PROT_ARG" == "modules" ]]; then
-		stop_running_modules
+		stop_okapi_deployed_modules
+		delete_tmp_files
 
 		exit 0
 	fi
 
 	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ ! -z "$STOP_OKAPI_PROT_ARG" ]]; then
         stop_running_module
+		delete_tmp_files
 
 		exit 0
 	fi
@@ -806,11 +809,11 @@ stop_running_module_or_modules() {
 		return
 	fi
 
-	stop_running_modules
+	stop_okapi_deployed_modules
 }
 
-stop_running_modules() {
-	log "Stop running modules ..."
+stop_okapi_deployed_modules() {
+	log "Stop okapi deployed modules ..."
 
 	set_file_name $BASH_SOURCE
 	curl_req true $OPTIONS $OKAPI_URL/_/discovery/modules
@@ -831,6 +834,7 @@ stop_running_modules() {
         IS_PORT_USED=$?
         if [[ "$IS_PORT_USED" -eq 1 ]]; then
             kill_process_port $MODULE_PORT
+			log "Stopping Module running on port: $MODULE_PORT"
 
 			continue
         fi
@@ -845,7 +849,7 @@ stop_running_modules() {
 			remove_container $MODULE
 			delete_deployed_module $SERVICE_ID $INSTANCE_ID
 		fi
-	done < <(echo "$CURL_RESPONSE" | jq -c '.[]')	
+	done < <(echo "$CURL_RESPONSE" | jq -c '.[]')
 }
 
 stop_running_module() {
@@ -883,7 +887,7 @@ re_export_env_vars() {
 	
 	postman_defaults
 
-	set_env_vars_to_okapi
+	set_okapi_env_vars
 }
 
 reset_vars() {
@@ -2089,4 +2093,11 @@ create_file() {
 	local FILE_NAME=$1
 
 	touch $FILE_NAME
+}
+
+delete_tmp_files() {
+    new_line
+	log "Delete temporary files ..."
+
+	delete_files "$OUTPUT_FILE $RESPONSE_FILE $FILTERED_JSON_FILE"
 }

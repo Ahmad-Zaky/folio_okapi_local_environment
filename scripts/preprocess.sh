@@ -35,14 +35,14 @@ pre_process() {
 	# we need to run okapi first because we cannot fetch mod-authtoken and mod-permissions module version unless okapi is up and running
 	run_okapi
 
+	set_okapi_env_vars
+
+	new_tenant
+
 	# we remove them before running okapi as okapi cache the enabled modules list so any db change will not affect the cached list
 	remove_authtoken_and_permissions_if_enabled_previously
 
 	rerun_okapi
-
-	set_env_vars_to_okapi
-
-	new_tenant
 
 	validate_modules_list
 
@@ -526,14 +526,16 @@ run_okapi() {
 	delete_deployed_modules
 }
 
-# Set Environment Variables to Okapi
-set_env_vars_to_okapi() {
+# Set okapi Environment Variables
+set_okapi_env_vars() {
 	# Do not set Okapi env variables if the argument without-okapi has been set
 	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
 		return
 	fi
 
-	log "Set environment variables to okapi"
+	reset_okapi_env_vars
+
+	log "Set okapi environment variables"
 
 	set_file_name $BASH_SOURCE
 	while read -r LINE; do
@@ -548,6 +550,27 @@ set_env_vars_to_okapi() {
 
 		curl_req -d"{\"name\":\"$NAME\",\"value\":\"$VALUE\"}" $OKAPI_URL/_/env
 	done < <(echo "$OKAPI_ENV_VARS" | jq -c '.[]')
+}
+
+reset_okapi_env_vars() {
+	log "Reset okapi environment variables"
+
+	# Do not reset Okapi env variables if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
+	set_file_name $BASH_SOURCE
+	curl_req true $OPTIONS $OKAPI_URL/_/env
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	while read -r ENV_VAR; do
+		local ENV_NAME=$(echo "$ENV_VAR" | jq -r '.name')
+
+		delete_curl_req true --request DELETE $OKAPI_URL/_/env/$ENV_NAME --header 'Content-Type: application/json'
+	done < <(echo "$CURL_RESPONSE" | jq -c '.[]')
 }
 
 # Store new tenant
