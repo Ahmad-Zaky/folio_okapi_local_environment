@@ -173,6 +173,9 @@ curl_req() {
 
 	output_debug $CALL_STACK_INDEX
 	
+	# add the file if not already exist
+	create_file $RESPONSE_FILE
+
 	STATUS_CODE=$(curl -s -o $RESPONSE_FILE -w "%{http_code}" "$@") 
 	CURL_RESPONSE=$(cat $RESPONSE_FILE) && : > $RESPONSE_FILE
 
@@ -947,8 +950,8 @@ start_okapi() {
 
 	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 
-	# wait untill okapi is fully up and running
-	sleep 5
+	log "Wait a little until Okapi is fully up an running"
+	sleep 10
 }
 
 init_okapi() {
@@ -2080,4 +2083,10 @@ function_exists() {
     else
         return 1 # Function does not exist
     fi
+}
+
+create_file() {
+	local FILE_NAME=$1
+
+	touch $FILE_NAME
 }

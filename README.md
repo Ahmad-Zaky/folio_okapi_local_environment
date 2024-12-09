@@ -1,47 +1,159 @@
-# FOLIO Okapi Local Environment
-FOLIO Okapi Local Environment
+# FOLIO Local Environment
 
-This repository is based on another repository which started to help developers to run the FOLIO environment locally in an automated manner. [click here](https://github.com/adamdickmeiss/folio-local-run)
+<!-- TABLE OF CONTENTS -->
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#about-the-project">About The Project</a></li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ol>
 
-Here you can find documentation for running a local FOLIO system. [click here](https://dev.folio.org/guides/run-local-folio)
+<!-- ABOUT THE PROJECT -->
+## About The Project  
 
-> Prerequisites
+This project is an advanced automated script designed to spin up a `FOLIO` microservice project in your local environment.  
+
+The FOLIO project includes an `API Gateway` called `Okapi`. The main goal of this script is to automate the process of setting up a local `Okapi` instance and running the necessary modules under this instance. For more details, [click here][1].  
+
+The script originates from `Adam Dickmeiss` ([`adamdickmeiss`][3]) and his [GitHub repository][2], which was initially developed to assist developers in setting up the FOLIO environment locally in an automated manner.  
+
+Currently, the script is in its `Alpha` stage and contains many TODOs. With community contributions, we hope to advance the script further, enabling the broader FOLIO community to use it more effectively and making it easier for developers to set up their local environments quickly and smoothly.
+
+The script is implemented in `bash` which works on `Linux`, and `macOS`, but not on `Windows`, you have some not tested workarounds like [`git bash`][4], [`Cygwin`][5], or [`Windows Subsystem for Linux (WSL)`][6].
+
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+Here we will focus on cloning the repo, preparing the environment, and staring `Okapi` with at least one folio module.
+
+### Prerequisites
+
+The script is utilizing some linux tools, which should be installed before running the script.
 
 * `git` should be locally installed. [click here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-* `git bash terminal` for **WINDOWS** users, you need to work inside a linux shell like this terminal (Git Bash) [click here](https://git-scm.com/download/win)
-* `java` should be installed locally with jdk v17. [click here](https://www.freecodecamp.org/news/how-to-install-java-in-ubuntu/)
+* `java` should be installed locally with `jdk v17`. [click here](https://www.freecodecamp.org/news/how-to-install-java-in-ubuntu/)
 * `jq` linux tool to process json files. [click here](https://jqlang.github.io/jq/download/)
 * `yq` linux tool to process yml files. [click here](https://github.com/mikefarah/yq)
 * `xmllint` linux tool to process xml files. [click here](https://github.com/AtomLinter/linter-xmllint?tab=readme-ov-file#linter-installation)
-* `lsof` linux tool to check process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
-* `docker` docker tool to run modules instead of running it within a process on the host machine. [click here](https://docs.docker.com/engine/install/)
-* `netstat` its a linux tool used for displaying network connections, routing tables, interface statistics, masquerade connections, and multicast memberships. However, starting from Ubuntu 20.04, netstat is considered deprecated in favor of the ss command [Click here](https://www.tecmint.com/install-netstat-in-linux/).
+* `lsof` linux tool to find process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
+* `docker` docker tool to run modules in containers instead of running it on the local host machine. [click here](https://docs.docker.com/engine/install/)
+* `netstat` its a linux tool used for displaying network connections, routing tables, interface statistics, masquerade connections, and multicast memberships. However, starting from `Ubuntu 20.04`, netstat is considered **`deprecated`** in favor of the ss command [Click here](https://www.tecmint.com/install-netstat-in-linux/).
 
-> First you need to run this command `sudo docker compose up --build -d` to build and run the containers inside `docker-compose.yml` file which has these services, be aware that you may not need all services located in the `docker-compose.yml` file, the basic services you need are (`postgres`, `kafka`, `zookeeper`).
+### Installation
 
-* postgres
-* pgadmin
-* zookeeper
-* kafka
-* elasticsearch
-* kibana
+1. Clone the repository from github.
 
-> for linux .bash_aliases saved aliases, you can import the aliases automatically by typing `./run.sh import-aliases`.
+    ```bash
+    git clone https://github.com/Ahmad-Zaky/folio_okapi_local_environment.git folio
+    ```
 
-```
-alias folio='cd <path/to/script> && bash run.sh'
-alias folioup='cd <path/to/script> && sudo docker compose up -d'
-alias okapiup='cd <path/to/script> && sudo docker compose up okapi -d'
-alias okapistop='cd <path/to/script> && sudo docker compose stop okapi'
-alias foliotest='cd <path/to/script> && bash test.sh'
-alias cdfolio='cd <path/to/script>'
-alias foliooutputlog='cdfolio && tail -f modules/output.txt'
-alias okapi='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar dev'
-alias okapi_initdb='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar initdatabase'
-alias okapi_purgedb='cd <path/to/okapi> && java -Dport_end=9200 -Dstorage=postgres -jar okapi-core/target/okapi-core-fat.jar purgedatabase'
-alias iokapi='okapi_initdb && okapi'
-alias okapilog='cdfolio && tail -f modules/okapi/nohup.out'
-```
+2. Move to the repository directory.
+
+    ```bash
+    cd folio
+    ```
+
+3. rename *_template.json files:
+    - rename `.env.example`, `modules_template.json`, and `configuration_template.json`.
+        ```bash
+        cp .env.example .env
+        cp modules/modules_template.json modules/modules.json
+        cp modules/configuration_template.json modules/configuration.json
+        ```
+    - modules versions in `modules.json` are set to [`ramsons`][15] release.
+
+4. after renaming *_template, and *.example files review them and replace the values with your own configuration if necessary.
+
+5. Add your aliases commands which eases running the script:
+    - open `./scripts/aliases.txt` file and replace `</path/to_repo>` with your `folio` root path.
+    - import aliases to your home `.bash_aliases` file or `.bashrc` file if `.bash_aliases` does not exists, and its recommended to add your aliases in its dedicated file `.bash_aliases`. 
+    - run this command to import folio aliases, be aware that you should in the `folio` directory
+        ```bash
+        ./run.sh import-aliases
+        ```
+    - Avoid running the command more than once to prevent redundancy.
+
+    ```bash
+    # folio
+    alias cdfolio='cd </path/to/repo>'
+    alias folio='cdfolio && bash run.sh'
+    alias folioup='cdfolio && sudo docker compose up -d' # remove sudo if your docker does not need sudo
+
+    # okapi
+    alias cdokapi='cdfolio && cd modules/okapi'
+    alias okapilog='cdokapi && tail -f nohup.out'
+    ```
+
+6. Folio depends on some services and tools which are combined in one `docker-compose.yml` file.
+    - right now we have these 8 services:
+        * **[okapi][7]:** runs okapi instance in docker container, helpful when you run your modules in docker.
+        * **[postgres][8]:** database used in folio.
+        * **[pgadmin][9]** postgres dashboard tool.
+        * **[kafka][10]:** distributed event streaming tool, used in folio modules like `mod-users-bl`
+        * **[zookeeper][11]:** distributed coordination service used with okapi to store kafka topics meta data and much more.
+        * **[elasticsearch][12]:**  RESTful search and analytics engine used in folio modules like `mod-search`.
+        * **[kibana][13]:** elasticsearch monitoring and observability tool.
+        * **[minio][14]:** S3 compatible storage service used in modules like `mod-data-import`.
+    - basic service you need to start **`postgres`**
+        ```bash
+        docker compose up --build -d postgres
+        ```
+        or
+        ```bash
+        folioup postgres # utilize alias folioup
+        ```
+    - basic services for modules uses `kafka` like `mod-users-bl` (**`postgres`**, **`kafka`**, **`zookeeper`**)
+        ```bash
+        docker compose up --build -d postgres kafka zookeeper
+        ```
+        or
+        ```bash
+        folioup postgres kafka zookeeper # utilize alias folioup
+        ```
+    - basic services for modules uses `elasticsearch` like `mod-search` (**`postgres`**, **`elasticsearch`**)
+        ```bash
+        docker compose up --build -d postgres elasticsearch
+        ```
+        or
+        ```bash
+        folioup postgres elasticsearch # utilize alias folioup
+        ```
+    - basic services for modules uses `minio` like `mod-data-import` (**`postgres`**, **`minio`**)
+        ```bash
+        docker compose up --build -d postgres minio 
+        ```
+        or
+        ```bash
+        folioup postgres minio # utilize alias folioup
+        ```
+    - in general use only services you need to not bloat your memory.
+    - run all services with this command, you only need the `--build` option at the first time.
+        ```bash
+        docker compose up --build -d
+        ```
+        of
+        ```bash
+        folioup # utilize alias folioup
+        ```
+7. After running your needed services, now you can run the script.
+
+    ```bash
+    folio start
+    ```
+
+
+
+
 
 > `folio` commands with arguments, note that they are not  some how steps, instead they are variations on how to run/stop folio modules
 
@@ -148,6 +260,12 @@ okapilog                                # shows the log for running okapi instan
         "value": "mod-authtoken-ot"
     }
     ```
+* TODO: for the README.md file could we show it in a github pages site.
+* TODO: we want a command to init the script to run like import aliases and rename _template files.
+* TODO: configure wait time after running okapi before continue the script in `start_okapi()` method
+
+
+
 > Modules json keys explained:
 
 > The only required unique key is `id` any other keys are optional and may be conditional required
@@ -216,3 +334,21 @@ okapilog                                # shows the log for running okapi instan
 | install_params | This key value will be used in register (enable) step, A module may, besides doing the fundamental initialization of storage etc. also load sets of reference data. This can be controlled by supplying tenant parameters. These are properties (key-value pairs) that are passed to the module when enabled or upgraded. Passing those are only performed when tenantParameters is specified for install and when the tenant interface is version 1.2 and later. | - |
 | install_params -> tenantParameters -> loadReference | with value true loads reference data | `true` or `false` |
 | install_params -> tenantParameters -> loadSample | with value true loads sample data. | `true` or `false` |
+
+
+
+[1]: https://github.com/folio-org/okapi/blob/master/doc/guide.md
+[2]: https://github.com/adamdickmeiss/folio-local-run
+[3]: https://github.com/adamdickmeiss
+[4]: https://www.atlassian.com/git/tutorials/git-bash
+[5]: https://www.cygwin.com
+[6]: https://learn.microsoft.com/en-us/windows/wsl/install
+[7]: https://github.com/folio-org/okapi
+[8]: https://www.postgresql.org
+[9]: https://www.pgadmin.org
+[10]: https://kafka.apache.org
+[11]: https://zookeeper.apache.org
+[12]: https://www.elastic.co/elasticsearch
+[13]: https://www.elastic.co/kibana
+[14]: https://min.io
+[15]: https://github.com/folio-org/platform-complete/blob/R2-2024/okapi-install.json
