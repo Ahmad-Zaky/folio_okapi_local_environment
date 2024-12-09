@@ -1,18 +1,7 @@
 {
-    "DB_HOST":"localhost",
-    "DB_PORT":"5432",
-    "DB_DATABASE":"okapi_modules",
-    "DB_USERNAME":"folio_admin",
-    "DB_PASSWORD":"folio_admin",
-    "DB_QUERYTIMEOUT":"60000",
-    "DB_MAXPOOLSIZE":"5",
-
-    "KAFKA_PORT":"9092",
-    "KAFKA_HOST":"localhost",
-
     "OKAPI_PORT":"9130",
     "OKAPI_HOST":"localhost",
-    "END_PORT":"9200",
+    "END_PORT":"9199",
     "OKAPI_DIR":"okapi",
     "OKAPI_REPO":"https://github.com/folio-org/okapi.git",
     "OKAPI_OPTION_ENABLE_SYSTEM_AUTH":"true",
@@ -27,19 +16,30 @@
     "OKAPI_DOCKER_CONTAINER_NAME":"okapi",
     "OKAPI_CORE_DIR":"okapi/okapi-core",
     "RETURN_FROM_OKAPI_CORE_DIR":"../..",
-    "DOCKER_MODULE_DEFAULT_PORT":"8081",
 
-    "ELASTICSEARCH_URL":"http://localhost:9200",
-    "ELASTICSEARCH_HOST":"localhost",
-    "ELASTICSEARCH_PORT":"9200",
-    "ELASTICSEARCH_USERNAME":"",
-    "ELASTICSEARCH_PASSWORD":"",
     "SHOULD_STOP_RUNNING_MODULES":"true",
     "EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR":"true",
     "REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY":"true",
     "TENANT":"test",
     "TENANT_NAME":"Test",
     "TENANT_DESCRIPTION":"Test Library",
+
+    "DB_HOST":"localhost",
+    "DB_PORT":"5432",
+    "DB_DATABASE":"okapi_modules",
+    "DB_USERNAME":"folio_admin",
+    "DB_PASSWORD":"folio_admin",
+    "DB_QUERYTIMEOUT":"60000",
+    "DB_MAXPOOLSIZE":"5",
+
+    "KAFKA_PORT":"9092",
+    "KAFKA_HOST":"localhost",
+
+    "ELASTICSEARCH_URL":"http://localhost:9200",
+    "ELASTICSEARCH_HOST":"localhost",
+    "ELASTICSEARCH_PORT":"9200",
+    "ELASTICSEARCH_USERNAME":"",
+    "ELASTICSEARCH_PASSWORD":"",
 
     "USERNAME":"ui_admin",
     "PASSWORD":"admin",
@@ -65,5 +65,6 @@
     "RUN_WITH_DOCKER":"false",
     "DOCKER_CMD":"sudo docker",
     "DOCKER_NETWORK":"folio",
-    "DOCKER_ADDED_HOST":"host.docker.internal:host-gateway"
+    "DOCKER_ADDED_HOST":"host.docker.internal:host-gateway",
+    "DOCKER_MODULE_DEFAULT_PORT":"8081"
 }
