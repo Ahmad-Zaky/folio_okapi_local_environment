@@ -37,7 +37,7 @@
             },
             {
                 "name": "DB_DATABASE",
-                "value": "okapi_modules"
+                "value": "okapi_modules_staging"
             },
             {
                 "name": "DB_QUERYTIMEOUT",
@@ -77,6 +77,11 @@
     {
         "id": "mod-password-validator",
         "tag": "v3.2.0",
+        "postman": {
+            "file": "src/main/resources/swagger.api/password-validator.yaml",
+            "api_key": "PMAK-xxxxxxxxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxx",
+            "enabled": "false"
+        },
         "enabled": "true"
     },
     {
@@ -149,6 +154,21 @@
         "step": "install",
         "tag": "v1.1.0",
         "enabled": "false"
+    },
+    {
+        "id": "mod-inventory",
+        "step": "install",
+        "tag": "v21.0.3",
+        "okapi": {
+            "url": "https://folio-snapshot.dev.folio.org",
+            "tenant": "diku",
+            "credentials": {
+                "username": "diku_admin",
+                "password": "admin"
+            },
+            "enabled": "true"
+        },
+        "enabled": "true"
     },
     {
         "id": "mod-reporting",

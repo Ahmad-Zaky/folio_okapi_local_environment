@@ -65,7 +65,7 @@ Key features:
             ...
         ],
         "okapi": {
-            "url": "https://folio-orchid-okapi.dev.folio.org",
+            "url": "https://folio-snapshot.dev.folio.org",
             "tenant": "diku",
             "credentials": {
                 "username": "diku_admin",

@@ -284,6 +284,12 @@ handle_cloud_okapi() {
 		return
 	fi
 
+	is_server_okapi_enabled $INDEX $JSON_LIST
+	IS_ENABLED=$?
+	if [[ "$IS_ENABLED" -eq 0 ]]; then
+		return
+	fi
+
 	validate_okapi_url $INDEX $JSON_LIST
 
 	validate_okapi_tenant $INDEX $JSON_LIST
@@ -376,8 +382,8 @@ postman() {
 	
 	# Skip postman if disabled
 	is_postman_enabled $INDEX $JSON_LIST
-	IS_ENALBLED=$?
-	if [[ "$IS_ENALBLED" -eq 0 ]]; then
+	IS_ENABLED=$?
+	if [[ "$IS_ENABLED" -eq 0 ]]; then
 		return
 	fi
 

@@ -604,8 +604,8 @@ register_module() {
 
 		# Do not Skip server okapi if enabled
 		is_server_okapi_enabled $INDEX $JSON_LIST
-		IS_ENALBLED=$?
-		if [[ "$IS_ENALBLED" -eq 1 ]]; then
+		IS_ENABLED=$?
+		if [[ "$IS_ENABLED" -eq 1 ]]; then
 			return
 		fi
 	fi
@@ -658,8 +658,8 @@ deploy_module() {
 
 		# Do not Skip server okapi if enabled
 		is_server_okapi_enabled $INDEX $JSON_LIST
-		IS_ENALBLED=$?
-		if [[ "$IS_ENALBLED" -eq 1 ]]; then
+		IS_ENABLED=$?
+		if [[ "$IS_ENABLED" -eq 1 ]]; then
 			deploy_module_directly $MODULE $INDEX $JSON_LIST
 
 			return
@@ -746,8 +746,8 @@ install_module() {
 
 		# Do not Skip server okapi if enabled
 		is_server_okapi_enabled $INDEX $JSON_LIST
-		IS_ENALBLED=$?
-		if [[ "$IS_ENALBLED" -eq 1 ]]; then
+		IS_ENABLED=$?
+		if [[ "$IS_ENABLED" -eq 1 ]]; then
 			enable_module_directly $MODULE $INDEX $JSON_LIST
 			unset CLOUD_OKAPI_URL
 
@@ -823,8 +823,8 @@ process_module() {
 
 	# Skip disabled module
 	is_enabled $INDEX $JSON_LIST
-	IS_ENALBLED=$?
-	if [[ "$IS_ENALBLED" -eq 0 ]] && [[ "$SKIP_ENABLE_CHECK" -eq 0 ]]; then
+	IS_ENABLED=$?
+	if [[ "$IS_ENABLED" -eq 0 ]] && [[ "$SKIP_ENABLE_CHECK" -eq 0 ]]; then
 		return
 	fi
 
