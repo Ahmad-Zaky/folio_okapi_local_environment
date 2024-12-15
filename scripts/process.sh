@@ -361,15 +361,29 @@ pre_clone() {
 
 pre_build() {
 	local MODULE=$1
-	local SUPPRESS_STEP=$2
+	local INDEX=$2
+	local JSON_LIST=$3
+	local SUPPRESS_STEP=$4
 
+	should_build $INDEX $JSON_LIST $SUPPRESS_STEP
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+	
 	checkout_new_tag $MODULE
 	checkout_new_branch $MODULE
 }
 
 post_build() {
 	local MODULE=$1
-	local SUPPRESS_STEP=$2
+	local INDEX=$2
+	local JSON_LIST=$3
+	local SUPPRESS_STEP=$4
+
+	should_build $INDEX $JSON_LIST $SUPPRESS_STEP
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
 
 	if [[ $EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR == "true" ]]; then
 		build_directory_exists $MODULE
@@ -477,6 +491,7 @@ clone_module() {
 	fi
 
 	# Clone the module repo
+	JUST_CLONED_MODULE=0
 	if [ ! -d $MODULE ]; then
 		log "Clone module $MODULE"
 		
@@ -484,6 +499,8 @@ clone_module() {
 		log $REPO
 
 		eval "$REPO"
+		
+		JUST_CLONED_MODULE=1
 	fi
 
 	if [[ ! -d "$MODULE" ]]; then
@@ -506,16 +523,50 @@ build_module() {
 
 	should_rebuild $MODULE $INDEX $JSON_LIST
 	SHOULD_REBUILD=$?
-	local MODULE_DESCRIPTOR=$MODULE/target/ModuleDescriptor.json
-	if [[ -f $MODULE_DESCRIPTOR ]] && [[ "$SHOULD_REBUILD" -eq 0 ]]; then
-		return
-	fi
 
 	# Opt in the module
 	cd $MODULE
 
+	# not a java with maven module for now skip the build step
+	if [[ ! -f pom.xml ]]; then
+		# Opt out from the module
+		cd ..
+
+		return
+	fi
+
+	# NOTE: sometimes in linux if the module directory is previously deleted when the module will be cloned again
+	# the target module some how appears with no complete content, so we will remove the target folder and rebuild
+	# again.
+	local JAR_EXT="jar"
+	local TARGET_DIR="target"
+	local TARGET_HAS_JAR_FILES=0
+	if [[ -d $TARGET_DIR ]] && [[ $JUST_CLONED_MODULE -eq 1 ]]; then
+		directory_contains_files_by_extension_check $TARGET_DIR $JAR_EXT
+		local TARGET_HAS_JAR_FILES=$?
+		if [[ $TARGET_HAS_JAR_FILES -eq 1 ]]; then
+			# Opt out from the module
+			cd ..
+
+			return
+		fi
+	fi
+
+	local MODULE_DESCRIPTOR=target/ModuleDescriptor.json
+	if [[ -f $MODULE_DESCRIPTOR ]] && [[ "$SHOULD_REBUILD" -eq 0 ]]; then
+		# Opt out from the module
+		cd ..
+
+		return
+	fi
+
+	# remove the target directory to start building fresh
+	if [[ $TARGET_HAS_JAR_FILES -eq 0 ]]; then
+		remove_directory $TARGET_DIR
+	fi
+
 	# Default Build command
-	BUILD="mvn -DskipTests -Dmaven.test.skip=true verify"
+	BUILD="mvn -DskipTests -Dmaven.test.skip=true package"
 
 	# Custom Build command
 	has "build" $INDEX ../$JSON_LIST
@@ -785,9 +836,9 @@ process_module() {
 	clone_module $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
 
 	# Step No. 2
-	pre_build $MODULE_ID $SUPPRESS_STEP
+	pre_build $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
 	build_module $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
-	post_build $MODULE_ID $SUPPRESS_STEP
+	post_build $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP
 
 	# Step No. 3
 	pre_register $MODULE_ID $INDEX $JSON_LIST $SUPPRESS_STEP

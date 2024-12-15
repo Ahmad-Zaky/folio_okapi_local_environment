@@ -63,7 +63,7 @@
     "POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID":"",
 
     "RUN_WITH_DOCKER":"false",
-    "DOCKER_CMD":"sudo docker",
+    "DOCKER_CMD":"docker",
     "DOCKER_NETWORK":"folio",
     "DOCKER_ADDED_HOST":"host.docker.internal:host-gateway",
     "DOCKER_MODULE_DEFAULT_PORT":"8081"

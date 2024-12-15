@@ -87,7 +87,7 @@ The script is utilizing some linux tools, which should be installed before runni
     # folio
     alias cdfolio='cd </path/to/repo>'
     alias folio='cdfolio && bash run.sh'
-    alias folioup='cdfolio && sudo docker compose up -d' # remove sudo if your docker does not need sudo
+    alias folioup='cdfolio && docker compose up -d' # add sudo if your docker does need sudo
 
     # okapi
     alias cdokapi='cdfolio && cd modules/okapi'
@@ -270,6 +270,9 @@ okapilog                                # shows the log for running okapi instan
     CREATE DATABASE okapi_modules OWNER folio_admin;
     GRANT ALL PRIVILEGES ON DATABASE okapi_modules TO folio_admin;
     ```
+* TODO: default github repo move to configuration.
+* TODO: default build command move to configuration.
+* TODO: move to login with expiry approach
 
 
 > Modules json keys explained:

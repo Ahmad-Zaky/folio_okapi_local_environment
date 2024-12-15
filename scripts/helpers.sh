@@ -312,12 +312,16 @@ attach_permissions() {
 	has_user_permissions
 	HAS_USER_PERMISSIONS=$?
 	if [[ "$HAS_USER_PERMISSIONS" -eq 1 ]]; then
+		log "Reattach permissions ..."
+
+		okapi_curl true -X PUT -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\",\"inventory-storage.locations.collection.get\",\"perms.permissions.get\"]}" $OKAPI_URL/perms/users/$PUUID
+
 		return
 	fi
 
 	log "Attach permissions ..."
 
-	okapi_curl true -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\",\"inventory-storage.locations.collection.get\"]}" $OKAPI_URL/perms/users
+	okapi_curl true -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\",\"inventory-storage.locations.collection.get\",\"perms.permissions.get\"]}" $OKAPI_URL/perms/users
 }
 
 # Login to obtain the token from the header
@@ -536,6 +540,9 @@ has_user_permissions() {
 
 	RESULT=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | .userId == \"$UUID\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
+
+	PUUID=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | first(select(.userId == \"$UUID\")) | .id")
+	PUUID=$(echo $PUUID | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -1292,7 +1299,11 @@ get_module_version_from_pom() {
 
 	if [ ! -f "$MODULE/pom.xml" ] && [ ! -f "$MODULE/azure-pipelines.yml" ]; then
 		set_file_name $BASH_SOURCE
-		error "pom.xml file is missing"
+
+		# some modules does not have pom.xml neither azure-pipelines.hml like mod-reporting
+		warning "pom.xml file is missing"
+
+		return
 	fi
 
 	if [ ! -f "$MODULE/pom.xml" ] && [ -f "$MODULE/azure-pipelines.yml" ]; then
@@ -1701,13 +1712,13 @@ checkout_new_tag() {
 	# Opt in the module
 	cd $MODULE
 
-	git fetch --all
+	git fetch --all --tags
 
 	has_tag $NEW_MODULE_TAG
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		SHOULD_REBUILD_MODULE="$MODULE"
-		git checkout $NEW_MODULE_TAG
+		git checkout tags/$NEW_MODULE_TAG
 	else
 		error "Tag $NEW_MODULE_TAG does not exists !"
 	fi
@@ -1729,7 +1740,7 @@ checkout_new_branch() {
 	# Opt in the module
 	cd $MODULE
 
-	git fetch --all
+	git fetch --all --tags
 
 	has_branch $NEW_MODULE_BRANCH
 	FOUND=$?
@@ -1745,6 +1756,10 @@ checkout_new_branch() {
 
 	unset $HAS_NEW_BRANCH
 	unset $NEW_MODULE_BRANCH
+}
+
+remove_directory() {
+	rm -rf $1
 }
 
 get_module_versioned() {
@@ -2099,5 +2114,16 @@ delete_tmp_files() {
     new_line
 	log "Delete temporary files ..."
 
-	delete_files "$OUTPUT_FILE $RESPONSE_FILE $FILTERED_JSON_FILE"
+	delete_files "$OUTPUT_FILE $RESPONSE_FILE $FILTERED_JSON_FILE $HEADERS_FILE"
+}
+
+directory_contains_files_by_extension_check() {
+    local DIRECTORY=$1
+    local EXT=$2
+
+    if find $1 -maxdepth 1 -name "*.$EXT" | grep -q .; then
+        return 1  
+    fi
+
+    return 0
 }

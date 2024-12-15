@@ -89,6 +89,7 @@ module_defaults() {
 	export USERS_BL_MODULE="mod-users-bl"
 	export OUTPUT_FILE="output.txt"
 	export RESPONSE_FILE="response.txt"
+	export HEADERS_FILE="headers"
 	export HAS_PERMISSIONS_MODULE=false
 	export HAS_USERS_MODULE=false
 	export HAS_USERS_BL_MODULE=false
