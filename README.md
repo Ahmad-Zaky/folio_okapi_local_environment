@@ -30,6 +30,60 @@ Currently, the script is in its `Alpha` stage and contains many TODOs. With comm
 
 The script is implemented in `bash` which works on `Linux`, and `macOS`, but not on `Windows`, you have some not tested workarounds like [`git bash`][4], [`Cygwin`][5], or [`Windows Subsystem for Linux (WSL)`][6].
 
+Key features:
+
+- Complete automation running okapi and folio modules locally (clone -> build -> register -> deploy -> enable)
+- You can clone from different repositories for each module.
+- You can perform database operations like dumping and importing databases and schemas and much more.
+- Integration wity postman, so you can sync your user_id, token, and much more with your postman environments.
+- You have the ability to debug any folio module by running it separately in your IDE like Intilij, more on how to do it in the examples section.
+- You can attach your local folio module to run with no local okapi instance like your staging environment, more on how to do it in the examples section.
+- you have complete control on each module separately in `modules.json`
+- You will preserve the database state on each new run.
+- You can tailor the build command for each module separately.
+- You can set environment variables for each module separately.
+- You have the ability to run the modules in docker containers
+- You have the ability to run with or without authentication.
+- In case your module has swagger openapi configuration you can import it to `postman` as a Collection.
+- ...
+
+### Module Sample from `modules.json`
+```json
+[
+    ...
+    {
+        "id": "mod-users",
+        "tag": "v19.4.4",
+        "step": "install",
+        "build": "mvn clean install -DskipTests -Dcheckstyle.skip",
+        "rebuild": "false",
+        "env": [
+            {
+                "name": "DB_HOST",
+                "value": "localhost"
+            }
+            ...
+        ],
+        "okapi": {
+            "url": "https://folio-orchid-okapi.dev.folio.org",
+            "tenant": "diku",
+            "credentials": {
+                "username": "diku_admin",
+                "password": "admin"
+            },
+            "enabled": "true"
+        },
+        "postman": {
+            "file": "path/to/swagger.api/users.yaml",
+            "api_key": "PMAK-xxxxxxxxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxx",
+            "enabled": "true"
+        },
+        "enabled": "true"
+    }
+    ...
+]
+```
+
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -150,8 +204,6 @@ The script is utilizing some linux tools, which should be installed before runni
     ```bash
     folio start
     ```
-
-
 
 
 

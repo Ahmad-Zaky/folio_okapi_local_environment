@@ -1712,12 +1712,16 @@ checkout_new_tag() {
 	# Opt in the module
 	cd $MODULE
 
+	log "Fetch all remote for $MODULE before checkout tag"
+
 	git fetch --all --tags
 
 	has_tag $NEW_MODULE_TAG
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		SHOULD_REBUILD_MODULE="$MODULE"
+		log "Checkout $NEW_MODULE_TAG Tag for module: $MODULE"
+
 		git checkout tags/$NEW_MODULE_TAG
 	else
 		error "Tag $NEW_MODULE_TAG does not exists !"
@@ -1740,12 +1744,15 @@ checkout_new_branch() {
 	# Opt in the module
 	cd $MODULE
 
+	log "Fetch all for $MODULE before checkout branch"
+
 	git fetch --all --tags
 
 	has_branch $NEW_MODULE_BRANCH
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		SHOULD_REBUILD_MODULE="$MODULE"
+		log "Checkout $NEW_MODULE_BRANCH Branch for module: $MODULE"
 		git checkout $NEW_MODULE_BRANCH
 	else
 		error "Branch $NEW_MODULE_BRANCH does not exists !"
@@ -1784,7 +1791,7 @@ get_installed_module_versioned() {
 	fi
 
 	set_file_name $BASH_SOURCE
-	curl_req $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules
+	curl_req true $OPTIONS $OKAPI_URL/_/proxy/tenants/$TENANT/modules
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
