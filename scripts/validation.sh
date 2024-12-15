@@ -146,7 +146,7 @@ validate_new_module_tag() {
 	if [ ! -d $MODULE ]; then
 		return
 	fi
-	
+
 	get_module_version $MODULE $VERSION_FROM
 
 	if [[ "$NEW_MODULE_TAG" != "v$MODULE_VERSION" ]]; then

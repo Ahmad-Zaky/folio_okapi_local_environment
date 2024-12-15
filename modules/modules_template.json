@@ -37,7 +37,7 @@
             },
             {
                 "name": "DB_DATABASE",
-                "value": "okapi_modules_staging"
+                "value": "okapi_modules"
             },
             {
                 "name": "DB_QUERYTIMEOUT",

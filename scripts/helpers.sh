@@ -312,12 +312,16 @@ attach_permissions() {
 	has_user_permissions
 	HAS_USER_PERMISSIONS=$?
 	if [[ "$HAS_USER_PERMISSIONS" -eq 1 ]]; then
+		log "Reattach permissions ..."
+
+		okapi_curl true -X PUT -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\",\"inventory-storage.locations.collection.get\",\"perms.permissions.get\"]}" $OKAPI_URL/perms/users/$PUUID
+
 		return
 	fi
 
 	log "Attach permissions ..."
 
-	okapi_curl true -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\",\"inventory-storage.locations.collection.get\"]}" $OKAPI_URL/perms/users
+	okapi_curl true -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\",\"inventory-storage.locations.collection.get\",\"perms.permissions.get\"]}" $OKAPI_URL/perms/users
 }
 
 # Login to obtain the token from the header
@@ -536,6 +540,9 @@ has_user_permissions() {
 
 	RESULT=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | .userId == \"$UUID\"")
 	RESULT=$(echo $RESULT | sed 's/"//g')
+
+	PUUID=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | first(select(.userId == \"$UUID\")) | .id")
+	PUUID=$(echo $PUUID | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
 	FOUND=$?
@@ -784,20 +791,23 @@ free_from_start_to_end_ports() {
 
 stop_running_module_or_modules() {
 	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && ([[ -z "$STOP_OKAPI_PROT_ARG" ]] || [[ "$STOP_OKAPI_PROT_ARG" == "okapi" ]]); then
-		stop_running_modules
+		stop_okapi_deployed_modules
         stop_okapi
+		delete_tmp_files
 
 		exit 0
 	fi
 
     if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ "$STOP_OKAPI_PROT_ARG" == "modules" ]]; then
-		stop_running_modules
+		stop_okapi_deployed_modules
+		delete_tmp_files
 
 		exit 0
 	fi
 
 	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ ! -z "$STOP_OKAPI_PROT_ARG" ]]; then
         stop_running_module
+		delete_tmp_files
 
 		exit 0
 	fi
@@ -806,11 +816,11 @@ stop_running_module_or_modules() {
 		return
 	fi
 
-	stop_running_modules
+	stop_okapi_deployed_modules
 }
 
-stop_running_modules() {
-	log "Stop running modules ..."
+stop_okapi_deployed_modules() {
+	log "Stop okapi deployed modules ..."
 
 	set_file_name $BASH_SOURCE
 	curl_req true $OPTIONS $OKAPI_URL/_/discovery/modules
@@ -831,6 +841,7 @@ stop_running_modules() {
         IS_PORT_USED=$?
         if [[ "$IS_PORT_USED" -eq 1 ]]; then
             kill_process_port $MODULE_PORT
+			log "Stopping Module running on port: $MODULE_PORT"
 
 			continue
         fi
@@ -845,7 +856,7 @@ stop_running_modules() {
 			remove_container $MODULE
 			delete_deployed_module $SERVICE_ID $INSTANCE_ID
 		fi
-	done < <(echo "$CURL_RESPONSE" | jq -c '.[]')	
+	done < <(echo "$CURL_RESPONSE" | jq -c '.[]')
 }
 
 stop_running_module() {
@@ -883,7 +894,7 @@ re_export_env_vars() {
 	
 	postman_defaults
 
-	set_env_vars_to_okapi
+	set_okapi_env_vars
 }
 
 reset_vars() {
@@ -1288,7 +1299,11 @@ get_module_version_from_pom() {
 
 	if [ ! -f "$MODULE/pom.xml" ] && [ ! -f "$MODULE/azure-pipelines.yml" ]; then
 		set_file_name $BASH_SOURCE
-		error "pom.xml file is missing"
+
+		# some modules does not have pom.xml neither azure-pipelines.hml like mod-reporting
+		warning "pom.xml file is missing"
+
+		return
 	fi
 
 	if [ ! -f "$MODULE/pom.xml" ] && [ -f "$MODULE/azure-pipelines.yml" ]; then
@@ -1699,7 +1714,7 @@ checkout_new_tag() {
 
 	log "Fetch all remote for $MODULE before checkout tag"
 
-	git fetch --all
+	git fetch --all --tags
 
 	has_tag $NEW_MODULE_TAG
 	FOUND=$?
@@ -1707,7 +1722,7 @@ checkout_new_tag() {
 		SHOULD_REBUILD_MODULE="$MODULE"
 		log "Checkout $NEW_MODULE_TAG Tag for module: $MODULE"
 
-		git checkout $NEW_MODULE_TAG
+		git checkout tags/$NEW_MODULE_TAG
 	else
 		error "Tag $NEW_MODULE_TAG does not exists !"
 	fi
@@ -1731,7 +1746,7 @@ checkout_new_branch() {
 
 	log "Fetch all for $MODULE before checkout branch"
 
-	git fetch --all
+	git fetch --all --tags
 
 	has_branch $NEW_MODULE_BRANCH
 	FOUND=$?
@@ -1748,6 +1763,10 @@ checkout_new_branch() {
 
 	unset $HAS_NEW_BRANCH
 	unset $NEW_MODULE_BRANCH
+}
+
+remove_directory() {
+	rm -rf $1
 }
 
 get_module_versioned() {
@@ -2096,4 +2115,22 @@ create_file() {
 	local FILE_NAME=$1
 
 	touch $FILE_NAME
+}
+
+delete_tmp_files() {
+    new_line
+	log "Delete temporary files ..."
+
+	delete_files "$OUTPUT_FILE $RESPONSE_FILE $FILTERED_JSON_FILE $HEADERS_FILE"
+}
+
+directory_contains_files_by_extension_check() {
+    local DIRECTORY=$1
+    local EXT=$2
+
+    if find $1 -maxdepth 1 -name "*.$EXT" | grep -q .; then
+        return 1  
+    fi
+
+    return 0
 }

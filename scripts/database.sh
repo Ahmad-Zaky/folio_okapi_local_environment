@@ -2,7 +2,7 @@
 
 db_cmd_defaults() {
     # Specify the database name
-    DB_CMD_DOCKER_CMD="sudo docker"
+    DB_CMD_DOCKER_CMD="docker"
     DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME="okapi"
     DB_CMD_USERNAME="folio_admin"
     DB_CMD_DATABASE_STAGING="okapi_modules_staging"
@@ -168,7 +168,7 @@ import() {
 
     # Copy SQL file to Docker container
     echo "Copy $DB_CMD_DATABASE_SQL_FILE to $DB_CMD_CONTAINER container"
-    sudo docker cp $DB_CMD_DATABASE_SQL_PATH $DB_CMD_CONTAINER:/
+    $DB_CMD_DOCKER_CMD cp $DB_CMD_DATABASE_SQL_PATH $DB_CMD_CONTAINER:/
 
     if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == false ]]; then
         echo "Failed to copy $DB_CMD_DATABASE_SQL_FILE file."
@@ -213,7 +213,7 @@ import_schema() {
 
     # Copy SQL file to Docker container
     echo "Copy $DB_SCHEMA_FILE to $DB_CMD_CONTAINER container"
-    sudo docker cp $DB_CMD_SCHEMA_SQL_PATH $DB_CMD_CONTAINER:/
+    $DB_CMD_DOCKER_CMD cp $DB_CMD_SCHEMA_SQL_PATH $DB_CMD_CONTAINER:/
 
     if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_SCHEMA_FILE ]; then echo true; else echo false; fi")) == false ]]; then
         echo "Failed to copy $DB_SCHEMA_FILE file."
