@@ -21,6 +21,8 @@ db_cmd_defaults() {
     DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION="-n"
     DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION="-N"
     DB_CMD_PGDUMP_SCHEMA_OPTION="$DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION"
+    DB_CMD_CREATE_MODULE_ROLE="create user %s superuser createdb;"
+    DB_CMD_ALTER_MODULE_ROLE="alter user %s set search_path = %s;"
 }
 
 db_has_arg() {
@@ -108,7 +110,7 @@ handle_arguments() {
         DB_CMD_HAS_IMPORT_ARG=true
 	fi
 
-    db_has_arg "import_schema" $DB_ARGS
+    db_has_arg "import-schema" $DB_ARGS
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
         db_get_arg 2 $DB_ARGS
@@ -220,6 +222,14 @@ import_schema() {
 
         exit 1
     fi
+
+    # Add schema role
+    echo "Create $DB_SCHEMA role"
+    local QUERY=$(printf "$DB_CMD_CREATE_MODULE_ROLE" "$DB_SCHEMA")
+    db_run_query "$QUERY"
+
+    local QUERY=$(printf "$DB_CMD_ALTER_MODULE_ROLE" "$DB_SCHEMA" "$DB_SCHEMA")
+    db_run_query "$QUERY"
 
     echo "Replace OWNER $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME to $DB_CMD_USERNAME in $DB_SCHEMA_FILE file."
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_SCHEMA_FILE")

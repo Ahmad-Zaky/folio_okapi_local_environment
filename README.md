@@ -224,8 +224,8 @@ folioup                                 # docker compose up for our docker-compo
 foliotest                               # run a test.sh script
 folio db import                         # import the db from an exported file.
 folio db staging import                 # import the db from an exported file to staging database.
-folio db import_schema                  # import the db schema from an exported file.
-folio db staging import_schema          # import the db schema from an exported file to staging database.
+folio db import-schema                  # import the db schema from an exported file.
+folio db staging import-schema          # import the db schema from an exported file to staging database.
 folio db dump                           # dump database with all schemas to an sql file.
 folio db staging dump                   # dump database with all schemas to an sql file to staging database.
 folio db dump-include-schemas           # dump database with included schemas found in schemas.txt file to an sql file.
@@ -325,7 +325,8 @@ okapilog                                # shows the log for running okapi instan
 * TODO: default github repo move to configuration.
 * TODO: default build command move to configuration.
 * TODO: move to login with expiry approach
-
+* TODO: add install.sh to auto configure the starting steps.
+* TODO: write notice for postgres docker compose service that if the user already has the service on his machine, that he should has the databases okapi_modules and okapi_modules_staging created.
 
 > Modules json keys explained:
 
