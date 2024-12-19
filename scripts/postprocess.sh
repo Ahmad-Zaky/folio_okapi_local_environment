@@ -28,5 +28,10 @@ fi
 
 
 post_process() {
+	new_line
+	log "****************"
+	log "Post process ..."
+	log "****************"
+
 	delete_tmp_files
 }

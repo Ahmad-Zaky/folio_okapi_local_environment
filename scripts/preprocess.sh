@@ -16,6 +16,13 @@ fi
 
 
 pre_process() {
+
+	new_line
+	log "**************"
+	log "Preprocess ..."
+	log "**************"
+	new_line
+
 	local ARGS=$*
 
 	defaults
@@ -87,12 +94,14 @@ module_defaults() {
 	export AUTHTOKEN_MODULE="mod-authtoken"
 	export USERS_MODULE="mod-users"
 	export USERS_BL_MODULE="mod-users-bl"
+	export PASSWORD_VALIDATOR_MODULE="mod-password-validator"
 	export OUTPUT_FILE="output.txt"
 	export RESPONSE_FILE="response.txt"
 	export HEADERS_FILE="headers"
 	export HAS_PERMISSIONS_MODULE=false
 	export HAS_USERS_MODULE=false
 	export HAS_USERS_BL_MODULE=false
+	export HAS_PASSWORD_VALIDATOR_MODULE=false
 	export VERSION_FROM="pom" # for now we will keep it like this ...
 
 	go_to_modules_dir

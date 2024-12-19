@@ -1042,7 +1042,7 @@ get_user_uuid_by_username() {
 	log "Get user UUID for username: $USERNAME"
 
 	set_file_name $BASH_SOURCE
-	okapi_curl true $OPTIONS $OKAPI_URL/users
+	okapi_curl true $OPTIONS $OKAPI_URL/users?query=username%3D%3D$USERNAME
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
@@ -1165,12 +1165,12 @@ set_users_bl_module_permissions() {
 		get_user_uuid_by_username
 	fi
 
-	# Validate that mod-users-bl exists in modules.json
+	# Validate that mod-users-bl exists in modules.json and enabled
 	if [[ "$HAS_USERS_BL_MODULE" == false ]]; then
 		return
 	fi
 
-	# Validate that mod-permissions exists in modules.json
+	# Validate that mod-permissions exists in modules.json and enabled
 	if [[ "$HAS_PERMISSIONS_MODULE" == false ]]; then
 		return
 	fi
@@ -1184,6 +1184,11 @@ set_users_bl_module_permissions() {
 	okapi_curl true $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
 
 	login_user
+
+	# Validate that mod-password-validator exists in modules.json and enabled
+	if [[ "$HAS_PASSWORD_VALIDATOR_MODULE" == false ]]; then
+		return
+	fi
 
 	reset_and_verify_password $UUID
 }
@@ -1515,10 +1520,6 @@ get_deployed_instance_id() {
 
 # NOTE: it does not work if authtoken instance is not up and running
 remove_authtoken_and_permissions_if_enabled_previously() {
-	if [[ "$OKAPI_OPTION_ENABLE_SYSTEM_AUTH" == "false" ]]; then
-		return
-	fi
-
 	if [[ $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY == "true" ]]; then
 		new_line
 

@@ -418,6 +418,10 @@ pre_register() {
 		HAS_USERS_BL_MODULE=true
 	fi
 
+	if [[ $MODULE == $PASSWORD_VALIDATOR_MODULE ]]; then
+		HAS_PASSWORD_VALIDATOR_MODULE=true
+	fi
+
 	if [[ $MODULE == $USERS_MODULE ]]; then
 		HAS_USERS_MODULE=true
 	fi
@@ -788,6 +792,12 @@ install_module() {
 }
 
 process() {
+
+	new_line
+	log "***********"
+	log "Process ..."
+	log "***********"
+
 	# Skip okapi module if exists with other modules sent as a parameter to the process method
 	FILTERED_MODULE="okapi"
 	if [ -n "$1" ]; then
