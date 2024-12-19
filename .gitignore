@@ -2,7 +2,9 @@
 .vscode
 .idea
 modules/*
-db/*
 !modules/modules_template.json
 !modules/configuration_template.json
+db/*
+!db/init.sql
+!db/schemas.txt
 test.sh

@@ -1,5 +1,7 @@
 # FOLIO Local Environment
 
+<a id="readme-top"></a>
+
 <!-- TABLE OF CONTENTS -->
   <summary>Table of Contents</summary>
   <ol>
@@ -11,7 +13,16 @@
         <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
+    <li>
+        <a href="#file-structure">File Structure</a>
+        <ul>
+        <li><a href="#base-repo-structure">Base Repo Structure</a></li>
+        <li><a href="#script-files-structure">Script Files Structure</a></li>
+        <li><a href="#untracked-files">Untracked files</a></li>
+      </ul>
+    </li>
     <li><a href="#usage">Usage</a></li>
+    <li><a href="#todos">TODOs</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
@@ -46,6 +57,9 @@ Key features:
 - You have the ability to run with or without authentication.
 - In case your module has swagger openapi configuration you can import it to `postman` as a Collection.
 - ...
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 ### Module Sample from `modules.json`
 ```json
@@ -90,6 +104,8 @@ Key features:
 
 Here we will focus on cloning the repo, preparing the environment, and staring `Okapi` with at least one folio module.
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Prerequisites
 
 The script is utilizing some linux tools, which should be installed before running the script.
@@ -102,6 +118,8 @@ The script is utilizing some linux tools, which should be installed before runni
 * `lsof` linux tool to find process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
 * `docker` docker tool to run modules in containers instead of running it on the local host machine. [click here](https://docs.docker.com/engine/install/)
 * `netstat` its a linux tool used for displaying network connections, routing tables, interface statistics, masquerade connections, and multicast memberships. However, starting from `Ubuntu 20.04`, netstat is considered **`deprecated`** in favor of the ss command [Click here](https://www.tecmint.com/install-netstat-in-linux/).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Installation
 
@@ -205,6 +223,102 @@ The script is utilizing some linux tools, which should be installed before runni
     folio start
     ```
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+## File Structure
+
+### Base Repo Structure
+
+    .
+    ├── db
+    │   ├── ...
+    │   ├── schemas.txt
+    │   └── init.sql
+    ├── modules
+    │   ├── ...
+    │   ├── modules.json
+    │   └── configuration.json
+    ├── scripts
+    ├── .env
+    ├── run.sh
+    └── docker-compose.yml
+
+- **db**: its responsible to store all dumped (backup) sql files from our local db, and also used to import (backup) sql files or schema sql files back to our local database.
+    - **schemas.txt**: list database postgres schemas to be included/excluded from dumping from our local database.
+    - **init.sql**: necessary for `postgres` service located in `docker-compose.yml` to create a new `okapi_modules_staging` database with its extensions.
+- **modules**: All modules we work on, are located here, in this directory, starting from first step clone a module until last step install that module.
+    - **modules.json**: Its like a manifest for the modules we working on here in our local environment, including okapi.
+    - **configuration.json**: All configurable data is configured here through (key -> value) approach starting from database configurations until 3rd party integrations like postman.
+- **scripts**: contains all our bash script files implementation for our `FOLIO` local environment enabler, and also contains the old scripts which we started from at the beginning.
+- **.env**: has the env vars for `docker-compose.yml` services.
+- **run.sh**: entry point for our folio local environment script, which connects to the script files located in `script` directory.
+- **docker-compose.yml**: contains all services needed for folio modules like postgres, kafka, elasticsearch, ... etc.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Script Files Structure
+    .
+    ├── run.sh
+    └── scripts
+        ├── preprocess.sh
+        ├── process.sh
+        ├── postprocess.sh
+        ├── validation.sh
+        ├── helpers.sh
+        ├── database.sh
+        ├── aliases.txt
+        └── old
+            ├── run.sh
+            ├── run_custom_old.sh
+            ├── run-mod-settings.sh
+            └── run-with-docker.sh
+
+- **run.sh**: our entry point script, which orchestrate the execution flow by sourcing scripts from `scripts` directory.
+- **scripts**: contains all all individual scripts for database setup, preprocessing, validation, main processing (clone, build, deploy, etc.), and postprocessing.
+    - **preprocess.sh**: handles all pre-process tasks like running okapi, stop old running modules to start clean, and much more.
+    - **process.sh**: this is the core script handling `modules.json`, as it loops on each module and apply the steps (clone -> build -> register -> deploy -> enable).
+    - **postprocess.sh**: handles all post-process tasks like removing tmp files.
+    - **validation.sh**: centralized script to validate the running script from pre-process and process to post-process phases, like validate prerequisite linux tools, validate the `modules.json` list and much more.
+    - **helpers.sh**: all reusable scripts are located here, and thats why the file is very big, it includes scripts related to logging, requesting using curl, and much more.
+    - **database.sh**: all operations related to the local database like importing/dumping sql files are done here
+    - **aliases.txt**: this is .bashrc/.bash_aliases aliases to help running terminal commands for folio local environment.
+    - **old**: the old script we did start from and its not used any more.
+        - **run.sh**: basic script to run folio local environment, no more used.
+        - **run_custom_old.sh**: customized version of `run.sh` and also no more used.
+        - **run-mod-settings.sh**: basic script to run mod-settings specific as it requires adding some permissions to the logged in user.
+        - **run-with-docker.sh**: basic script to run folio modules like `run.sh` but in docker containers instead of running jar processes.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Untracked Files
+
+    .
+    └── modules
+        ├── ...
+        ├── output.txt
+        ├── response.txt
+        ├── filtered_modules.json
+        └── headers
+
+
+- **output.txt**: is a place where you find all curl responses and output debug error messages.
+- **response.txt##: tmp file catches curl requests response and then read it back into `CURL_RESPONSE` variable.
+- **filtered_modules.json**: processing `modules.json` through `process()` has a feature which you can set a list of modules you want to filter out from `modules.json` the result after the filtering process goes to **filtered_modules.json** file and the `process()` reads modules from this file not directly from `modules.json`.
+- **headers**: used to catch the curl request headers.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+
+
+
+
+
+
+
+
 
 
 > `folio` commands with arguments, note that they are not  some how steps, instead they are variations on how to run/stop folio modules
@@ -269,64 +383,10 @@ okapilog                                # shows the log for running okapi instan
 * A useful tip in case some modules fail, you can navigate to that module and manually pull from remote repo the latest changes and rebuild the module.
 * before starting okapi the allocated ports will be freed from the host machine for example if the allocated ports START_PORT=9031 to END_PORT=9199
 * There is a specific case when you change db configs for mod-users while you using mod-authtoken there will be an issue as the login attempt will fails, so modules like mod-authtoken, mod-login, and mod-users should share the same db configs.
-* TODO: we need to validate input arguments stop with error if not recognized argument has been provided.
-* TODO: try to make parameters more professional with --help command to describe all working parameters.
-* TODO: in database `db_cmd_defaults()` method we want to offload some of the env vars to be configured from `configuration.json` file.
-* TODO: in update installed module status, we want to opt out the query to be configured from configuration.json
-* TODO: while starting we start stopping all ports with a specific range starts from `9130` we may make the stop optional either stop or fail.
-* TODO: we need to emphasize that removing mod-authtoken, and `mod-permissions` are now implemented directly with Database query because any new version comes prevents from removing the old enabled version and if there are new ways to do it.
-* TODO: explain all unused methods as most of them were functioning in the past.
-* TODO: update folio aliases and add dump from remote db as command option.
-* TODO: update aliases for folio bash commands with new existing aliases.
-* TODO: list some sample of group of modules work together ex fot work with mod-circulation you need to some other modules to be enabled as well.
-* TODO: explain how to use empty required array in ModuleDescriptor.json file.
-* TODO: try to use tags as versioning for your repo in the future if it gains attention
-* TODO: try to add feature to get all module dependencies (other modules) try to use the okapi.json which is populated with each release.
-* TODO: the configuration `EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR` could be applied on each module independently instead of a general configuration on all modules.
-* TODO: if I run folio without `start` or `restart` command and the okapi instance is already up and running the problem with old enabled `mod-authtoken` and `mod-permissions` will not be solved as the cache prevents reading the new db updates so you need to invalidate the cache or restarting okapi forcefully.
-* TODO: we need a way to pass environment variables to okapi while start/restart in both ways running in the host machine or in a docker container. [read more](https://medium.com/@manishbansal8843/environment-variables-vs-system-properties-or-vm-arguments-vs-program-arguments-or-command-line-1aefce7e722c)
-* TODO: some new user creation information like `patron group`, and `address type`.
-* TODO: if pom.xml version is different from `target/ModuleDescriptor.json` we should rebuild the project.
-* TODO: Review all configuration keys and explain them if they are not.
-* TODO: do not free all ports at once at the beginning instead free it before each use
-* TODO: in `database.sh` file we can enhance logging as it uses primitive echo "..." approach.
-* TODO: in `database.sh` file if we run `folio db staging import` or without staging the sql file may contain casts that are not present in the local db so you need to add them manually.
-* TODO: in `modules.json` in the `okapi` object we need a key to add custom java options.
-* TODO: in `modules.json` in the `okapi` object we want the env key value option like in the other modules.
-* TOOD: we need to only import schemas option so we do not need to drop the whole db and recreate it again.
-* TODO: user permissions should be handled properly as new modules have new permissions, these new permissions should be granted to the logged in user.
-* TODO: while creating new db on importing a db sql file consider crate Database Objects as it should be like casts and extensions like (btree_gin, pg_trgm, pgcrypto, unaccent, uuid-ossp)
-* TODO: in env json array objects its better to use `key` value as the key of environment variable instead of `name`.
-    - From    
-    ```json
-    {
-        "name": "OTEL_SERVICE_NAME",
-        "value": "mod-authtoken-ot"
-    }
-    ```
 
-    - To    
-    ```json
-    {
-        "key": "OTEL_SERVICE_NAME",
-        "value": "mod-authtoken-ot"
-    }
-    ```
-* TODO: for the README.md file could we show it in a github pages site.
-* TODO: we want a command to init the script to run like import aliases and rename _template files.
-* TODO: configure wait time after running okapi before continue the script in `start_okapi()` method
-* TODO: add create db command for folio db commands.
-* TODO: consider add this manual creation script for `okapi_modules` database to the docs
-    ```sql
-    CREATE USER folio_admin  WITH PASSWORD 'folio_admin';
-    CREATE DATABASE okapi_modules OWNER folio_admin;
-    GRANT ALL PRIVILEGES ON DATABASE okapi_modules TO folio_admin;
-    ```
-* TODO: default github repo move to configuration.
-* TODO: default build command move to configuration.
-* TODO: move to login with expiry approach
-* TODO: add install.sh to auto configure the starting steps.
-* TODO: write notice for postgres docker compose service that if the user already has the service on his machine, that he should has the databases okapi_modules and okapi_modules_staging created.
+
+
+
 
 > Modules json keys explained:
 
@@ -398,6 +458,120 @@ okapilog                                # shows the log for running okapi instan
 | install_params -> tenantParameters -> loadSample | with value true loads sample data. | `true` or `false` |
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## TODOs
+
+
+- [ ] we need to validate input arguments stop with error if not recognized argument has been provided.
+- [ ] try to make parameters more professional with --help command to describe all working parameters.
+- [ ] in database `db_cmd_defaults()` method we want to offload some of the env vars to be configured from `configuration.json` file.
+- [ ] in update installed module status, we want to opt out the query to be configured from configuration.json
+- [ ] while starting we start stopping all ports with a specific range starts from `9130` we may make the stop optional either stop or fail.
+- [ ] we need to emphasize that removing mod-authtoken, and `mod-permissions` are now implemented directly with Database query because any new version comes prevents from removing the old enabled version and if there are new ways to do it.
+- [ ] explain all unused methods as most of them were functioning in the past.
+- [ ] update folio aliases and add dump from remote db as command option.
+- [ ] update aliases for folio bash commands with new existing aliases.
+- [ ] list some sample of group of modules work together ex fot work with mod-circulation you need to some other modules to be enabled as well.
+- [ ] explain how to use empty required array in ModuleDescriptor.json file.
+- [ ] try to use tags as versioning for your repo in the future if it gains attention
+- [ ] try to add feature to get all module dependencies (other modules) try to use the okapi.json which is populated with each release.
+- [ ] the configuration `EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR` could be applied on each module independently instead of a general configuration on all modules.
+- [ ] if I run folio without `start` or `restart` command and the okapi instance is already up and running the problem with old enabled `mod-authtoken` and `mod-permissions` will not be solved as the cache prevents reading the new db updates so you need to invalidate the cache or restarting okapi forcefully.
+- [ ] we need a way to pass environment variables to okapi while start/restart in both ways running in the host machine or in a docker container. [read more](https://medium.com/@manishbansal8843/environment-variables-vs-system-properties-or-vm-arguments-vs-program-arguments-or-command-line-1aefce7e722c)
+- [ ] some new user creation information like `patron group`, and `address type`.
+- [ ] if pom.xml version is different from `target/ModuleDescriptor.json` we should rebuild the project.
+- [ ] Review all configuration keys and explain them if they are not.
+- [ ] do not free all ports at once at the beginning instead free it before each use
+- [ ] in `database.sh` file we can enhance logging as it uses primitive echo "..." approach.
+- [ ] in `database.sh` file if we run `folio db staging import` or without staging the sql file may contain casts that are not present in the local db so you need to add them manually.
+- [ ] in `modules.json` in the `okapi` object we need a key to add custom java options.
+- [ ] in `modules.json` in the `okapi` object we want the env key value option like in the other modules.
+* TOOD: we need to only import schemas option so we do not need to drop the whole db and recreate it again.
+- [ ] user permissions should be handled properly as new modules have new permissions, these new permissions should be granted to the logged in user.
+- [ ] while creating new db on importing a db sql file consider crate Database Objects as it should be like casts and extensions like (btree_gin, pg_trgm, pgcrypto, unaccent, uuid-ossp)
+- [ ] in env json array objects its better to use `key` value as the key of environment variable instead of `name`.
+    - From    
+    ```json
+    {
+        "name": "OTEL_SERVICE_NAME",
+        "value": "mod-authtoken-ot"
+    }
+    ```
+
+    - To    
+    ```json
+    {
+        "key": "OTEL_SERVICE_NAME",
+        "value": "mod-authtoken-ot"
+    }
+    ```
+- [ ] for the README.md file could we show it in a github pages site.
+- [ ] we want a command to init the script to run like import aliases and rename _template files.
+- [ ] configure wait time after running okapi before continue the script in `start_okapi()` method
+- [ ] add create db command for folio db commands.
+- [ ] consider add this manual creation script for `okapi_modules` database to the docs
+    ```sql
+    CREATE USER folio_admin  WITH PASSWORD 'folio_admin';
+    CREATE DATABASE okapi_modules OWNER folio_admin;
+    GRANT ALL PRIVILEGES ON DATABASE okapi_modules TO folio_admin;
+    ```
+- [ ] default github repo move to configuration.
+- [ ] default build command move to configuration.
+- [ ] move to login with expiry approach
+- [ ] add install.sh to auto configure the starting steps.
+- [ ] write notice for postgres docker compose service that if the user already has the service on his machine, that he should has the databases okapi_modules and okapi_modules_staging created.
+
+
+
+See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+Distributed under the MIT License. See `LICENSE.txt` for more information.
+
+## Contact
+
+Ahmed Zaky - [Linked In](https://www.linkedin.com/in/ahmed-zaky-0a7692132/) - ahmed6mohamed6@gmail.com
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- References -->
 
 [1]: https://github.com/folio-org/okapi/blob/master/doc/guide.md
 [2]: https://github.com/adamdickmeiss/folio-local-run

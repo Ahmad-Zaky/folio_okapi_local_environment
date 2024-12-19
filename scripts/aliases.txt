@@ -1,7 +1,7 @@
 # folio
 alias cdfolio='cd </path/to/repo>'
 alias folio='cdfolio && bash run.sh'
-alias folioup='cdfolio && docker compose up -d' # add sudo if your docker does need sudo
+alias folioup='cdfolio && docker compose up -d' # NOTE: add sudo if your docker does need sudo
 
 # okapi
 alias cdokapi='cdfolio && cd modules/okapi'
