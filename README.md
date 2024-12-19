@@ -303,7 +303,7 @@ The script is utilizing some linux tools, which should be installed before runni
 
 
 - **output.txt**: is a place where you find all curl responses and output debug error messages.
-- **response.txt##: tmp file catches curl requests response and then read it back into `CURL_RESPONSE` variable.
+- **response.txt**: tmp file catches curl requests response and then read it back into `CURL_RESPONSE` variable.
 - **filtered_modules.json**: processing `modules.json` through `process()` has a feature which you can set a list of modules you want to filter out from `modules.json` the result after the filtering process goes to **filtered_modules.json** file and the `process()` reads modules from this file not directly from `modules.json`.
 - **headers**: used to catch the curl request headers.
 
