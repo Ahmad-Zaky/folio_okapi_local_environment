@@ -1,5 +1,20 @@
 <a id="readme-top"></a>
 
+<!-- PROJECT SHIELDS -->
+<!--
+*** I'm using markdown "reference style" links for readability.
+*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
+*** See the bottom of this document for the declaration of the reference variables
+*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** https://www.markdownguide.org/basic-syntax/#reference-style-links
+-->
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![Unlicense License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
+
 # FOLIO Local Environment
 
 <!-- TABLE OF CONTENTS -->
@@ -565,13 +580,28 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 ## Contact
 
-Ahmed Zaky - [Linked In](https://www.linkedin.com/in/ahmed-zaky-0a7692132/) - ahmed6mohamed6@gmail.com
+Ahmed Zaky - [Linked In][linkedin-url] - ahmed6mohamed6@gmail.com
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
 <!-- References -->
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/Ahmad-Zaky/folio_okapi_local_environment.svg?style=for-the-badge
+[contributors-url]: https://github.com/Ahmad-Zaky/folio_okapi_local_environment/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/Ahmad-Zaky/folio_okapi_local_environment.svg?style=for-the-badge
+[forks-url]: https://github.com/Ahmad-Zaky/folio_okapi_local_environment/network/members
+[stars-shield]: https://img.shields.io/github/stars/Ahmad-Zaky/folio_okapi_local_environment.svg?style=for-the-badge
+[stars-url]: https://github.com/Ahmad-Zaky/folio_okapi_local_environment/stargazers
+[issues-shield]: https://img.shields.io/github/issues/Ahmad-Zaky/folio_okapi_local_environment.svg?style=for-the-badge
+[issues-url]: https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues
+[license-shield]: https://img.shields.io/github/license/Ahmad-Zaky/folio_okapi_local_environment.svg?style=for-the-badge
+[license-url]: https://github.com/Ahmad-Zaky/folio_okapi_local_environment/blob/main/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://www.linkedin.com/in/ahmed-zaky-0a7692132/
 
 [1]: https://github.com/folio-org/okapi/blob/master/doc/guide.md
 [2]: https://github.com/adamdickmeiss/folio-local-run
