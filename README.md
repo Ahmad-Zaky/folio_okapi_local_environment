@@ -394,7 +394,7 @@ okapilog                                # shows the log for running okapi instan
     * `ELASTICSEARCH_HOST` from `localhost` to `elasticsearch`
 * In some cases while you running the script, you will have user permissions issue related to listing users with this permission `users.collection.get` in that case firstly this permission may be added to `permissions` table with `dummy` value equal to `true` you will need to change it manually to false, and edit user permissions by adding this `users.collection.get` permission.
 * Related to module permissions, when you add new modules sometimes you need to manually to add these new module permissions to the user.
-* TODO: we need to handle a case when module version of mod-authtoken has changed when I try to validate authtoken enabled within function `remove_authtoken_and_permissions_if_enabled_previously()`, and same applies for `mod_permissions`.
+
 * A useful tip in case some modules fail, you can navigate to that module and manually pull from remote repo the latest changes and rebuild the module.
 * before starting okapi the allocated ports will be freed from the host machine for example if the allocated ports START_PORT=9031 to END_PORT=9199
 * There is a specific case when you change db configs for mod-users while you using mod-authtoken there will be an issue as the login attempt will fails, so modules like mod-authtoken, mod-login, and mod-users should share the same db configs.
@@ -494,7 +494,7 @@ okapilog                                # shows the log for running okapi instan
 
 ## TODOs
 
-
+- [ ] we need to handle a case when module version of mod-authtoken has changed when I try to validate authtoken enabled within function `remove_authtoken_and_permissions_if_enabled_previously()`, and same applies for `mod_permissions`.
 - [ ] we need to validate input arguments stop with error if not recognized argument has been provided.
 - [ ] try to make parameters more professional with --help command to describe all working parameters.
 - [ ] in database `db_cmd_defaults()` method we want to offload some of the env vars to be configured from `configuration.json` file.
@@ -519,7 +519,7 @@ okapilog                                # shows the log for running okapi instan
 - [ ] in `database.sh` file if we run `folio db staging import` or without staging the sql file may contain casts that are not present in the local db so you need to add them manually.
 - [ ] in `modules.json` in the `okapi` object we need a key to add custom java options.
 - [ ] in `modules.json` in the `okapi` object we want the env key value option like in the other modules.
-* TOOD: we need to only import schemas option so we do not need to drop the whole db and recreate it again.
+- [ ] we need to only import schemas option so we do not need to drop the whole db and recreate it again.
 - [ ] user permissions should be handled properly as new modules have new permissions, these new permissions should be granted to the logged in user.
 - [ ] while creating new db on importing a db sql file consider crate Database Objects as it should be like casts and extensions like (btree_gin, pg_trgm, pgcrypto, unaccent, uuid-ossp)
 - [ ] in env json array objects its better to use `key` value as the key of environment variable instead of `name`.
