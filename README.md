@@ -507,7 +507,7 @@ The script is utilizing some linux tools, which should be installed before runni
 
 - **"env"**
     - here we will have all environment variables you want to export for that module at `deploy` step where you will run the module.
-    -**required:** **NO**
+    - **required:** **NO**
 
 - **"env.name"**
     - represent the environment variable name for the module it was declared in.
