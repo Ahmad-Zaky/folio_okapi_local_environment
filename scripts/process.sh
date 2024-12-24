@@ -570,7 +570,7 @@ build_module() {
 	fi
 
 	# Default Build command
-	BUILD="mvn -DskipTests -Dmaven.test.skip=true package"
+	BUILD=$DEFAULT_MODULE_BUILD_CMD
 
 	# Custom Build command
 	has "build" $INDEX ../$JSON_LIST

@@ -71,7 +71,7 @@ validate_module_repo() {
 	local JSON_LIST=$3
 
 	# Default repo url (FOLIO ORG)
-	REPO="git clone --recurse-submodules git@github.com:folio-org/$MODULE"
+	REPO="git clone --recurse-submodules $DEFAULT_MODULE_BASE_REPO/$MODULE.git"
 
 	# Custom Repo url
 	has "repo" $INDEX $JSON_LIST

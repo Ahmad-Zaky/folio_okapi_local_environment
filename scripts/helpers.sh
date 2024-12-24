@@ -605,6 +605,24 @@ is_postman_enabled() {
 	return 0
 }
 
+is_install_params_enabled() {
+	local INDEX=$1
+	local JSON_LIST=$2
+	
+	# By default module is install_params enabled if the key is missing
+	has "enabled" $INDEX $JSON_LIST "install_params"
+	if [[ "$?" -eq 0 ]]; then
+		return 1
+	fi
+
+	has_value "enabled" $INDEX "true" $JSON_LIST "install_params"
+	if [[ "$?" -eq 1 ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
 is_server_okapi_enabled() {
 	local INDEX=$1
 	local JSON_LIST=$2
@@ -1088,6 +1106,13 @@ get_install_params() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
+
+	# Skip install_params if disabled
+	is_install_params_enabled $INDEX $JSON_LIST
+	IS_ENABLED=$?
+	if [[ "$IS_ENABLED" -eq 0 ]]; then
+		return
+	fi
 
 	local PURGE_KEY=".install_params.tenantParameters"
 	FOUND_PURGE=$(jq ".[$INDEX]$PURGE_KEY | first(select(.purge == \"true\")) | .purge == \"true\"" $JSON_LIST)

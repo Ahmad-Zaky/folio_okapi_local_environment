@@ -39,7 +39,16 @@
                     <li><a href="#untracked-files">Untracked files</a></li>
                 </ul>
             </li>
-            <li><a href="#module-components">Module Components</a></li>
+            <li>
+                <a href="#module-components">Module Components</a>
+                <ul>
+                    <li><a href="#base-component">Base component</a></li>
+                    <li><a href="#env-component">Environment component</a></li>
+                    <li><a href="#okapi-component">Okapi component</a></li>
+                    <li><a href="#postman-component">Postman component</a></li>
+                    <li><a href="#install-params-component">Install (enable) params component</a></li>
+                </ul>
+            </li>
             <li><a href="#configuration-components">Configuration Components</a></li>
             <li><a href="#general-practicing-notes">General Practicing Notes</a></li>
       </ul>
@@ -108,7 +117,7 @@ Key features:
             ...
         ],
         "okapi": {
-            "url": "https://folio-snapshot.dev.folio.org",
+            "url": "https://folio-snapshot-okapi.dev.folio.org",
             "tenant": "diku",
             "credentials": {
                 "username": "diku_admin",
@@ -342,81 +351,323 @@ The script is utilizing some linux tools, which should be installed before runni
 
 ### Module Components
 
+- We have a json file called `modules.json` where we store metadata about all modules we work with, we will now explain each module metadata key and value with examples.
 
+- Here is a module component contains all possible keys and values, which is not realistic, but we put them all together for the sake of documentation.
 
-> Modules json keys explained:
-
-> The only required unique key is `id` any other keys are optional and may be conditional required
-
-> Example of a module in modules.json contains all possible keys
-
-```
-    {
-        "comment": "<some comments ...>",
-        "id": "mod-mylibrary",
-        "repo": "git@github.com:Ahmad-Zaky/mod-mylibrary.git",
-        "branch": "main",
-        "build": "mvn clean install -DskipTests",
-        "rebuild": "false"
-        "access_token": "<access_token>",
-        "env": [
-            {
-                "name": "MY_LIBRARY_ENV",
-                "value": "123"
-            }
-        ],
-        "okapi": {
-            "url": "https://folio-orchid-okapi.dev.folio.org",
-            "tenant": "diku",
-            "credentials": {
-                "username": "diku_admin",
-                "password": "admin"
-            }
-        },
-        "postman": {
-            "file": "src/main/resources/swagger.api/mod-mylibrary.yaml",
-            "api_key": "<api_key>",
+    ```json
+        {
+            "comment": "<some comments ...>",
+            "id": "mod-users",
+            "repo": "https://github.com/folio-org/mod-users.git",
+            "access_token": "<access_token>",
+            "tag": "v19.4.2",
+            "branch": "main",
+            "build": "mvn clean install -DskipTests",
+            "rebuild": "false",
+            "env": [
+                {
+                    "name": "DB_HOST",
+                    "value": "localhost"
+                }
+            ],
+            "okapi": {
+                "url": "https://folio-snapshot-okapi.dev.folio.org",
+                "tenant": "diku",
+                "credentials": {
+                    "username": "diku_admin",
+                    "password": "admin"
+                },
+                "enabled": "true"
+            },
+            "postman": {
+                "file": "path/to/swagger.api/users.yaml",
+                "api_key": "PMAK-xxxxxxxxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxx",
+                "enabled": "true"
+            },
+            "install_params": {
+                "tenantParameters": {
+                    "purge": "true",
+                    "loadReference": "true",
+                    "loadSample": "true"
+                },
+                "enabled": "true"
+            },
+            "step": "install",
             "enabled": "true"
+        }
+    ```
+
+- Lets break this big json object into small components and explain them in details.
+
+- In below declaration, for any key without `default` and has `required` with `NO` value, means that if the key is missing, no default value exists.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Base Component
+```json
+{
+    ...
+    "comment": "<some comments ...>",
+    "id": "mod-users",
+    "repo": "https://github.com/folio-org/mod-users.git",
+    "access_token": "<access_token>",
+    "tag": "v19.4.2",
+    "branch": "main",
+    "build": "mvn clean install -DskipTests",
+    "rebuild": "false",
+    "step": "install",
+    "enabled": "true"
+    ...
+}
+```
+
+- **"comment"**   
+    - this key does what it says its just a comment like any comment you as a developer add in your code base.
+    - it has no affect at all.
+    - noteabley any key that is not listed here will act also like `comment` key, so you actually you can add any key you wish and it will not take any affect as long as its not one of the keys listed here in the documentation.
+ 
+    - **example:** `"return develop branch back when you finished"`, I actually use this kind of comments a lot when I work on a feature branch, and I need to revert back after finishing my feature implementation.
+    - **required:** **NO**
+
+- **"id"**
+    - represents the module name and its used in different places
+    - clone a module using default repo value, will take the id as repository name and append it into the clone repo command.
+    - each module directory name will be the same `id` value which is obvious as we clone using the `id`.
+    - duplicate `id` values in `moduels.json` does not raise any errors, it will be just redundant operation, and you all the steps will not be applied again, so if it was deployed once it will not get deployed again.
+    - **example:** `mod-users`
+    - **required:** **YES**
+
+- **"repo"**
+    - has the repository url could be either https or ssh version.
+    - **example:** `https://github.com/folio-org/mod-users.git`
+    - **default:** will be declared in `configuration.json` file
+    - **required:** **NO**
+
+- **"access_token"**
+    - if you decide to use `https` repo clone url version then you may need to add credentials for authentication if its not cached locally, in that case you can just generate an `access_token` from your repo host like `github` and use it here to be able to clone/pull a repo without problems.
+    - **required:** **NO**
+
+- **"tag"**
+    - specify the tag version when you clone the module at first step, and also validates it with current existing tag, so that if its different the script will auto-checkout to the tag specified here and rebuild the module again.
+    - **example:** `v19.4.2`
+    - **required:** **NO**
+
+- **"branch"**
+    - specify the branch you want to land on while cloning the module at first step, and like `tag` it validates it with current existing branch of the module and if they differ, the script will auto-checkout the specified branch here and rebuild the module.
+    - if both `branch` and `tag` were specified in one module metadata, an error will raise up, states that you can not have both `tag` and `branch` in the same module metadata.
+    - **example:** `develop`
+    - **required:** **NO**
+
+- **"build"**
+    - command used to build your module, and this command will overwrite the default build command.
+    - **example:** `mvn clean install -DskipTests`
+    - **default:** will be declared in `configuration.json` file
+    - **required:** **NO**
+
+- **"rebuild"**
+    - In case you want to rebuild module on each run, you can add this key with value `true`. 
+    - **default:** `false`
+    - **example:** `true`
+    - **required:** **NO**
+
+- **"step"**
+    - each module has 5 steps in order as following.
+        1. `clone`: clone the module from your host repository into your local machine.
+        2. `build`: build the module to be ready for running.
+        3. `register`: register the module in your local okapi instance.
+        4. `deploy`: deploy (run) the module in your local okapi instance.
+        5. `install (enable)`: install or enable your module to a specific `tenant` also within your local okapi instance.
+    - for example, if you put value `deploy` for the key `step` that means, the module will go through all steps until `deploy` step in this order (`clone` -> `build` -> `register` -> `deploy`) and stops there.
+    - **example:**  `enable`
+    - **default:** if this key is missing the module will pass and be valid for all steps (`clone`, `build`, `register`, `deploy`, `install`)
+    - **required:** **NO**
+
+- **"enabled"**
+    - it gives you the control where you consider this module while running the script or not, so if you want to skip a specific module you simply add value `false` to that module.
+    - **example:** `true`
+    - **default:** `true`
+    - **required:** **NO**
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Env Component
+```json
+{
+    ...
+    "env": [
+        {
+            "name": "DB_HOST",
+            "value": "localhost"
+        }
+    ]
+    ...
+}
+```
+
+- **"env"**
+    - here we will have all environment variables you want to export for that module at `deploy` step where you will run the module.
+    -**required:** **NO**
+
+- **"env.name"**
+    - represent the environment variable name for the module it was declared in.
+    - **example:** `DB_HOST`
+    - **required:** **YES**
+
+- **"env.value"**
+    - represent the environment variable value for the module it was declared in.
+    - **example:** `localhost`
+    - **required:** **YES**
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Okapi Component
+```json
+{
+    ...
+    "okapi": {
+        "url": "https://folio-snapshot-okapi.dev.folio.org",
+        "tenant": "diku",
+        "credentials": {
+            "username": "diku_admin",
+            "password": "admin"
         },
-        "install_params": {
-            "tenantParameters": {
-                "loadReference": "true",
-                "loadSample": "true"
-            }
-        },
-        "step": "install",
         "enabled": "true"
     }
+    ...
+}
 ```
 
-| Key | Value | example |
-| :---------------- | :------ | :------: |
-| id | has repository module name. | `mod-users` |
-| repo | has the repo link could be ssh or https. | `git@github.com:Ahmad-Zaky/mod-mylibrary.git` |
-| tag | while cloning a repo and its used for cloning specific version after `-b` option.  | `git clone git@github.com:Ahmad-Zaky/mod-mylibrary.git -b v1.0.0`
-| build | The command to build the module which replace the default build command. | `mvn clean install -DskipTests` |
-| rebuild | Has value true/false which leads to rebuild the already built module   | `true` or `false` |
-| enabled | As value true/false which leads to skip/not skip the module on running   | `true` or `false` |
-| env | exports env variables while running the module, the env variable has an array of objects each object has `key` and `value`   | `{"name": "MY_LIBRARY_ENV","value": "123"}` |
-| comment |  Has no effect its just a comment for the developer to see   | - |
-| step |  Running a module has several steps I can stop a module to a specific step   | `clone`, `build`, `register`, `deploy`, `install` |
-| access_token | Its a repository access token for `cloning`/`pulling` the module when you use `https` not `ssh`    | - |
-| okapi | Its responsible for running module on a cloud okapi instane, the reason for not running the module on local instance is that some modules its hard to run it with local okapi instance as it requires too many modules and there is a list of nested dependencies which means the module requires a module and that module requires othe modules and so on | - |
-| okapi -> url | Has the value of cloud okapi instance url | `https://folio-orchid-okapi.dev.folio.org` |
-| okapi -> tenant | Has the value of cloud okapi tenant name | `diku` |
-| okapi -> credentials | Has the value of cloud okapi credentials which has `username`, and `password` | `{"username": "diku_admin", "password": "admin"}` |
-| postman | If I have openapi file in my module I can import it in my postman as a collection using an API | - |
-| postman -> file | Has the path to the openapi `.yml` file | `"file": "src/main/resources/swagger.api/mod-mylibrary.yaml",` |
-| postman -> api_key | Has the api key of my postman account | `"api_key": "<api_key>",` |
-| postman -> enabled | Control if we want to import the `.yml` file or not | `true` or `false` |
-| install_params | This key value will be used in register (enable) step, A module may, besides doing the fundamental initialization of storage etc. also load sets of reference data. This can be controlled by supplying tenant parameters. These are properties (key-value pairs) that are passed to the module when enabled or upgraded. Passing those are only performed when tenantParameters is specified for install and when the tenant interface is version 1.2 and later. | - |
-| install_params -> tenantParameters -> loadReference | with value true loads reference data | `true` or `false` |
-| install_params -> tenantParameters -> loadSample | with value true loads sample data. | `true` or `false` |
+- **"okapi"**
+    - some how you have the ability to run your modules not on local okapi instance instead on a remote okapi instance, like if you want to run only one module and debug a specific API without the need to spin up all modules needed for that API request.
+    - **required:** **NO**
 
+- **"okapi.url"**
+    - here we specify the remote okapi instance url.
+    - **example:** `https://folio-snapshot-okapi.dev.folio.org`
+    - **required:** **YES**
+
+- **"okapi.tenant"**
+    - here we specify the remote okapi instance tenant which will be used in `X-Okapi-Tenant` header.
+    - **example:** `diku`
+    - **required:** **YES**
+
+- **"okapi.credentials"**
+    - for login we should have credentials to authenticate into the remote okapi instance.
+    - **required:** **YES**
+
+
+- **"okapi.credentials.username"**
+    - a valid username for the remote okapi instance credentials.
+    - **example:** `diku_admin`
+    - **required:** **YES**
+
+- **"okapi.credentials.password"**
+    - a valid password for the remote okapi instance credentials.
+    - **example:** `admin`
+    - **required:** **YES**
+
+- **"okapi.enabled"**
+    - here you have the ability to enable or disable the `okapi` component.
+    - **example:** `true`
+    - **default:** `true`
+    - **required:** **NO**
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Postman Component
+```json
+{
+    ...
+    "postman": {
+        "file": "path/to/swagger.api/users.yaml",
+        "api_key": "PMAK-xxxxxxxxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxx",
+        "enabled": "true"
+    }
+    ...
+}
+```
+
+- **"postman"**
+    - you can auto-import your postman collection in case you have it existing in your module directory, and its also valid for swagger open api `.yml` files.
+    - you should consider enable this component only at first time, as it does not validate if the collection has been added previously to your workspace or not, it will just duplicate it again.
+    - **required:** **NO**
+
+- **"postman.file"**
+    - path to your collection or swagger open api file.
+    - **example:** `path/to/swagger.api/users.yaml`
+    - **required:** **YES**
+
+- **"postman.api_key"**
+    - used to authenticate the postman integration API request, so you can import your collection.
+    - **required:** **YES**
+
+- **"postman.enabled"**
+    - here you have the ability to enable or disable the `postman` component.
+    - **example:** `true`
+    - **default:** `true`
+    - **required:** **YES**
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Install Params Component
+
+```json
+{
+    ...
+    "install_params": {
+        "tenantParameters": {
+            "purge": "true",
+            "loadReference": "true",
+            "loadSample": "true"
+        },
+        "enabled": "true"
+    }
+    ...
+}
+```
+
+- **"install_params"**
+    - this component is more related to `enable` step where it will be transformed into query parameters added to the API request that performs the `enable` action.
+    - there are more parameters than what we use here like `preRelease`, and `invoke` parameters.
+    - for more details you can check [okapi guide][okapi_guide].
+    - **required:** **NO**
+
+- **"install_params.tenantParameters"**
+    - A module may, besides doing the fundamental initialization of storage etc. also load sets of reference data. This can be controlled by supplying tenant parameters.
+    - for more details [check here][purge_parameter_docs].
+    - **required:** **NO**
+
+- **"install_params.tenantParameters.purge"**
+    - instructs a module to purge (remove) all persistent data. This only has an effect on modules that are also disabled.
+    - **example:** `true`
+    - **default:** `false`
+    - **required:** **NO**
+
+- **"install_params.tenantParameters.loadReference"**
+    - `loadReference` with value `true` loads reference data.
+    - **example:** `true`
+    - **default:** `false`
+    - **required:** **NO**
+
+- **"install_params.tenantParameters.loadSample"**
+    - `loadSample` with value `true` loads sample data.
+    - **example:** `true`
+    - **default:** `false`
+    - **required:** **NO**
+
+- **"install_params.enabled"**
+    - here you have the ability to enable or disable the `install_params` component.
+    - **example:** `true`
+    - **default:** `true`
+    - **required:** **NO**
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Configuration Components
 
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### General Practicing Notes
 
@@ -445,8 +696,11 @@ The script is utilizing some linux tools, which should be installed before runni
 * before starting okapi the allocated ports will be freed from the host machine for example if the allocated ports START_PORT=9031 to END_PORT=9199
 * There is a specific case when you change db configs for mod-users while you using mod-authtoken there will be an issue as the login attempt will fails, so modules like mod-authtoken, mod-login, and mod-users should share the same db configs.
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Usage
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Folio Commands
 
@@ -487,6 +741,7 @@ iokapi                                  # init okapi first and then run it with 
 okapilog                                # shows the log for running okapi instance interactively.
 ```
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ### Folio Examples
@@ -496,6 +751,7 @@ okapilog                                # shows the log for running okapi instan
 
 
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ## TODOs
@@ -559,8 +815,8 @@ okapilog                                # shows the log for running okapi instan
 - [ ] move to login with expiry approach
 - [ ] add install.sh to auto configure the starting steps.
 - [ ] write notice for postgres docker compose service that if the user already has the service on his machine, that he should has the databases okapi_modules and okapi_modules_staging created.
-
-
+- [ ] each key in `modules.json` should be validated for empty values.
+- [ ] `helper.sh` should be divided into smaller files.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 
@@ -624,3 +880,7 @@ Ahmed Zaky - [Linked In][linkedin-url] - ahmed6mohamed6@gmail.com
 [13]: https://www.elastic.co/kibana
 [14]: https://min.io
 [15]: https://github.com/folio-org/platform-complete/blob/R2-2024/okapi-install.json
+
+[okapi_guide]: https://github.com/folio-org/okapi/blob/master/doc/guide.md#install-parameter-tenantparameters
+[purge_parameter_docs]: https://github.com/folio-org/okapi/blob/master/doc/guide.md#purge
+[tenant_parameters_docs]: https://github.com/folio-org/okapi/blob/master/doc/guide.md#tenant-parameters
