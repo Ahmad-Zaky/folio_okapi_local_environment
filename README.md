@@ -817,6 +817,7 @@ okapilog                                # shows the log for running okapi instan
 - [ ] write notice for postgres docker compose service that if the user already has the service on his machine, that he should has the databases okapi_modules and okapi_modules_staging created.
 - [ ] each key in `modules.json` should be validated for empty values.
 - [ ] `helper.sh` should be divided into smaller files.
+- [ ] add pipeline that runs the script after each push/merge to main to ensure that the script works just fine and did not break after the new shipped script.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 
