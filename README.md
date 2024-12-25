@@ -711,37 +711,38 @@ The script is utilizing some linux tools, which should be installed before runni
     - **default:** `5`
 
 #### Database Operations Configuration
-
+- database operations are a little isolated from the rest of the script in `database.sh` file, so its configurations are separate from script database configurations.
 - **"DB_CMD_DOCKER_CMD"**
-    - .
+    - docker command used, you can add `sudo` like this `sudo docker` in case your docker runs in root.
     - **default:** `docker`
 
 - **"DB_CMD_STAGING_OKAPI_USERNAME"**
-    - .
+    - on staging sometimes the username is different than local database username so on importing from staging I replace all staging username occurances in the sql file with the local db username.
+    - this configuration sets the staging username value.
     - **default:** `okapi`
 
 - **"DB_CMD_USERNAME"**
-    - .
+    - local database username.
     - **default:** `folio_admin`
 
 - **"DB_CMD_DATABASE_STAGING"**
-    - .
+    - local staging database where I import staging schemas to not interfer with local `okapi_modules` database schemas.
     - **default:** `okapi_modules_staging`
 
 - **"DB_CMD_DATABASE"**
-    - .
+    - local database name.
     - **default:** `okapi_modules`
 
 - **"DB_CMD_DATABASE_SQL_FILE"**
-    - .
+    - sql file name which will be imported in your local database.
     - **default:** `okapi.sql`
 
 - **"DB_CMD_DUMPED_DATABASE_SQL_FILE"**
-    - .
+    - sql file name of the local dumped databse.
     - **default:** `dumped_okapi.sql`
 
 - **"DB_CMD_DATABASE_SQL_DIR_PATH"**
-    - .
+    - path where you should place the staging sql file to be imported.
     - **default:** `../db`
 
 - **"DB_CMD_CONTAINER"**
@@ -749,27 +750,27 @@ The script is utilizing some linux tools, which should be installed before runni
     - **default:** `postgres-folio`
 
 - **"DB_CMD_CP_DUMP_DB_DESTINATION"**
-    - .
+    - path where your dumped database file will be copied to.
     - **default:** `../db/`
 
 - **"DB_CMD_SCHEMAS_PATH"**
-    - .
+    - schemas list path in case you want to include/exclude specific schemas while dumping your local database.
     - **default:** `db/schemas.txt`
 
 - **"DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION"**
-    - .
+    - include schema option used with postgres `pgdump` command.
     - **default:** `-n`
 
 - **"DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION"**
-    - .
+    - exclude schema option used with postgres `pgdump` command.
     - **default:** `-N`
 
 - **"DB_CMD_CREATE_MODULE_ROLE"**
-    - .
+    - create role query.
     - **default:** `create user %s superuser createdb;`
 
 - **"DB_CMD_ALTER_MODULE_ROLE"**
-    - .
+    - change user role for a schema query.
     - **default:** `alter user %s set search_path = %s;`
 
 #### KAFKA Configuration
