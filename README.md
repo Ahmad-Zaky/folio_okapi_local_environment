@@ -710,6 +710,8 @@ The script is utilizing some linux tools, which should be installed before runni
 - **"DB_MAXPOOLSIZE"**
     - **default:** `5`
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 #### Database Operations Configuration
 - database operations are a little isolated from the rest of the script in `database.sh` file, so its configurations are separate from script database configurations.
 - **"DB_CMD_DOCKER_CMD"**
@@ -773,6 +775,8 @@ The script is utilizing some linux tools, which should be installed before runni
     - change user role for a schema query.
     - **default:** `alter user %s set search_path = %s;`
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 #### KAFKA Configuration
 - here we have all kafka configuration.
 
@@ -781,6 +785,8 @@ The script is utilizing some linux tools, which should be installed before runni
 
 - **"KAFKA_HOST"**
     - **default:** `localhost`
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 #### Elastic Configuration
 - here we have all elastic search configuration.
@@ -799,6 +805,8 @@ The script is utilizing some linux tools, which should be installed before runni
 
 - **"ELASTICSEARCH_PASSWORD"**
     - **default:** -
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 #### Okapi Configuration
 
@@ -872,6 +880,8 @@ The script is utilizing some linux tools, which should be installed before runni
     - to go back to `modules` directory from `okapi-core` directory.
     - **default:** `../..`
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 #### Modules Configuration
 
 - **"SHOULD_STOP_RUNNING_MODULES"**
@@ -894,6 +904,8 @@ The script is utilizing some linux tools, which should be installed before runni
     - if one of the modules in `modules.json` does not have key `build` then the default build command used will be this configuration.
     - **default:** `mvn -DskipTests -Dmaven.test.skip=true package`
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 #### Tenant Configuration
 
 - the script will automatically creates a tenant for the modules to work with.
@@ -908,6 +920,8 @@ The script is utilizing some linux tools, which should be installed before runni
 - **"TENANT_DESCRIPTION"**
     - specifies the tenant description value.
     - **default:** `Test Library`
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 #### User Configuration
 - the script will automatically creates a user for the modules to use it in authentication within system.
@@ -970,6 +984,8 @@ The script is utilizing some linux tools, which should be installed before runni
     - is empty right now as departments table is empty but if you are sure that the database has not empty departments table, then you can pick some `UUIDS` from the table and put them here.
     - **default:** `[]`
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 #### Docker Configuration
 
 - **"RUN_WITH_DOCKER"**
@@ -993,6 +1009,8 @@ The script is utilizing some linux tools, which should be installed before runni
 - **"DOCKER_MODULE_DEFAULT_PORT"**
     - each module internally will operate on one port which the default value is `8081`.
     - **default:** `8081`
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 #### Postman Configuration
 - here are the configuration to be able to talk to postman API and update your environment variables.
