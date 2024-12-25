@@ -1,28 +1,45 @@
 #!/bin/bash
 
-db_cmd_defaults() {
-    # Specify the database name
-    DB_CMD_DOCKER_CMD="docker"
-    DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME="okapi"
-    DB_CMD_USERNAME="folio_admin"
-    DB_CMD_DATABASE_STAGING="okapi_modules_staging"
-    DB_CMD_DATABASE="okapi_modules"
-    DB_CMD_DATABASE_SQL_FILE="okapi.sql"                                                        # sql file name located inside the DB_CMD_DATABASE_SQL_PATH directory declared below.
-    DB_CMD_DUMPED_DATABASE_SQL_FILE="dumped_okapi.sql"                                          # dumped sql file name.
-    DB_CMD_DATABASE_SQL_DIR_PATH="../db"                                                        # sql file relative path to this script's directory.
+db_cmd_defaults() {    
+	DB_CMD_DOCKER_CMD=$(jq ".DB_CMD_DOCKER_CMD" $CONFIG_FILE)
+	DB_CMD_STAGING_OKAPI_USERNAMER=$(jq ".DB_CMD_STAGING_OKAPI_USERNAME" $CONFIG_FILE)
+	DB_CMD_USERNAME=$(jq ".DB_CMD_USERNAME" $CONFIG_FILE)
+	DB_CMD_DATABASE_STAGING=$(jq ".DB_CMD_DATABASE_STAGING" $CONFIG_FILE)
+	DB_CMD_DATABASE=$(jq ".DB_CMD_DATABASE" $CONFIG_FILE)
+	DB_CMD_DATABASE_SQL_FILE=$(jq ".DB_CMD_DATABASE_SQL_FILE" $CONFIG_FILE)
+	DB_CMD_DUMPED_DATABASE_SQL_FILE=$(jq ".DB_CMD_DUMPED_DATABASE_SQL_FILE" $CONFIG_FILE)
+	DB_CMD_DATABASE_SQL_DIR_PATH=$(jq ".DB_CMD_DATABASE_SQL_DIR_PATH" $CONFIG_FILE)
+	DB_CMD_CONTAINER=$(jq ".DB_CMD_CONTAINER" $CONFIG_FILE)
+	DB_CMD_CP_DUMP_DB_DESTINATION=$(jq ".DB_CMD_CP_DUMP_DB_DESTINATION" $CONFIG_FILE)
+	DB_CMD_SCHEMAS_PATH=$(jq ".DB_CMD_SCHEMAS_PATH" $CONFIG_FILE)
+	DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION=$(jq ".DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION" $CONFIG_FILE)
+	DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION=$(jq ".DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION" $CONFIG_FILE)
+	DB_CMD_CREATE_MODULE_ROLE=$(jq ".DB_CMD_CREATE_MODULE_ROLE" $CONFIG_FILE)
+	DB_CMD_ALTER_MODULE_ROLE=$(jq ".DB_CMD_ALTER_MODULE_ROLE" $CONFIG_FILE)
+
+	# Remove extra double quotes at start and end of the string
+	export DB_CMD_DOCKER_CMD=$(echo $DB_CMD_DOCKER_CMD | sed 's/"//g')
+	export DB_CMD_STAGING_OKAPI_USERNAME=$(echo $DB_CMD_STAGING_OKAPI_USERNAME | sed 's/"//g')
+	export DB_CMD_USERNAME=$(echo $DB_CMD_USERNAME | sed 's/"//g')	
+	export DB_CMD_DATABASE_STAGING=$(echo $DB_CMD_DATABASE_STAGING | sed 's/"//g')	
+	export DB_CMD_DATABASE=$(echo $DB_CMD_DATABASE | sed 's/"//g')	
+	export DB_CMD_DATABASE_SQL_FILE=$(echo $DB_CMD_DATABASE_SQL_FILE | sed 's/"//g')
+	export DB_CMD_DUMPED_DATABASE_SQL_FILE=$(echo $DB_CMD_DUMPED_DATABASE_SQL_FILE | sed 's/"//g')  # dumped sql file name.
+	export DB_CMD_DATABASE_SQL_DIR_PATH=$(echo $DB_CMD_DATABASE_SQL_DIR_PATH | sed 's/"//g')	    # sql db relative path to this script's directory. 
+	export DB_CMD_CONTAINER=$(echo $DB_CMD_CONTAINER | sed 's/"//g')	                            # service container name found in the `docker-compose.yml` file
+	export DB_CMD_CP_DUMP_DB_DESTINATION=$(echo $DB_CMD_CP_DUMP_DB_DESTINATION | sed 's/"//g')	
+	export DB_CMD_SCHEMAS_PATH=$(echo $DB_CMD_SCHEMAS_PATH | sed 's/"//g')
+	export DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION=$(echo $DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION | sed 's/"//g')
+	export DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION=$(echo $DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION | sed 's/"//g')	
+	export DB_CMD_CREATE_MODULE_ROLE=$(echo $DB_CMD_CREATE_MODULE_ROLE | sed 's/"//g')	
+	export DB_CMD_ALTER_MODULE_ROLE=$(echo $DB_CMD_ALTER_MODULE_ROLE | sed 's/"//g')	
+
     DB_CMD_DATABASE_SQL_PATH="$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DATABASE_SQL_FILE"          # sql file relative path to this script's directory.
-    DB_CMD_CONTAINER="postgres-folio"                                                           # service container name found in the `docker-compose.yml` file
     DB_CMD_COMMAND_WRAPPER="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER /bin/bash -c \"%s\" \n"   # if you use postgres on your local machine directly, replace this with "%s"
     DB_CMD_COMMAND_WRAPPER_ALT="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER %s \n"                # if you use postgres on your local machine directly, replace this with "%s"
     DB_CMD_CP_DUMP_DB_SOURCE="/$DB_CMD_DUMPED_DATABASE_SQL_FILE"
-    DB_CMD_CP_DUMP_DB_DESTINATION="../db/"
     DB_CMD_DOCKER_CP_COMMAND="$DB_CMD_DOCKER_CMD cp $DB_CMD_CONTAINER:$DB_CMD_CP_DUMP_DB_SOURCE $DB_CMD_CP_DUMP_DB_DESTINATION"
-	DB_CMD_SCHEMAS_PATH="db/schemas.txt"
-    DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION="-n"
-    DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION="-N"
     DB_CMD_PGDUMP_SCHEMA_OPTION="$DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION"
-    DB_CMD_CREATE_MODULE_ROLE="create user %s superuser createdb;"
-    DB_CMD_ALTER_MODULE_ROLE="alter user %s set search_path = %s;"
 }
 
 db_has_arg() {
@@ -180,13 +197,13 @@ import() {
 
     # NOTE: we will not use this snippet and we will replace the role name used inside the sql file with existing role instead
     # # Create new role
-    # if ! [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -tAc \\\"SELECT 1 FROM pg_roles WHERE rolname='$DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME'\\\"")) == 1 ]]; then
-    #     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \"CREATE ROLE $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME WITH LOGIN; GRANT $DB_CMD_USERNAME TO $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME;\"")
+    # if ! [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -tAc \\\"SELECT 1 FROM pg_roles WHERE rolname='$DB_CMD_STAGING_OKAPI_USERNAME'\\\"")) == 1 ]]; then
+    #     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \"CREATE ROLE $DB_CMD_STAGING_OKAPI_USERNAME WITH LOGIN; GRANT $DB_CMD_USERNAME TO $DB_CMD_STAGING_OKAPI_USERNAME;\"")
     # fi
 
-    echo "Replace OWNER $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME to $DB_CMD_USERNAME in $DB_CMD_DATABASE_SQL_FILE file."
-    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_CMD_DATABASE_SQL_FILE")
-    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_CMD_DATABASE_SQL_FILE")
+    echo "Replace OWNER $DB_CMD_STAGING_OKAPI_USERNAME to $DB_CMD_USERNAME in $DB_CMD_DATABASE_SQL_FILE file."
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_STAGING_OKAPI_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_CMD_DATABASE_SQL_FILE")
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_STAGING_OKAPI_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_CMD_DATABASE_SQL_FILE")
 
     echo "Import $DB_CMD_DATABASE_SQL_FILE into $DB_CMD_DATABASE database"
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -f $DB_CMD_DATABASE_SQL_FILE")
@@ -231,9 +248,9 @@ import_schema() {
     local QUERY=$(printf "$DB_CMD_ALTER_MODULE_ROLE" "$DB_SCHEMA" "$DB_SCHEMA")
     db_run_query "$QUERY"
 
-    echo "Replace OWNER $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME to $DB_CMD_USERNAME in $DB_SCHEMA_FILE file."
-    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_SCHEMA_FILE")
-    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_STAGING_OKAPI_DB_CMD_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_SCHEMA_FILE")
+    echo "Replace OWNER $DB_CMD_STAGING_OKAPI_USERNAME to $DB_CMD_USERNAME in $DB_SCHEMA_FILE file."
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_STAGING_OKAPI_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_SCHEMA_FILE")
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_STAGING_OKAPI_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_SCHEMA_FILE")
 
     echo "Import $DB_SCHEMA_FILE schema into $DB_CMD_DATABASE database"
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -f $DB_SCHEMA_FILE")

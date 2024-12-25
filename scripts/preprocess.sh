@@ -79,7 +79,8 @@ general_defaults() {
 	export HOME_PATH=`echo ~`
 	export BASHRC_PATH="$HOME_PATH/.bashrc"
 	export BASH_ALIASES_PATH="$HOME_PATH/.bash_aliases"
-	export ALIASES_PATH="../scripts/aliases.txt"
+	export ALIASES_PATH="resources/aliases.txt"
+	export PERMISSIONS_PATH="resources/permissions.json"
 	export TOOLS_LIST="git java jq yq xmllint lsof docker netstat"
 }
 

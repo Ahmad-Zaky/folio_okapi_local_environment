@@ -1,0 +1,9 @@
+[
+    "okapi.all",
+    "perms.all",
+    "users.all",
+    "login.item.post",
+    "perms.users.assign.immutable",
+    "inventory-storage.locations.collection.get",
+    "perms.permissions.get"
+]

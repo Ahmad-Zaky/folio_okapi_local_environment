@@ -49,7 +49,20 @@
                     <li><a href="#install-params-component">Install (enable) params component</a></li>
                 </ul>
             </li>
-            <li><a href="#configuration-components">Configuration Components</a></li>
+            <li>
+                <a href="#configuration-components">Configuration Components</a>
+                <ul>
+                    <li><a href="#database-configuration">Database Configuration</a></li>
+                    <li><a href="#kafka-configuration">Kafka Configuration</a></li>
+                    <li><a href="#elastic-configuration">Elastic Configuration</a></li>
+                    <li><a href="#okapi-configuration">Okapi Configuration</a></li>
+                    <li><a href="#modules-configuration">Modules Configuration</a></li>
+                    <li><a href="#tenant-configuration">Tenant Configuration</a></li>
+                    <li><a href="#user-configuration">User Configuration</a></li>
+                    <li><a href="#docker-configuration">Docker Configuration</a></li>
+                    <li><a href="#postman-configuration">Postman Configuration</a></li>
+                </ul>
+            </li>
             <li><a href="#general-practicing-notes">General Practicing Notes</a></li>
       </ul>
     </li>
@@ -278,6 +291,9 @@ The script is utilizing some linux tools, which should be installed before runni
     │   ├── ...
     │   ├── modules.json
     │   └── configuration.json
+    ├── resources
+    │   ├── aliases.txt
+    │   └── permissions.json
     ├── scripts
     ├── .env
     ├── run.sh
@@ -289,6 +305,9 @@ The script is utilizing some linux tools, which should be installed before runni
 - **modules**: All modules we work on, are located here, in this directory, starting from first step clone a module until last step install that module.
     - **modules.json**: Its like a manifest for the modules we working on here in our local environment, including okapi.
     - **configuration.json**: All configurable data is configured here through (key -> value) approach starting from database configurations until 3rd party integrations like postman.
+- **resources**: All modules we work on, are located here, in this directory, starting from first step clone a module until last step install that module.
+    - **aliases.txt**: this is .bashrc/.bash_aliases aliases to help running terminal commands for folio local environment more easy and to feal more like running a tool.
+    - **permissions.json**: All user permissions needed to perform your requests and it depends upon which modules you want to run, so you can add your own permissions to the list and it will automatically assign them to the user while running the script.
 - **scripts**: contains all our bash script files implementation for our `FOLIO` local environment enabler, and also contains the old scripts which we started from at the beginning.
 - **.env**: has the env vars for `docker-compose.yml` services.
 - **run.sh**: entry point for our folio local environment script, which connects to the script files located in `script` directory.
@@ -306,7 +325,6 @@ The script is utilizing some linux tools, which should be installed before runni
         ├── validation.sh
         ├── helpers.sh
         ├── database.sh
-        ├── aliases.txt
         └── old
             ├── run.sh
             ├── run_custom_old.sh
@@ -321,7 +339,6 @@ The script is utilizing some linux tools, which should be installed before runni
     - **validation.sh**: centralized script to validate the running script from pre-process and process to post-process phases, like validate prerequisite linux tools, validate the `modules.json` list and much more.
     - **helpers.sh**: all reusable scripts are located here, and thats why the file is very big, it includes scripts related to logging, requesting using curl, and much more.
     - **database.sh**: all operations related to the local database like importing/dumping sql files are done here
-    - **aliases.txt**: this is .bashrc/.bash_aliases aliases to help running terminal commands for folio local environment.
     - **old**: the old script we did start from and its not used any more.
         - **run.sh**: basic script to run folio local environment, no more used.
         - **run_custom_old.sh**: customized version of `run.sh` and also no more used.
@@ -666,6 +683,337 @@ The script is utilizing some linux tools, which should be installed before runni
 
 ### Configuration Components
 
+- These configuration are essentially for the script to run peroperly, so you should not remove any of these configurations.
+- **default** value means the value it has in the `configuration_template.json` version after cloning.
+
+#### Database Configuration
+- here we have all database configuration.
+
+- **"DB_HOST"**
+    - **default:** `localhost`
+
+- **"DB_PORT"**
+    - **default:** `5432`
+
+- **"DB_DATABASE"**
+    - **default:** `okapi_modules`
+
+- **"DB_USERNAME"**
+    - **default:** `folio_admin`
+
+- **"DB_PASSWORD"**
+    - **default:** `folio_admin`
+
+- **"DB_QUERYTIMEOUT"**
+    - **default:** `60000`
+
+- **"DB_MAXPOOLSIZE"**
+    - **default:** `5`
+
+#### Database Operations Configuration
+
+- **"DB_CMD_DOCKER_CMD"**
+    - .
+    - **default:** `docker`
+
+- **"DB_CMD_STAGING_OKAPI_USERNAME"**
+    - .
+    - **default:** `okapi`
+
+- **"DB_CMD_USERNAME"**
+    - .
+    - **default:** `folio_admin`
+
+- **"DB_CMD_DATABASE_STAGING"**
+    - .
+    - **default:** `okapi_modules_staging`
+
+- **"DB_CMD_DATABASE"**
+    - .
+    - **default:** `okapi_modules`
+
+- **"DB_CMD_DATABASE_SQL_FILE"**
+    - .
+    - **default:** `okapi.sql`
+
+- **"DB_CMD_DUMPED_DATABASE_SQL_FILE"**
+    - .
+    - **default:** `dumped_okapi.sql`
+
+- **"DB_CMD_DATABASE_SQL_DIR_PATH"**
+    - .
+    - **default:** `../db`
+
+- **"DB_CMD_CONTAINER"**
+    - .
+    - **default:** `postgres-folio`
+
+- **"DB_CMD_CP_DUMP_DB_DESTINATION"**
+    - .
+    - **default:** `../db/`
+
+- **"DB_CMD_SCHEMAS_PATH"**
+    - .
+    - **default:** `db/schemas.txt`
+
+- **"DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION"**
+    - .
+    - **default:** `-n`
+
+- **"DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION"**
+    - .
+    - **default:** `-N`
+
+- **"DB_CMD_CREATE_MODULE_ROLE"**
+    - .
+    - **default:** `create user %s superuser createdb;`
+
+- **"DB_CMD_ALTER_MODULE_ROLE"**
+    - .
+    - **default:** `alter user %s set search_path = %s;`
+
+#### KAFKA Configuration
+- here we have all kafka configuration.
+
+- **"KAFKA_PORT"**
+    - **default:** `9092`
+
+- **"KAFKA_HOST"**
+    - **default:** `localhost`
+
+#### Elastic Configuration
+- here we have all elastic search configuration.
+
+- **"ELASTICSEARCH_URL"**
+    - **default:** `http://localhost:9200`
+
+- **"ELASTICSEARCH_HOST"**
+    - **default:** `localhost`
+
+- **"ELASTICSEARCH_PORT"**
+    - **default:** `9200`
+
+- **"ELASTICSEARCH_USERNAME"**
+    - **default:** -
+
+- **"ELASTICSEARCH_PASSWORD"**
+    - **default:** -
+
+#### Okapi Configuration
+
+- **"OKAPI_PORT"**
+    - okapi instance will listen on this port.
+    - **default`9130`:** 
+
+- **"OKAPI_HOST"**
+    - **default`localhost`:** 
+
+- **"END_PORT"**
+    - to control the ports available for okapi modules we set and end port value.
+    - **default:** `9199`
+
+- **"OKAPI_DIR"**
+    - path in `modules` directory to reach `okapi` project.
+    - **default:** `okapi`
+
+- **"OKAPI_REPO"**
+    - okapi repository url from which we will clone okapi project if not exists locally.
+    - **default:** `https://github.com/folio-org/okapi.git`
+
+- **"OKAPI_OPTION_ENABLE_SYSTEM_AUTH"**
+    - okapi option to enable authentication filter on api requests or not.
+    - **default:** `true`
+
+- **"OKAPI_OPTION_ENABLE_VERTX_METRICS"**
+    - okapi option to enable observe vert.x module metrics using `micrometer`.
+    - **default:** `false`
+
+- **"OKAPI_OPTION_STORAGE"**
+    - okapi option to establish where the data will be stored there are mainly three values (`inmemory`, `postgres`, `mongo`).
+    - **default:** `postgres`
+
+- **"OKAPI_OPTION_TRACE_HEADERS"**
+    - okapi option to enable adding `X-Okapi-Trace` header which state which modules have been visited during the api request journy.
+    - **default:** `true`
+
+- **"OKAPI_OPTION_LOG_LEVEL"**
+    - okapi option to set the log level of okapi instance logs like `info` or `debug`.
+    - **default:** `DEBUG`
+
+- **"OKAPI_ARG_DEV"**
+    - okapi argument `dev` could be used when starting okapi, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
+    - for more information check [okapi guide][okapi_guide_docs]
+    - **default:**`dev` 
+
+- **"OKAPI_ARG_INIT"**
+    - okapi argument `initdatabase` could be used when starting okapi, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
+    - for more information check [okapi guide][okapi_guide_docs]
+    - **default:** `initdatabase`
+
+- **"OKAPI_ARG_PURGE"**
+    - okapi argument `purgedatabase` could be used when starting okapi, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
+    - for more information check [okapi guide][okapi_guide_docs]
+    - **default:** `purgedatabase`
+
+- **"OKAPI_DOCKER_IMAGE_TAG"**
+    - its the image tag name used in case you run in docker environment.
+    - **default:** `okapi`
+
+- **"OKAPI_DOCKER_CONTAINER_NAME"**
+    - its the container name used in case you run in docker environment.
+    - **default:** `okapi`
+
+- **"OKAPI_CORE_DIR"**
+    - path to `okapi-core` directory which is usually used to start okapi.
+    - **default:** `okapi/okapi-core`
+
+- **"RETURN_FROM_OKAPI_CORE_DIR"**
+    - to go back to `modules` directory from `okapi-core` directory.
+    - **default:** `../..`
+
+#### Modules Configuration
+
+- **"SHOULD_STOP_RUNNING_MODULES"**
+    - its helpful when you rerun the script multiple times, if you want to stop all running modules and start over you can set this configuration to `true`.
+    - **default:** `true`
+
+- **"EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR"**
+    - to prevent dependency validation on registering modules into okapi you can set this configuration to `true`.
+    - **default:** `true`
+
+- **"REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY"**
+    - `mod-authtoken` if enabled in a previous run, it causes problems when you want to start over as it wants you to be authenticated while the module mod-authtoken is not up and running yet so here if you want to remove the module from the tenant to prevent these issues you can set this configuration to `true`.
+    - **default:** `true`
+
+- **"DEFAULT_MODULE_BASE_REPO"**
+    - if one of modules in `modules.json` does not have key `repo` then the script will clone the module from `org-folio` repo on github directly using this configuration value.
+    - **default:** `https://github.com/folio-org`
+
+- **"DEFAULT_MODULE_BUILD_CMD"**
+    - if one of the modules in `modules.json` does not have key `build` then the default build command used will be this configuration.
+    - **default:** `mvn -DskipTests -Dmaven.test.skip=true package`
+
+#### Tenant Configuration
+
+- the script will automatically creates a tenant for the modules to work with.
+- **"TENANT"**
+    - specifies the tenant id value.
+    - **default:** `test`
+
+- **"TENANT_NAME"**
+    - specifies the tenant name value.
+    - **default:** `Test`
+
+- **"TENANT_DESCRIPTION"**
+    - specifies the tenant description value.
+    - **default:** `Test Library`
+
+#### User Configuration
+- the script will automatically creates a user for the modules to use it in authentication within system.
+- **"USERNAME"**
+    - set the username value.
+    - **default:** `ui_admin`
+
+- **"PASSWORD"**
+    - set the user password value.
+    - **default:** `admin`
+
+- **"USER_ACTIVE"**
+    - set the user active status.
+    - **default:** `true`
+
+- **"USER_BARCODE"**
+    - set the user barcode value.
+    - **default:** `123456789`
+
+- **"USER_PERSONAL_FIRSTNAME"**
+    - set the user personal information first name.
+    - **default:** `John`
+
+- **"USER_PERSONAL_LASTNAME"**
+    - set the user personal information last name.
+    - **default:** `Doe`
+
+- **"USER_PERSONAL_MIDDLENAME"**
+    - set the user personal information middle name.
+    - **default:** `Richard`
+
+- **"USER_PERSONAL_PREFERRED_FIRST_NAME"**
+    - set the user personal information preferred first name.
+    - **default:** `John`
+
+- **"USER_PERSONAL_PHONE"**
+    - set the user personal information phone number.
+    - **default:** `7777777`
+
+- **"USER_PERSONAL_MOBILE_PHONE"**
+    - set the user personal information mobile phone number.
+    - **default:** `7777777`
+
+- **"USER_PERSONAL_PREFERRED_CONTACT_TYPE_ID"**
+    - set the user personal information contact type id.
+    - not sure if this information is important.
+    - **default:** `002`
+
+- **"USER_PERSONAL_EMAIL"**
+    - set the user email.
+    - **default:** `john@email.com`
+
+- **"USER_PROXY_FOR"**
+    - set user proxy for list.
+    - not sure if this information is important.
+    - **default:** `[]`
+
+- **"USER_DEPARTMENTS"**
+    - set user departments list.
+    - is empty right now as departments table is empty but if you are sure that the database has not empty departments table, then you can pick some `UUIDS` from the table and put them here.
+    - **default:** `[]`
+
+#### Docker Configuration
+
+- **"RUN_WITH_DOCKER"**
+    - a flag states whether the script will run on local machine as jar processes or in docker containers enivonment.
+    - if true then all modules including okapi will run in docker containers.
+    - **default:** `false`
+
+- **"DOCKER_CMD"**
+    - the docker command used.
+    - you can add sudo before `docker` value to be like this `sudo docker` in case your docker can only run in the root.
+    - **default:** `docker`
+
+- **"DOCKER_NETWORK"**
+    - specify the docker network name so all modules share it and can communitcate with each others through it.
+    - **default:** `folio`
+
+- **"DOCKER_ADDED_HOST"**
+    - add host to make modules be able to communitcate with `postgres`, `kafka`, `elasticsearch` services which does not share the same docker network.
+    - **default:** `host.docker.internal:host-gateway`
+
+- **"DOCKER_MODULE_DEFAULT_PORT"**
+    - each module internally will operate on one port which the default value is `8081`.
+    - **default:** `8081`
+
+#### Postman Configuration
+- here are the configuration to be able to talk to postman API and update your environment variables.
+- **"POSTMAN_API_KEY"**
+    - you can set your postman API Key here.
+    - **default:** -
+
+- **"POSTMAN_URL"**
+    - you can set the api url for postman here.
+    - **default:** `https://api.getpostman.com`
+
+- **"POSTMAN_IMPORT_OPENAPI_PATH"**
+    - path for the postman api to import swagger openapi yml files as collections.
+    - **default:** `/import/openapi`
+
+- **"POSTMAN_ENVIRONMENT_PATH"**
+    - path for postman api to update your postman environments.
+    - **default:** `/environments`
+
+- **"POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID"**
+    - the id (`UUID`) of specific postman environment you want to update its variables like `token`, `user_id`.
+    - **default:** -
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -882,6 +1230,7 @@ Ahmed Zaky - [Linked In][linkedin-url] - ahmed6mohamed6@gmail.com
 [14]: https://min.io
 [15]: https://github.com/folio-org/platform-complete/blob/R2-2024/okapi-install.json
 
+[okapi_guide_docs]: https://github.com/folio-org/okapi/blob/master/doc/guide.md
 [okapi_guide]: https://github.com/folio-org/okapi/blob/master/doc/guide.md#install-parameter-tenantparameters
 [purge_parameter_docs]: https://github.com/folio-org/okapi/blob/master/doc/guide.md#purge
 [tenant_parameters_docs]: https://github.com/folio-org/okapi/blob/master/doc/guide.md#tenant-parameters

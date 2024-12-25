@@ -1,4 +1,37 @@
 {
+    "DB_HOST": "localhost",
+    "DB_PORT": "5432",
+    "DB_DATABASE": "okapi_modules",
+    "DB_USERNAME": "folio_admin",
+    "DB_PASSWORD": "folio_admin",
+    "DB_QUERYTIMEOUT": "60000",
+    "DB_MAXPOOLSIZE": "5",
+
+    "DB_CMD_USERNAME": "folio_admin",
+    "DB_CMD_DATABASE": "okapi_modules",
+    "DB_CMD_DATABASE_STAGING": "okapi_modules_staging",
+    "DB_CMD_STAGING_OKAPI_USERNAME": "okapi",
+    "DB_CMD_DOCKER_CMD": "docker",
+    "DB_CMD_DATABASE_SQL_FILE": "okapi.sql",
+    "DB_CMD_DUMPED_DATABASE_SQL_FILE": "dumped_okapi.sql",
+    "DB_CMD_DATABASE_SQL_DIR_PATH": "../db",
+    "DB_CMD_CONTAINER": "postgres-folio",
+    "DB_CMD_CP_DUMP_DB_DESTINATION": "../db/",
+    "DB_CMD_SCHEMAS_PATH": "db/schemas.txt",
+    "DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION": "-n",
+    "DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION": "-N",
+    "DB_CMD_CREATE_MODULE_ROLE": "create user %s superuser createdb;",
+    "DB_CMD_ALTER_MODULE_ROLE": "alter user %s set search_path = %s;",
+
+    "KAFKA_PORT": "9092",
+    "KAFKA_HOST": "localhost",
+
+    "ELASTICSEARCH_URL": "http://localhost:9200",
+    "ELASTICSEARCH_HOST": "localhost",
+    "ELASTICSEARCH_PORT": "9200",
+    "ELASTICSEARCH_USERNAME": "",
+    "ELASTICSEARCH_PASSWORD": "",
+
     "OKAPI_PORT": "9130",
     "OKAPI_HOST": "localhost",
     "END_PORT": "9199",
@@ -27,26 +60,9 @@
     "TENANT_NAME": "Test",
     "TENANT_DESCRIPTION": "Test Library",
 
-    "DB_HOST": "localhost",
-    "DB_PORT": "5432",
-    "DB_DATABASE": "okapi_modules",
-    "DB_USERNAME": "folio_admin",
-    "DB_PASSWORD": "folio_admin",
-    "DB_QUERYTIMEOUT": "60000",
-    "DB_MAXPOOLSIZE": "5",
-
-    "KAFKA_PORT": "9092",
-    "KAFKA_HOST": "localhost",
-
-    "ELASTICSEARCH_URL": "http://localhost:9200",
-    "ELASTICSEARCH_HOST": "localhost",
-    "ELASTICSEARCH_PORT": "9200",
-    "ELASTICSEARCH_USERNAME": "",
-    "ELASTICSEARCH_PASSWORD": "",
-
     "USERNAME": "ui_admin",
     "PASSWORD": "admin",
-    "USER_ACTIVE":true,
+    "USER_ACTIVE": true,
     "USER_BARCODE": "123456789",
     "USER_PERSONAL_FIRSTNAME": "John",
     "USER_PERSONAL_LASTNAME": "Doe",
@@ -59,15 +75,15 @@
     "USER_PROXY_FOR": "[]",
     "USER_DEPARTMENTS": "[]",
 
-    "POSTMAN_API_KEY": "",
-    "POSTMAN_URL": "https://api.getpostman.com",
-    "POSTMAN_IMPORT_OPENAPI_PATH": "/import/openapi",
-    "POSTMAN_ENVIRONMENT_PATH": "/environments",
-    "POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID": "",
-
     "RUN_WITH_DOCKER": "false",
     "DOCKER_CMD": "docker",
     "DOCKER_NETWORK": "folio",
     "DOCKER_ADDED_HOST": "host.docker.internal:host-gateway",
-    "DOCKER_MODULE_DEFAULT_PORT": "8081"
+    "DOCKER_MODULE_DEFAULT_PORT": "8081",
+
+    "POSTMAN_API_KEY": "",
+    "POSTMAN_URL": "https://api.getpostman.com",
+    "POSTMAN_IMPORT_OPENAPI_PATH": "/import/openapi",
+    "POSTMAN_ENVIRONMENT_PATH": "/environments",
+    "POSTMAN_ENV_LOCAL_WITH_OKAPI_UUID": ""
 }

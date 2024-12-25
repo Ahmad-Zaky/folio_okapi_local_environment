@@ -315,19 +315,43 @@ attach_permissions() {
 	local UUID=$1
 	PUUID=`uuidgen`
 
+	build_permissions_payload ".."
 	has_user_permissions
 	HAS_USER_PERMISSIONS=$?
 	if [[ "$HAS_USER_PERMISSIONS" -eq 1 ]]; then
 		log "Reattach permissions ..."
 
-		okapi_curl true -X PUT -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\",\"inventory-storage.locations.collection.get\",\"perms.permissions.get\"]}" $OKAPI_URL/perms/users/$PUUID
+		okapi_curl true -X PUT -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":$PERMISSIONS_PAYLOAD}" $OKAPI_URL/perms/users/$PUUID
 
 		return
 	fi
 
 	log "Attach permissions ..."
 
-	okapi_curl true -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":[\"okapi.all\",\"perms.all\",\"users.all\",\"login.item.post\",\"perms.users.assign.immutable\",\"inventory-storage.locations.collection.get\",\"perms.permissions.get\"]}" $OKAPI_URL/perms/users
+	okapi_curl true -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":$PERMISSIONS_PAYLOAD}" $OKAPI_URL/perms/users
+}
+
+build_permissions_payload() {
+	local RELATIVE_PATH=$1
+	local PERMISSIONS_RELATIVE_PATH="$RELATIVE_PATH/$PERMISSIONS_PATH"
+	local LENGTH=$(jq ". | length" $PERMISSIONS_RELATIVE_PATH)
+    
+	PERMISSIONS_PAYLOAD="["
+	for ((k=0; k<$LENGTH; k++))
+	do
+		PERMISSION=$(jq ".[$k]" $PERMISSIONS_RELATIVE_PATH)
+
+		# Remove extra double quotes at start and end of the string
+		PERMISSION=$(echo $PERMISSION | sed 's/"//g')
+
+        if [[ $k -eq $LENGTH-1 ]]; then
+			PERMISSIONS_PAYLOAD="$PERMISSIONS_PAYLOAD\"$PERMISSION\""
+			break
+		fi
+
+		PERMISSIONS_PAYLOAD="$PERMISSIONS_PAYLOAD\"$PERMISSION\","
+	done
+	PERMISSIONS_PAYLOAD="$PERMISSIONS_PAYLOAD]"
 }
 
 # Login to obtain the token from the header
@@ -1473,23 +1497,26 @@ import_aliases() {
 
 	log "Import aliases started ..."
 
+	local RELATIVE_PATH=".."
+	local ALIASES_RELATIVE_PATH="$RELATIVE_PATH/$ALIASES_PATH"
+	
 	if [[ ! -f  "$BASHRC_PATH" ]]; then
 		error "$BASHRC_PATH does not exists !"
 	fi
 
-	if [[ ! -f "$ALIASES_PATH" ]]; then
-		error "$ALIASES_PATH does not exists !"
+	if [[ ! -f "$ALIASES_RELATIVE_PATH" ]]; then
+		error "$ALIASES_RELATIVE_PATH does not exists !"
 	fi
 
 	if [[ -f  $BASH_ALIASES_PATH ]]; then
 		echo "" >> $BASH_ALIASES_PATH & echo "" >> $BASH_ALIASES_PATH
-		cat $ALIASES_PATH >> $BASH_ALIASES_PATH
+		cat $ALIASES_RELATIVE_PATH >> $BASH_ALIASES_PATH
 		source $BASHRC_PATH
 	fi
 
 	if [[ ! -f  $BASH_ALIASES_PATH ]]; then
 		echo "" >> $BASHRC_PATH & echo "" >> $BASHRC_PATH
-		cat $ALIASES_PATH >> $BASHRC_PATH
+		cat $ALIASES_RELATIVE_PATH >> $BASHRC_PATH
 		source $BASHRC_PATH
 	fi
 
