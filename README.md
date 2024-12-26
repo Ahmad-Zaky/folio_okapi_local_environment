@@ -69,7 +69,15 @@
     <li>
         <a href="#usage">Usage</a>
         <ul>
-            <li><a href="#folio-commands">Folio Commands</a></li>
+            <li>
+                <a href="#folio-commands">Folio Commands</a>
+                                <ul>
+                    <li><a href="#group-1---helpers">Group #1 - helpers</a></li>
+                    <li><a href="#group-2---starters">Group #2 - starters</a></li>
+                    <li><a href="#group-3---stoppers">Group #3 - stoppers</a></li>
+                    <li><a href="#group-4---db">Group #4 - db</a></li>
+                </ul>
+            </li>
             <li><a href="#folio-examples">Folio Examples</a></li>
         </ul>
     </li>
