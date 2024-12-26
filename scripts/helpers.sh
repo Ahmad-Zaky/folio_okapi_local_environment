@@ -817,11 +817,13 @@ rebuild_okapi() {
 
 free_from_start_to_end_ports() {
 	local START_PORT=$((OKAPI_PORT + 1))
-	
+
 	new_line
 	new_line
 
+	log "******************************************************"
 	log "Free allocated ports from $START_PORT to $END_PORT ..."
+	log "******************************************************"
 
 	local SWAP_OKAPI_PORT=$STOP_OKAPI_PROT_ARG
 	
@@ -1102,8 +1104,10 @@ get_user_uuid_by_username() {
 get_random_permission_uuid_by_user_uuid() {
 	local UUID=$1
 
+	log "Get permission id by user id $UUID"
+
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
-	if test "$OKAPI_HEADER_TOKEN" != "x"; then
+	if [[ "$OKAPI_HEADER_TOKEN" != "x" ]] && [[ "$OKAPI_HEADER_TOKEN" != "" ]]; then
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
 	fi
 
@@ -1115,7 +1119,7 @@ get_random_permission_uuid_by_user_uuid() {
 
 	USER_PUUIDS=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | select(.userId == \"$UUID\") | .id")
 
-	# Return the first incommnig PUUID
+	# Return the first incoming PUUID
 	for USER_PUUID in $USER_PUUIDS; do
 		PUUID=$USER_PUUID
 
