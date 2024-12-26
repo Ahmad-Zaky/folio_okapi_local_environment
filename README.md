@@ -1149,6 +1149,8 @@ folio purge
 
 - **folio restart**:
     - there is actually no difference between this command and the previous one.
+    - `folio start` and `folio restart` are the same.
+    - **use cases:** same like previous command `folio start`
 
 - **folio init**:
     - runs okapi with argument `initdatabase`.
