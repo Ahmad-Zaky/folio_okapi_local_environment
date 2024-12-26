@@ -71,14 +71,24 @@
         <ul>
             <li>
                 <a href="#folio-commands">Folio Commands</a>
-                                <ul>
+                <ul>
                     <li><a href="#group-1---helpers">Group #1 - helpers</a></li>
                     <li><a href="#group-2---starters">Group #2 - starters</a></li>
                     <li><a href="#group-3---stoppers">Group #3 - stoppers</a></li>
                     <li><a href="#group-4---db">Group #4 - db</a></li>
                 </ul>
             </li>
-            <li><a href="#folio-examples">Folio Examples</a></li>
+            <li>
+                <a href="#folio-examples">Folio Examples</a>
+                <ul>
+                    <li><a href="#run-okapi-with-sample-modules">Run okapi with sample modules</a></li>
+                    <li><a href="#run-okapi-from-ide-with-sample-modules">Run okapi from IDE with sample modules</a></li>
+                    <li><a href="#run-okapi-with-modules-with-remote-okapi">Run okapi with modules with remote okapi</a></li>
+                    <li><a href="#run-okapi-with-samples-modules-in-docker-containers">Run okapi with samples modules in docker containers</a></li>
+                    <li><a href="#run-okapi-with-samples-modules-and-stoprestart-a-module-or-more-from-ide">Run okapi with samples modules and stop/restart a module or more from IDE</a></li>
+                    <li><a href="#just-clone-and-build-mdoules-using-without-okapi-argument">Just clone and build mdoules using `without-okapi` argument</a></li>
+                </ul>
+            </li>
         </ul>
     </li>
     <li><a href="#todos">TODOs</a></li>
@@ -1288,13 +1298,21 @@ folio db staging list-schemas
 
 ### Folio Examples
 
+#### Run okapi from IDE with one module from IDE
 
+#### Run okapi with sample modules
 
+#### Run okapi from IDE with sample modules
 
+#### Run okapi with modules with remote okapi
 
+#### Run okapi with samples modules in docker containers
+
+#### Run okapi with samples modules and stop/restart a module or more from IDE
+
+#### Just clone and build mdoules using `without-okapi` argument
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 
 ## TODOs
 
