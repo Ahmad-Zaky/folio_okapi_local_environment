@@ -1127,7 +1127,7 @@ folio purge
 ```
 
 - **folio**:
-- all modules will be stopped first.
+    - all modules will be stopped first.
     - then it will just walk through the modules and run them again one after the other and skip starting okapi step.
     - **use cases:** sometimes you want to debug okapi it self and for that you decided to run okapi in your IDE like `Intillij`, so you do not need to run okapi through the script.
     
