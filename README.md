@@ -1081,42 +1081,197 @@ The script is utilizing some linux tools, which should be installed before runni
 
 ### Folio Commands
 
+- folio commands are command line aliases with arguments passed through after the alias to achieve a specific goal from the script.
+- the commands can be grouped to make easy to understand them.
 
-> `folio` commands with arguments, note that they are not  some how steps, instead they are variations on how to run/stop folio modules
+#### Group #1 - helpers
 
+```bash
+folio import-aliases                    
+folioup                                 
+cdfolio
+okapilog
 ```
-folio init                              # removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
-folio purge                             # removes existing tables and data only, does not reinitialize.
-folio start                             # stop all running modules first and then start over with okapi
-folio restart                           # stop all running modules first and then restart over with okapi
-folio stop                              # stop all running modules.
-folio stop <port>                       # stop one module by port number.
-folio stop okapi                        # stop running okapi instance.
-folio stop modules                      # stop okapi running modules.
-folio without-okapi                     # running modules without okapi, its helpful when you run a module placed in modules.json directly with an already running okapi on the cloud
-folio import-aliases                    # import aliases from scripts/aliases.txt into ~/.bashrc or ~/.bash_aliases file but for the first time you cannot use the folio command right a way, instead you run this one ./run.sh import-aliases.
-folioup                                 # docker compose up for our docker-compose.yml services
-foliotest                               # run a test.sh script
-folio db import                         # import the db from an exported file.
-folio db staging import                 # import the db from an exported file to staging database.
-folio db import-schema                  # import the db schema from an exported file.
-folio db staging import-schema          # import the db schema from an exported file to staging database.
-folio db dump                           # dump database with all schemas to an sql file.
-folio db staging dump                   # dump database with all schemas to an sql file to staging database.
-folio db dump-include-schemas           # dump database with included schemas found in schemas.txt file to an sql file.
-folio db staging dump-include-schemas   # dump database with included schemas found in schemas.txt file to an sql file from staging database.
-folio db dump-exclude-schemas           # dump database with excluding schemas found in schemas.txt file to an sql file.
-folio db staging dump-exclude-schemas   # dump database with excluding schemas found in schemas.txt file to an sql file from staging database.
-folio db list-schemas                   # list database schemas.
-folio db staging list-schemas           # list database schemas from staging database.
-cdfolio                                 # move to folio working directory inside the terminal.
-foliooutputlog                          # shows the log for curl output of the running folio script.
-okapi                                   # run okapi with development mode
-okapi_initdb                            # run okapi with initdatabase mode, which removes existing tables and data if available and creates the necessary stuff, and exits Okapi.
-okapi_purgedb                           # run okapi with purgedatabase mode, removes existing tables and data only, does not reinitialize.
-iokapi                                  # init okapi first and then run it with dev mode.
-okapilog                                # shows the log for running okapi instance interactively.
+
+- **folio import-aliases**:
+    - import aliases from scripts/aliases.txt into ~/.bashrc or ~/.bash_aliases file 
+    - for the first time you cannot use the `folio` command right a way, instead you run this one `./run.sh import-aliases`.
+    - next you need to run `source ~/.bashrc` so the imported aliases could be used right a way in your existing terminal instead of opening a new terminal.
+    - use it once to not import the aliases multiple times.
+    - **use cases:** at the beginning after cloning the repo you need to import aliases.
+
+- **folioup**:
+    - will run all your docker compose services.
+    - you can explicitly choose which services you want to run by adding them right after the command.
+    - for example: `folioup postgres kafka zookeeper`, and this one is the most I use personally while working locally.
+    - **use cases:** before working with the script you need some of the docker compose services to be up and running like `postgres` at least.
+
+- **cdfolio**:
+    - move you to folio directory working space.
+    - **use cases:** in case you want to quickly move there.
+
+- **okapilog**:
+    - output okapi logs into your current terminal.
+    - **use cases:** if you run okapi through the script you need to see the okapi logs for debugging purposes, in that case you can open a new terminal or a new tab and run `okapilog` command to see the logs in realtime.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Group #2 - starters
+```bash
+folio
+folio without-okapi
+folio start
+folio restart
+folio init
+folio purge
 ```
+
+- **folio**:
+- all modules will be stopped first.
+    - then it will just walk through the modules and run them again one after the other and skip starting okapi step.
+    - **use cases:** sometimes you want to debug okapi it self and for that you decided to run okapi in your IDE like `Intillij`, so you do not need to run okapi through the script.
+    
+- **folio without-okapi**:
+    - this command seams like the previous one, but they are not the same.
+    - this one does not run okapi like the previous command.
+    - but it also does not run modules on the local okapi instance.
+    - it simply cut of the relation between modules in local okapi instance at all.
+    - this means that modules while running this command will not get into these steps (`register`, `deploy`, `install`)
+    - **use cases:** its only helpful if you want to do one of these operations
+        1. run modules on remote okapi instance.
+        2. do `clone` or/and `build` steps only on some modules without running them.
+
+- **folio start**:
+    - all modules will be stopped first.
+    - then it will run the local okapi insance with modules specified in `modules.json`.
+    - if okapi is already running the script will stop `okapi` and restart it again.
+    - **use cases:** if you want to start okapi and run your modules within it.
+
+- **folio restart**:
+    - there is actually no difference between this command and the previous one.
+
+- **folio init**:
+    - runs okapi with argument `initdatabase`.
+    - removes existing tables and data if available and creates the necessa
+    ry stuff (reinitialize), and exits Okapi.
+    - reinitialize means creating needed database tables for okapi to operate like (`env`, `deployments`, `tenants`, `timers`, `modules`).
+    - it affects only the database configured while running okapi, so in case you used `okapi_modules` database, then `okapi_modules_staging` database will remain untouched.
+    - will not run okapi instance or run any other modules.
+    - it will just stop after finishing the operation
+    - **use cases:** in case you want to start over and clean your database and reinitialize.
+
+- **folio purge**:
+    - runs okapi with argument `purgedatabase`.
+    - removes existing tables and data only, does not reinitialize.
+    - it affects only the database configured while running okapi, so in case you used `okapi_modules` database, then `okapi_modules_staging` database will remain untouched.
+    - will not run okapi instance or run any other modules.
+    - it will just stop after finishing the operation
+    - **use cases:** in case you want to start over with clean database without any reinitialization.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Group #3 - stoppers
+```bash
+folio stop
+folio stop <port>
+folio stop okapi
+folio stop modules
+```
+
+- **folio stop**:
+    - will stop running okapi instance with its running modules all together.
+    - **use cases:** if you finished working and want to stop them to free memeory and cpu.
+
+- **folio stop <port>**:
+    - will stop only one module runs on that port.
+    - it can be generally used to stop any process runs on the given port.
+    - **use cases:** if you want to stop a specific module and run it within your IDE instead for debugging purposes.
+
+- **folio stop okapi**:
+    - will stop okapi only and the rest modules will remain up and running.
+    - **use cases:** if you want to stop only okapi because you want for example to run your okapi in your IDE for debugging purposes.
+
+- **folio stop modules**:
+    - stops only modules except okapi.
+    - needs okapi to be up and running as it stops deployed modules on okapi based on an API request call to okapi which retrieves all current deployed modules and loop on them to stop the modules one by one.
+    - **use cases:** N/A
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Group #4 - db
+```bash
+# drop your local or staging local database and import complete new database or local staging database
+folio db import
+folio db staging import
+
+# import specific schema into your local database or local staging database
+folio db import-schema
+folio db staging import-schema
+
+# dump local database or local staging database completely
+folio db dump
+folio db staging dump
+
+# dump local database or local staging database and only include schemas from schemas.txt
+folio db dump-include-schemas
+folio db staging dump-include-schemas
+
+# dump local database or local staging database and exclude schemas from schemas.txt
+folio db dump-exclude-schemas
+folio db staging dump-exclude-schemas
+
+# list schemas for local database or local staging database
+folio db list-schemas
+folio db staging list-schemas
+```
+
+- **folio db import**:
+    - import new database sql file after dropping the old one.
+    - **use cases:** in case you want restore a backup version of your local database.
+
+- **folio db staging import**:
+    - import new staging database sql file after dropping the old one.
+    - **use cases:** in case you want to restore or add an updated version of your staging database.
+
+- **folio db import-schema**:
+    - import a new database schema sql file after dropping the old schema.
+    - **use cases:** in case you want to restore an old schema backup.
+
+- **folio db staging import-schema**:
+    - import a new staging database schema sql file after dropping the old one.
+    - **use cases:** in case you want to restore or update an old schema version in your staging database.
+
+- **folio db dump**:
+    - dump database with all schemas to an sql file.
+    - **use cases:** more like backup purpose.
+
+- **folio db staging dump**:
+    - dump database with all schemas to an sql file from your local staging database.
+    - **use cases:** more like backup purpose. 
+
+- **folio db dump-include-schemas**:
+    - dump database with included schemas found in schemas.txt file to an sql file.
+    - **use cases:** more like backup purpose.
+
+- **folio db staging dump-include-schemas**:
+    - dump database with included schemas found in schemas.txt file to an sql file from your local staging database.
+    - **use cases:** more like backup purpose.
+
+- **folio db dump-exclude-schemas**:
+    - dump database by excluding schemas found in schemas.txt file to an sql file.
+    - **use cases:** more like backup purpose.
+
+- **folio db staging dump-exclude-schemas**:
+    - dump database by excluding schemas found in schemas.txt file to an sql file from staging database.
+    - **use cases:** more like backup purpose.
+
+- **folio db list-schemas**:
+    - list your local database schemas.
+    - **use cases:** to show current schemas to help you pick what you want to dump.
+
+- **folio db staging list-schemas**:
+    - list database schemas from your local staging database.
+    - **use cases:** to show current schemas to help you pick what you want to dump.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

@@ -840,7 +840,8 @@ free_from_start_to_end_ports() {
 }
 
 stop_running_module_or_modules() {
-	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && ([[ -z "$STOP_OKAPI_PROT_ARG" ]] || [[ "$STOP_OKAPI_PROT_ARG" == "okapi" ]]); then
+	# stop okapi and its modules all together
+	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ -z "$STOP_OKAPI_PROT_ARG" ]]; then
 		stop_okapi_deployed_modules
         stop_okapi
 		delete_tmp_files
@@ -848,6 +849,15 @@ stop_running_module_or_modules() {
 		exit 0
 	fi
 
+	# stop only okapi
+	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ "$STOP_OKAPI_PROT_ARG" == "okapi" ]]; then
+        stop_okapi
+		delete_tmp_files
+
+		exit 0
+	fi
+
+	# stop modules only
     if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ "$STOP_OKAPI_PROT_ARG" == "modules" ]]; then
 		stop_okapi_deployed_modules
 		delete_tmp_files
@@ -855,6 +865,7 @@ stop_running_module_or_modules() {
 		exit 0
 	fi
 
+	# stop module runs on that port
 	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ ! -z "$STOP_OKAPI_PROT_ARG" ]]; then
         stop_running_module
 		delete_tmp_files
@@ -984,7 +995,7 @@ stop_okapi() {
 	is_port_used $OKAPI_PORT
 	IS_PORT_USED=$?
 	if [[ "$IS_PORT_USED" -eq 1 ]]; then
-		log "Stopping Okapi ..."
+		log "Stopping Okapi Process ..."
 
 		kill_process_port $OKAPI_PORT
 	fi
@@ -992,7 +1003,7 @@ stop_okapi() {
 	is_okapi_running_as_docker_container
 	IS_OKAPI_CONTAINER_USED=$?
 	if [[ "$IS_OKAPI_CONTAINER_USED" -eq 1 ]]; then
-		log "Stopping Okapi ..."
+		log "Stopping Okapi Container ..."
 
 		stop_container_by_port $OKAPI_PORT
 
