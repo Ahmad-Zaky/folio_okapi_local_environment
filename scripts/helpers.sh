@@ -1009,10 +1009,15 @@ start_okapi() {
 		run_okapi_container
 	fi
 
+	new_line
+	log "Okapi start command: "
+	log "$OKAPI_COMMAND"
+	new_line
+
 	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 
 	log "Wait a little until Okapi is fully up an running"
-	sleep 10
+	sleep $OKAPI_WAIT_UNTIL_FINISH_STARTING
 }
 
 init_okapi() {
@@ -1022,10 +1027,16 @@ init_okapi() {
 		init_okapi_container
 	fi
 
+	new_line
+	log "Okapi init command: "
+	log "$OKAPI_INIT_COMMAND"
+	new_line
+
 	eval "cd $OKAPI_DIR && nohup $OKAPI_INIT_COMMAND &"
 
 	# wait untill okapi is fully up and initialized
-	sleep 5
+	log "Wait a little until Okapi is fully up an running"
+	sleep $OKAPI_WAIT_UNTIL_FINISH_STARTING
 }
 
 purge_okapi() {
@@ -1035,10 +1046,16 @@ purge_okapi() {
 		purge_okapi_container
 	fi
 
+	new_line
+	log "Okapi purge command: "
+	log "$OKAPI_INIT_COMMAND"
+	new_line
+
 	eval "cd $OKAPI_DIR && nohup $OKAPI_PURGE_COMMAND &"
 	
 	# wait untill okapi is fully up and purged
-	sleep 5
+	log "Wait a little until Okapi is fully up an running"
+	sleep $OKAPI_WAIT_UNTIL_FINISH_STARTING
 }
 
 

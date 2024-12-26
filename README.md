@@ -849,6 +849,10 @@ The script is utilizing some linux tools, which should be installed before runni
     - okapi option to set the log level of okapi instance logs like `info` or `debug`.
     - **default:** `DEBUG`
 
+- **"OKAPI_OPTIONS_EXTENDED"**
+    - okapi options extended to be able to add any further options you want.
+    - **default:** `-Dvertx.metrics.options.enabled=false -Dtoken_cache_ttl_ms=10`
+
 - **"OKAPI_ARG_DEV"**
     - okapi argument `dev` could be used when starting okapi, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
     - for more information check [okapi guide][okapi_guide_docs]
@@ -879,6 +883,12 @@ The script is utilizing some linux tools, which should be installed before runni
 - **"RETURN_FROM_OKAPI_CORE_DIR"**
     - to go back to `modules` directory from `okapi-core` directory.
     - **default:** `../..`
+
+- **"OKAPI_WAIT_UNTIL_FINISH_STARTING"**
+    - this is a sleep time waiting for okapi to finish starting up, because if you do not wait and just continue the next steps may try to call okapi with an api request, and if it did not finish starting the request will fail.
+    - the wait time may vary depends on your machine cpu and memory resources.
+    - the time unit here is `seconds`.
+    - **default:** `10`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
