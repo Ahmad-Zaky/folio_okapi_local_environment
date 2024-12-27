@@ -206,7 +206,12 @@ The script is utilizing some linux tools, which should be installed before runni
     cd folio
     ```
 
-3. rename *_template.json files:
+3. run the `install.sh` command and skip steps 4, 5, and 6.
+    ```bash
+    ./install.sh
+    ```
+
+4. rename *_template.json files:
     - rename `.env.example`, `modules_template.json`, and `configuration_template.json`.
         ```bash
         cp .env.example .env
@@ -214,8 +219,6 @@ The script is utilizing some linux tools, which should be installed before runni
         cp modules/configuration_template.json modules/configuration.json
         ```
     - modules versions in `modules.json` are set to [`ramsons`][15] release.
-
-4. after renaming *_template, and *.example files review them and replace the values with your own configuration if necessary.
 
 5. Add your aliases commands which eases running the script:
     - open `./scripts/aliases.txt` file and replace `</path/to_repo>` with your `folio` root path.
@@ -237,7 +240,15 @@ The script is utilizing some linux tools, which should be installed before runni
     alias okapilog='cdokapi && tail -f nohup.out'
     ```
 
-6. Folio depends on some services and tools which are combined in one `docker-compose.yml` file.
+6. refresh your bash config file to be able to use folio aliases right away.
+
+    ```bash
+    source ~/.bashrc
+    ```
+
+7. after renaming *_template, and *.example files review them and replace the values with your own configuration if necessary.
+
+8. Folio depends on some services and tools which are combined in one `docker-compose.yml` file.
     - right now we have these 8 services:
         * **[okapi][7]:** runs okapi instance in docker container, helpful when you run your modules in docker.
         * **[postgres][8]:** database used in folio.
@@ -288,7 +299,7 @@ The script is utilizing some linux tools, which should be installed before runni
         ```bash
         folioup # utilize alias folioup
         ```
-7. After running your needed services, now you can run the script.
+9. After running your needed services, now you can run the script.
 
     ```bash
     folio start
@@ -1110,8 +1121,6 @@ The script is utilizing some linux tools, which should be installed before runni
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Usage
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Folio Commands
 
