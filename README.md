@@ -299,7 +299,8 @@ The script is utilizing some linux tools, which should be installed before runni
         ```bash
         folioup # utilize alias folioup
         ```
-9. After running your needed services, now you can run the script.
+
+9. After running your needed services, now you can run the script on the sample modules found in `modules.json`.
 
     ```bash
     folio start
