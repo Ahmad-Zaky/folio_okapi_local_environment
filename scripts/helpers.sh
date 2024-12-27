@@ -2053,8 +2053,8 @@ run_container() {
 
 	get_okapi_docker_container_env_options
 
-	# NOTE: validate duplication between okapi, and module env options is not impelemneted
-	$DOCKER_CMD run -d --name $CONTAINER -p $OUTER_PORT:$INNER_PORT --network $DOCKER_NETWORK $OKAPI_DOCKER_ENV_OPTIONS $MODULE_DOCKER_ENV_OPTIONS $MODULE $ARGS
+	# TODO: validate duplication between okapi, and module env options is not implemented
+	$DOCKER_CMD run -d --name $CONTAINER -p $OUTER_PORT:$INNER_PORT --add-host=$DOCKER_ADDED_HOST --network $DOCKER_NETWORK $OKAPI_DOCKER_ENV_OPTIONS $MODULE_DOCKER_ENV_OPTIONS $MODULE $ARGS
 }
 
 run_module_container() {

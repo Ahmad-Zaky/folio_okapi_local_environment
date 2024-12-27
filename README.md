@@ -31,6 +31,7 @@
     <li>
         <a href="#guide">Guide</a>
         <ul>
+            <li><a href="#general-practicing-notes">General Practicing Notes</a></li>
             <li>
                 <a href="#file-structure">File Structure</a>
                 <ul>
@@ -63,7 +64,6 @@
                     <li><a href="#postman-configuration">Postman Configuration</a></li>
                 </ul>
             </li>
-            <li><a href="#general-practicing-notes">General Practicing Notes</a></li>
       </ul>
     </li>
     <li>
@@ -297,6 +297,36 @@ The script is utilizing some linux tools, which should be installed before runni
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Guide
+
+### General Practicing Notes
+
+* Be aware that the script based on `EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR` configuration, if true the `required` array will be cleaned to be empty from the `ModuleDescriptor.json` inside the target directory, so that  `register` and `enable` modules on the local okapi instance succeed.
+* All curl requests output are logged in a non tracked file named `output.txt` so if anything goes wrong while running the script you can check the error message in that file.
+* Inside `modules.json` order is important, so the modules should be sorted in a way that each dependency module is installed firstly then the modules which depends upon that module.
+* While running the script you may encounter messages like this `WARNING: HTTP request failed! (Status Code: xxx)` this is not always a problem, and does not means that the script has failed.
+* in case your tag in `modules.json` object is different than what apears in the module `pom.xml` version or `azure-pipelines.yml` tag, script will rebuild the modules.
+* in case your tag in `modules.json` object is different than current module branch, the script will rebuild the module.
+* To run modules within `docker` container you should change `RUN_WITH_DOCKER` configuration value to `true` and change these configuration keys to values like the following to be able to communicate within `docker` network:
+    * `DB_HOST` from `localhost` to `postgres`
+    * `KAFKA_HOST` from `localhost` to `kafka`
+    * `ELASTICSEARCH_URL` from `http://localhost:9200` to `http://elasticsearch:9200`
+    * `ELASTICSEARCH_HOST` from `localhost` to `elasticsearch`
+* in case you use your own services instead of our `docker-compose.yml` services then you may have a problem as they will not share the same network any more, so then you need to add host `host.docker.internal` 
+    * `DB_HOST` from `localhost` to `host.docker.internal`
+    * `KAFKA_HOST` from `localhost` to `host.docker.internal`
+    * `ELASTICSEARCH_URL` from `http://localhost:9200` to `http://host.docker.internal:9200`
+    * `ELASTICSEARCH_HOST` from `localhost` to `host.docker.internal`
+* In some rare cases while running the script, you will have some user permissions issue related to listing users permission `users.collection.get` in that case you should check that database permissions table directly and if you find `dummy` key with value equal to `true` please change it manually to false, and edit user permissions again through api call by adding this `users.collection.get` permission.
+
+* You have a `permissions.json` file located in `resources` directory so if you run modules that require specific permissions for the user to have add them there, and the script will attach them to the user permissions.
+* A useful tip in case some modules fail while running the script, you can navigate to that module and manually pull from remote repo the latest changes and rebuild the module and try running the script again.
+* before starting okapi the allocated ports will be freed from the host machine for example if the allocated ports START_PORT=9031 to END_PORT=9199 the script will free all these ports before start processing modules, and you can control this action by `ENABLE_FREE_ALLOCATED_PORTS_FOR_OKAPI_MODULES` configuration, if set to `false` the script will skip this action and start processing modules directly, but you should be aware that if there is a port within the range is used by another process the script will fail at the module in turn.
+* There is a specific case when you change db configs for `mod-users` while you using `mod-authtoken` there will be an issue as the login attempt will fails, so modules like `mod-authtoken`, `mod-login`, and `mod-users` should share the same db configs here I mean the same database name.
+* if you look at the script you may see some unused methods most of them are in `helpers.sh` they were used in earlier scripts, and not removed.
+* if you start import a schema or a database locally through the folio script, be sure that the imported schemas are already enabled before through the `modules.json` as there may be missing roles, casts and/or extensions that will eventually prevent the import from succeed, or you can add the missing roles, casts, extensions manually, and then reimport the database/schema sql file again. 
+* if your postgres database is running from your own docker service or running directly on your machine, you need to have the db configurations to be changed to match your own db configurations.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### File Structure
 
@@ -1079,36 +1109,6 @@ The script is utilizing some linux tools, which should be installed before runni
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### General Practicing Notes
-
-* both `modules_template.json` and `configuration_template.json` files should be renamed and removed `_template` part from it names to be able to run the script, so the new file names will be turned to `modules.json`, and `configuration.json`.
-* When you need to run some okapi modules locally you will need to remove from the `ModuleDescriptor.json` inside the target directory after the build all not used modules that exists in the requires array, to be able to enable that module on the local okapi instance.    
-* All curl requests output are logged in a non tracked file named `output.txt`.
-* Inside `modules.json` the modules should be sorted in a way that each dependency module is installed firstly then the modules which depends upon that module.
-* While running the script you may encounter messages like this `WARNING: HTTP request failed! (Status Code: xxx)` this is not always a problem, and does not means that the script has failed.
-* There are some options  that can be passed while running okapi instance like `OKAPI_OPTION_ENABLE_SYSTEM_AUTH`, `OKAPI_OPTION_STORAGE`, `OKAPI_OPTION_TRACE_HEADERS`.
-    * `OKAPI_OPTION_ENABLE_SYSTEM_AUTH` has boolean value `true` or `false`, if true it means the filter auth phase will be triggered with installed `mod-authtoken`, so if you run the script without authentication this config key value should be false, else it should be true.
-    * `OKAPI_OPTION_STORAGE` has multiple values like `postgres` which means that okapi will store its info within a postgres database which needs connection env variables to be provided, if not set, then it works with in-memory storage, which will be cleared on each okapi instance rerun.
-    * `OKAPI_OPTION_TRACE_HEADERS` has boolean values, if true it will return a response header of `X-Okapi-Trace`, which has the name of invoked modules through the request trip. 
-* tag version change, will cause a rebuild process to be  triggered.
-* branch name change, will cause a rebuild process to be  triggered.
-* changing tag/branch will may invoke reinstalling the module, if previously `mod-authtoken` has been installed on the same tenant it will be removed from the tenant to be able to continue the script flow.
-* If you normally use `docker` without `sudo` then you do not need to add `sudo` before your `docker` commands, and you can configure the `docker` command used in the script within `configuration.json` file by adjusting the `DOCKER_CMD` key value by default it has `sudo docker` you can change it to just `docker`.
-* To run modules within `docker` container you should change `RUN_WITH_DOCKER` configuration value to `true` and change these configuration keys to values like the following to be able to communicate within `docker` network:
-    * `DB_HOST` from `localhost` to `postgres`
-    * `KAFKA_HOST` from `localhost` to `kafka`
-    * `ELASTICSEARCH_URL` from `http://localhost:9200` to `http://elasticsearch:9200`
-    * `ELASTICSEARCH_HOST` from `localhost` to `elasticsearch`
-* In some cases while you running the script, you will have user permissions issue related to listing users with this permission `users.collection.get` in that case firstly this permission may be added to `permissions` table with `dummy` value equal to `true` you will need to change it manually to false, and edit user permissions by adding this `users.collection.get` permission.
-* Related to module permissions, when you add new modules sometimes you need to manually to add these new module permissions to the user.
-
-* A useful tip in case some modules fail, you can navigate to that module and manually pull from remote repo the latest changes and rebuild the module.
-* before starting okapi the allocated ports will be freed from the host machine for example if the allocated ports START_PORT=9031 to END_PORT=9199
-* There is a specific case when you change db configs for mod-users while you using mod-authtoken there will be an issue as the login attempt will fails, so modules like mod-authtoken, mod-login, and mod-users should share the same db configs.
-* if you look at the script you may see some unused methods most of them are in `helpers.sh` they were used in earlier scripts, and not removed.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## Usage
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -1339,6 +1339,7 @@ folio db staging list-schemas
 - we will also list the services needed to run from `docker-compose.yml` to run the environment.
 - some modules are only needed for authentication to work properly and some modules are not that essential for the api call to work, but they have been added because the have been called along the api call journy inside the system.
 - here we could benefit from the help of others who has experience with working in a local okapi environment, so be free to add more examples in this section, to help others.
+- working with other api requests than provided here may work properly without problems, so the api calls listed here its just related to our experience, if you want to work with other api requests you can start right a way, and only add a new module to the list if the api request fails because of a missing module.
 
 - **Example #1**:
     - **module**: mod-circulation
@@ -1394,6 +1395,7 @@ folio db staging list-schemas
 - [ ] we have `helper.sh` which is now a very big file over `1000` lines of code we need to refactor the file and divide it into smaller files.
 - [ ] it will be very helpful to test running the script on each update, so we may add a pipeline that runs the script after each push/merge to main branch to ensure that the script works just fine and did not break after the new shipped script.
 - [ ] right now if you pull new changes from remote and `pom.xml` version has changed, the script will not automatically rebuild the project you need to rebuild the module yourself, we need to refactor the script to make the check and if the pom.xml version differs from `ModuleDescriptor.json` version if yes the script will rebuild the module.
+- [ ] running in docker environment has an issue, when you run the container the env vars will be added, we have two sources okapi genearal env vars and modules individual env vars they may have duplicates, we need that module specific env vars to overwrite any duplicates found in okapi general env vars.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 
