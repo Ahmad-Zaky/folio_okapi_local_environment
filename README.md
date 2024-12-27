@@ -1379,14 +1379,6 @@ folio db staging list-schemas
 
 ## TODOs
 
-- [ ] **Brief Explanation** 
-    - In general changes of module versions affects running the script, `mod-authtoken` and `mod-permissions` are special modules as they has `filter` phase which means any request path matches the pattern will be sent to the module.
-    - so rerunning the script with `mod-authtoken` and `mod-permissions` enabled to a tenant in a previous run, will cause problems. Because okapi will attempt to send the any incoming api request to `mod-authtoken` to check the authentication and also send it to `mod-permissions` to check the authorization.
-    - but it fails because both modules are actually not deployed yet.
-    - to fix that problem we added a script runs upfront before processing modules and remove both modules `mod-authtoken` and `mod-permissions` from enabled list of the tenant.       
-
-    **Problem Definition** in case `mod-authtoken` module version has changed because for example you pulled from remote the latest changes, then the version in the module differs from the module enabled that makes validation faile which starts in this function `remove_authtoken_and_permissions_if_enabled_previously()`, and same applies for `mod_permissions`.
-
 - [ ] folio command line arguments are not that professional made, if its possible to make parameters more professional with `--help` command to describe all working parameters.
 - [ ] if this script gets attention from the commmunity, you may turn it to somehow like release versioning using tags to mark each new updates.
 - [ ] work on a feature to list for each modules all its nested dependencies, here are some ways to achieve that:
