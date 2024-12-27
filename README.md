@@ -86,9 +86,11 @@
                     <li><a href="#run-okapi-with-modules-with-remote-okapi">Run okapi with modules with remote okapi</a></li>
                     <li><a href="#run-okapi-with-samples-modules-in-docker-containers">Run okapi with samples modules in docker containers</a></li>
                     <li><a href="#run-okapi-with-samples-modules-and-stoprestart-a-module-or-more-from-ide">Run okapi with samples modules and stop/restart a module or more from IDE</a></li>
+                    <li><a href="#run-okapi-with-sample-modules-and-skip-authentication-filter">Run okapi with sample modules and skip authentication filter</a></li>
                     <li><a href="#just-clone-and-build-mdoules-using-without-okapi-argument">Just clone and build mdoules using `without-okapi` argument</a></li>
                 </ul>
             </li>
+            <li><a href="#module-dependencies-examples">Module dependencies examples</a></li>
         </ul>
     </li>
     <li><a href="#todos">TODOs</a></li>
@@ -829,14 +831,14 @@ The script is utilizing some linux tools, which should be installed before runni
 #### Okapi Configuration
 
 - **"OKAPI_PORT"**
-    - okapi instance will listen on this port.
+    - `okapi` instance will listen on this port.
     - **default`9130`:** 
 
 - **"OKAPI_HOST"**
     - **default`localhost`:** 
 
 - **"END_PORT"**
-    - to control the ports available for okapi modules we set and end port value.
+    - to control the ports available for `okapi` modules we set and end port value.
     - **default:** `9199`
 
 - **"OKAPI_DIR"**
@@ -844,15 +846,15 @@ The script is utilizing some linux tools, which should be installed before runni
     - **default:** `okapi`
 
 - **"OKAPI_REPO"**
-    - okapi repository url from which we will clone okapi project if not exists locally.
+    - `okapi` repository url from which we will clone `okapi` project if not exists locally.
     - **default:** `https://github.com/folio-org/okapi.git`
 
 - **"OKAPI_OPTION_ENABLE_SYSTEM_AUTH"**
-    - okapi option to enable authentication filter on api requests or not.
+    - `okapi` option to enable authentication filter on api requests or not.
     - **default:** `true`
 
 - **"OKAPI_OPTION_ENABLE_VERTX_METRICS"**
-    - okapi option to enable observe vert.x module metrics using `micrometer`.
+    - `okapi` option to enable observe vert.x module metrics using `micrometer`.
     - **default:** `false`
 
 - **"OKAPI_OPTION_STORAGE"**
@@ -860,11 +862,11 @@ The script is utilizing some linux tools, which should be installed before runni
     - **default:** `postgres`
 
 - **"OKAPI_OPTION_TRACE_HEADERS"**
-    - okapi option to enable adding `X-Okapi-Trace` header which state which modules have been visited during the api request journy.
+    - `okapi` option to enable adding `X-Okapi-Trace` header which state which modules have been visited during the api request journy.
     - **default:** `true`
 
 - **"OKAPI_OPTION_LOG_LEVEL"**
-    - okapi option to set the log level of okapi instance logs like `info` or `debug`.
+    - `okapi` option to set the log level of `okapi` instance logs like `info` or `debug`.
     - **default:** `DEBUG`
 
 - **"OKAPI_OPTIONS_EXTENDED"**
@@ -872,17 +874,17 @@ The script is utilizing some linux tools, which should be installed before runni
     - **default:** `-Dvertx.metrics.options.enabled=false -Dtoken_cache_ttl_ms=10`
 
 - **"OKAPI_ARG_DEV"**
-    - okapi argument `dev` could be used when starting okapi, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
+    - `okapi` argument `dev` could be used when starting `okapi`, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
     - for more information check [okapi guide][okapi_guide_docs]
     - **default:**`dev` 
 
 - **"OKAPI_ARG_INIT"**
-    - okapi argument `initdatabase` could be used when starting okapi, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
+    - `okapi` argument `initdatabase` could be used when starting `okapi`, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
     - for more information check [okapi guide][okapi_guide_docs]
     - **default:** `initdatabase`
 
 - **"OKAPI_ARG_PURGE"**
-    - okapi argument `purgedatabase` could be used when starting okapi, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
+    - `okapi` argument `purgedatabase` could be used when starting `okapi`, we have mainly six values (`dev`, `cluster`, `initdatabase`, `purgedatabase`, `proxy`, `deployment`).
     - for more information check [okapi guide][okapi_guide_docs]
     - **default:** `purgedatabase`
 
@@ -895,7 +897,7 @@ The script is utilizing some linux tools, which should be installed before runni
     - **default:** `okapi`
 
 - **"OKAPI_CORE_DIR"**
-    - path to `okapi-core` directory which is usually used to start okapi.
+    - path to `okapi-core` directory which is usually used to start `okapi`.
     - **default:** `okapi/okapi-core`
 
 - **"RETURN_FROM_OKAPI_CORE_DIR"**
@@ -903,7 +905,7 @@ The script is utilizing some linux tools, which should be installed before runni
     - **default:** `../..`
 
 - **"OKAPI_WAIT_UNTIL_FINISH_STARTING"**
-    - this is a sleep time waiting for okapi to finish starting up, because if you do not wait and just continue the next steps may try to call okapi with an api request, and if it did not finish starting the request will fail.
+    - this is a sleep time waiting for `okapi` to finish starting up, because if you do not wait and just continue the next steps may try to call `okapi` with an api request, and if it did not finish starting the request will fail.
     - the wait time may vary depends on your machine cpu and memory resources.
     - the time unit here is `seconds`.
     - **default:** `10`
@@ -917,7 +919,7 @@ The script is utilizing some linux tools, which should be installed before runni
     - **default:** `true`
 
 - **"EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR"**
-    - to prevent dependency validation on registering modules into okapi you can set this configuration to `true`.
+    - to prevent dependency validation on registering modules into `okapi` you can set this configuration to `true`.
     - **default:** `true`
 
 - **"REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY"**
@@ -931,6 +933,19 @@ The script is utilizing some linux tools, which should be installed before runni
 - **"DEFAULT_MODULE_BUILD_CMD"**
     - if one of the modules in `modules.json` does not have key `build` then the default build command used will be this configuration.
     - **default:** `mvn -DskipTests -Dmaven.test.skip=true package`
+
+- **"UPDATE_INSTALLED_MODULE_STATUS_QUERY"**
+    - change module status query directly to disable for example `mod-authtoken` and `mod-permissions` at start running the script to prevent `okapi` from sending api calls to them where they are not deployed yet.
+    - **default:** `UPDATE tenants SET tenantjson = jsonb_set(tenantjson::jsonb, '{enabled}', (tenantjson->'enabled')::jsonb || '{%s: %s}'::jsonb) WHERE tenantjson->'descriptor'->>'id' = '%s';`
+
+- **"DELETE_INSTALLED_MODULE_QUERY"**
+    - remove a module from a tenant enabled json list for example removing `mod-authtoken` and `mod-permissions` at start running the script to prevent `okapi` from sending api calls to them where they are not deployed yet.
+    - **default:** `UPDATE tenants SET tenantjson = jsonb_set(tenantjson::jsonb, '{enabled}', (tenantjson->'enabled') - '%s') WHERE tenantjson->'descriptor'->>'id' = '%s';`
+
+- **"ENABLE_FREE_ALLOCATED_PORTS_FOR_OKAPI_MODULES"**
+    - at starting of the script there is a range or ports allocated to `okapi` from for example `9131` to `9199` excluding `9130` as `okapi` it self listen on this port, and to start working with modules the script frees these ports if any of them are used by other porcesses.
+    - if you want to disable this feature, because some ports within the range are running on other critical programs, then you can set the value to `false` or simply reduce the range of allocated ports to `okapi`.
+    - **default:** `true`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -1090,6 +1105,7 @@ The script is utilizing some linux tools, which should be installed before runni
 * A useful tip in case some modules fail, you can navigate to that module and manually pull from remote repo the latest changes and rebuild the module.
 * before starting okapi the allocated ports will be freed from the host machine for example if the allocated ports START_PORT=9031 to END_PORT=9199
 * There is a specific case when you change db configs for mod-users while you using mod-authtoken there will be an issue as the login attempt will fails, so modules like mod-authtoken, mod-login, and mod-users should share the same db configs.
+* if you look at the script you may see some unused methods most of them are in `helpers.sh` they were used in earlier scripts, and not removed.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -1310,74 +1326,74 @@ folio db staging list-schemas
 
 #### Run okapi with samples modules and stop/restart a module or more from IDE
 
+#### Run okapi with sample modules and skip authentication filter
+
 #### Just clone and build mdoules using `without-okapi` argument
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Module dependencies examples
+
+- while working locally we cannot run the complete environment, so we only run modules related to what we need to debug locally.
+- so here we will give examples based on my own work, which will state dependent modules needed for a module api call to work properly.
+- we will also list the services needed to run from `docker-compose.yml` to run the environment.
+- some modules are only needed for authentication to work properly and some modules are not that essential for the api call to work, but they have been added because the have been called along the api call journy inside the system.
+- here we could benefit from the help of others who has experience with working in a local okapi environment, so be free to add more examples in this section, to help others.
+
+- **Example #1**:
+    - **module**: mod-circulation
+    - **api-requests**:
+        - `/circulation/check-in-by-barcode`
+        - `/circulation/check-out-by-barcode`
+    - **dependencies**
+        - mod-permissions
+        - mod-inventory-storage
+        - mod-users
+        - mod-configuration
+        - mod-login
+        - mod-password-validator
+        - mod-authtoken
+        - mod-pubsub
+        - mod-users-bl
+        - mod-settings
+        - mod-circulation-storage
+        - mod-feesfines
+        - mod-calendar
+    - **servies**
+        - postgres
+        - kafka
+        - zookeeper
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## TODOs
 
-- [ ] we need to handle a case when module version of mod-authtoken has changed when I try to validate authtoken enabled within function `remove_authtoken_and_permissions_if_enabled_previously()`, and same applies for `mod_permissions`.
-- [ ] we need to validate input arguments stop with error if not recognized argument has been provided.
-- [ ] try to make parameters more professional with --help command to describe all working parameters.
-- [ ] in database `db_cmd_defaults()` method we want to offload some of the env vars to be configured from `configuration.json` file.
-- [ ] in update installed module status, we want to opt out the query to be configured from configuration.json
-- [ ] while starting we start stopping all ports with a specific range starts from `9130` we may make the stop optional either stop or fail.
-- [ ] we need to emphasize that removing mod-authtoken, and `mod-permissions` are now implemented directly with Database query because any new version comes prevents from removing the old enabled version and if there are new ways to do it.
-- [ ] explain all unused methods as most of them were functioning in the past.
-- [ ] update folio aliases and add dump from remote db as command option.
-- [ ] update aliases for folio bash commands with new existing aliases.
-- [ ] list some sample of group of modules work together ex fot work with mod-circulation you need to some other modules to be enabled as well.
-- [ ] explain how to use empty required array in ModuleDescriptor.json file.
-- [ ] try to use tags as versioning for your repo in the future if it gains attention
-- [ ] try to add feature to get all module dependencies (other modules) try to use the okapi.json which is populated with each release.
-- [ ] the configuration `EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR` could be applied on each module independently instead of a general configuration on all modules.
-- [ ] if I run folio without `start` or `restart` command and the okapi instance is already up and running the problem with old enabled `mod-authtoken` and `mod-permissions` will not be solved as the cache prevents reading the new db updates so you need to invalidate the cache or restarting okapi forcefully.
-- [ ] we need a way to pass environment variables to okapi while start/restart in both ways running in the host machine or in a docker container. [read more](https://medium.com/@manishbansal8843/environment-variables-vs-system-properties-or-vm-arguments-vs-program-arguments-or-command-line-1aefce7e722c)
-- [ ] some new user creation information like `patron group`, and `address type`.
-- [ ] if pom.xml version is different from `target/ModuleDescriptor.json` we should rebuild the project.
-- [ ] Review all configuration keys and explain them if they are not.
+- [ ] **Brief Explanation** 
+    - In general changes of module versions affects running the script, `mod-authtoken` and `mod-permissions` are special modules as they has `filter` phase which means any request path matches the pattern will be sent to the module.
+    - so rerunning the script with `mod-authtoken` and `mod-permissions` enabled to a tenant in a previous run, will cause problems. Because okapi will attempt to send the any incoming api request to `mod-authtoken` to check the authentication and also send it to `mod-permissions` to check the authorization.
+    - but it fails because both modules are actually not deployed yet.
+    - to fix that problem we added a script runs upfront before processing modules and remove both modules `mod-authtoken` and `mod-permissions` from enabled list of the tenant.       
+
+    **Problem Definition** in case `mod-authtoken` module version has changed because for example you pulled from remote the latest changes, then the version in the module differs from the module enabled that makes validation faile which starts in this function `remove_authtoken_and_permissions_if_enabled_previously()`, and same applies for `mod_permissions`.
+
+- [ ] folio command line arguments are not that professional made, if its possible to make parameters more professional with `--help` command to describe all working parameters.
+- [ ] if this script gets attention from the commmunity, you may turn it to somehow like release versioning using tags to mark each new updates.
+- [ ] work on a feature to list for each modules all its nested dependencies, here are some ways to achieve that:
+    - for example look at each ModuleDescriptor.json in github.
+    - try to use the `okapi-install.json` from [`platform-complete`][platform-complete] repo which is populated on each release.
+    - you can also benefit from [`okapi-console`][okapi-console] in settings app, from any folio instance up running like [`folio-snapshot`][folio-snapshot].
+- [ ] Currently if you set `EMPTY_REQUIRES_ARRAY_IN_MODULE_DESCRIPTOR` config value to true it will apply on all modules you work on while running the script, it could be better if we can apply this configuration on module level instead of applying it on all modules.
+- [ ] we need a way to pass environment variables to okapi while start/restart in both ways running in the host machine or in a docker container, and these env vars could be added in `okapi` object in `modules.json` like other modules. [read more](https://medium.com/@manishbansal8843/environment-variables-vs-system-properties-or-vm-arguments-vs-program-arguments-or-command-line-1aefce7e722c)
+
+- [ ] if your start is on clean `mod-users` schema you cannot add a new user with information like `patron group`, and `address type`, so if we want this information to added to the user the script need to add a group in `groups` table first and use the id in the user creation, the same applies to `address_type`.
+- [ ] right now ports allocated are coming directly from `okapi` it self, not what the script allocates so if the script skips a port because its already used, the okapi does not make this check and skip it will allocate this already used port to the module and the module deployment will fail at the end, is there a solution to this case.
 - [ ] do not free all ports at once at the beginning instead free it before each use
 - [ ] in `database.sh` file we can enhance logging as it uses primitive echo "..." approach.
-- [ ] in `database.sh` file if we run `folio db staging import` or without staging the sql file may contain casts that are not present in the local db so you need to add them manually.
-- [ ] in `modules.json` in the `okapi` object we need a key to add custom java options.
-- [ ] in `modules.json` in the `okapi` object we want the env key value option like in the other modules.
-- [ ] we need to only import schemas option so we do not need to drop the whole db and recreate it again.
-- [ ] user permissions should be handled properly as new modules have new permissions, these new permissions should be granted to the logged in user.
-- [ ] while creating new db on importing a db sql file consider crate Database Objects as it should be like casts and extensions like (btree_gin, pg_trgm, pgcrypto, unaccent, uuid-ossp)
-- [ ] in env json array objects its better to use `key` value as the key of environment variable instead of `name`.
-    - From    
-    ```json
-    {
-        "name": "OTEL_SERVICE_NAME",
-        "value": "mod-authtoken-ot"
-    }
-    ```
-
-    - To    
-    ```json
-    {
-        "key": "OTEL_SERVICE_NAME",
-        "value": "mod-authtoken-ot"
-    }
-    ```
-- [ ] for the README.md file could we show it in a github pages site.
-- [ ] we want a command to init the script to run like import aliases and rename _template files.
-- [ ] configure wait time after running okapi before continue the script in `start_okapi()` method
-- [ ] add create db command for folio db commands.
-- [ ] consider add this manual creation script for `okapi_modules` database to the docs
-    ```sql
-    CREATE USER folio_admin  WITH PASSWORD 'folio_admin';
-    CREATE DATABASE okapi_modules OWNER folio_admin;
-    GRANT ALL PRIVILEGES ON DATABASE okapi_modules TO folio_admin;
-    ```
-- [ ] default github repo move to configuration.
-- [ ] default build command move to configuration.
-- [ ] move to login with expiry approach
-- [ ] add install.sh to auto configure the starting steps.
-- [ ] write notice for postgres docker compose service that if the user already has the service on his machine, that he should has the databases okapi_modules and okapi_modules_staging created.
-- [ ] each key in `modules.json` should be validated for empty values.
-- [ ] `helper.sh` should be divided into smaller files.
-- [ ] add pipeline that runs the script after each push/merge to main to ensure that the script works just fine and did not break after the new shipped script.
+- [ ] in folio script we need a db command to create a database by name and user.
+- [ ] validate `modules.json` object values is not robust, we need to validate value of each key in `modules.json` for empty values.
+- [ ] we have `helper.sh` which is now a very big file over `1000` lines of code we need to refactor the file and divide it into smaller files.
+- [ ] it will be very helpful to test running the script on each update, so we may add a pipeline that runs the script after each push/merge to main branch to ensure that the script works just fine and did not break after the new shipped script.
+- [ ] right now if you pull new changes from remote and `pom.xml` version has changed, the script will not automatically rebuild the project you need to rebuild the module yourself, we need to refactor the script to make the check and if the pom.xml version differs from `ModuleDescriptor.json` version if yes the script will rebuild the module.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 
@@ -1446,3 +1462,6 @@ Ahmed Zaky - [Linked In][linkedin-url] - ahmed6mohamed6@gmail.com
 [okapi_guide]: https://github.com/folio-org/okapi/blob/master/doc/guide.md#install-parameter-tenantparameters
 [purge_parameter_docs]: https://github.com/folio-org/okapi/blob/master/doc/guide.md#purge
 [tenant_parameters_docs]: https://github.com/folio-org/okapi/blob/master/doc/guide.md#tenant-parameters
+[platform-complete]: https://github.com/folio-org/platform-complete
+[okapi-console]: https://folio-snapshot.dev.folio.org/settings/developer/okapi-console
+[folio-snapshot]: https://folio-snapshot.dev.folio.org

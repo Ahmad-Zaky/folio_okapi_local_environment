@@ -816,6 +816,10 @@ rebuild_okapi() {
 }
 
 free_from_start_to_end_ports() {
+	if [[ $ENABLE_FREE_ALLOCATED_PORTS_FOR_OKAPI_MODULES == "false" ]]; then
+		return
+	fi
+
 	local START_PORT=$((OKAPI_PORT + 1))
 
 	new_line
@@ -1721,9 +1725,9 @@ disable_installed_module() {
 	get_installed_module_versioned $MODULE
 
 	if [[ -n "$VERSIONED_MODULE" ]]; then
-		log "Disable installed (enabled) module ($VERSIONED_MODULE)"
+		log "Disable installed (enabled) module ($MODULE)"
 
-		update_installed_module_status $VERSIONED_MODULE false
+		update_installed_module_status $MODULE false
 	fi
 
 	unset $VERSIONED_MODULE
@@ -1735,9 +1739,9 @@ enable_installed_module() {
 	get_installed_module_versioned $MODULE
 		
 	if [[ -n "$VERSIONED_MODULE" ]]; then
-		log "Enable installed (enabled) module ($VERSIONED_MODULE)"
+		log "Enable installed (enabled) module ($MODULE)"
 		
-		update_installed_module_status $VERSIONED_MODULE true
+		update_installed_module_status $MODULE true
 	fi
 
 	unset $VERSIONED_MODULE
@@ -1749,44 +1753,42 @@ delete_installed_module() {
 	get_installed_module_versioned $MODULE
 
 	if [[ -n "$VERSIONED_MODULE" ]]; then
-		delete_installed_module_from_enabled_modules $VERSIONED_MODULE
+		delete_installed_module_from_enabled_modules $MODULE
 	fi
 
 	unset $VERSIONED_MODULE
 }
 
 update_installed_module_status() {
-	local VERSIONED_MODULE=$1
+	local MODULE=$1
 	local STATUS=$2
 
-	get_update_installed_module_status_query $VERSIONED_MODULE $STATUS
+	get_update_installed_module_status_query $MODULE $STATUS
 
 	db_run_query "$QUERY"
 }
 
 delete_installed_module_from_enabled_modules() {
-	local VERSIONED_MODULE=$1
+	local MODULE=$1
 
-	log "Remove installed (enabled) module ($VERSIONED_MODULE)"
+	log "Remove installed (enabled) module ($MODULE)"
 
-	get_delete_installed_module_query $VERSIONED_MODULE
+	get_delete_installed_module_query $MODULE
 
 	db_run_query "$QUERY"
 }
 
-# TODO: we want to opt out the query to be configured from configuration.json
 get_update_installed_module_status_query() {
-	local VERSIONED_MODULE=$1
+	local MODULE="$1"
 	local STATUS=$2
-	
-	QUERY="UPDATE tenants SET tenantjson = jsonb_set(tenantjson::jsonb, '{enabled}', (tenantjson->'enabled')::jsonb || '{\\\"$VERSIONED_MODULE\\\": $STATUS}'::jsonb) WHERE tenantjson->'descriptor'->>'id' = '$TENANT';"
+
+	QUERY=`printf "$UPDATE_INSTALLED_MODULE_STATUS_QUERY" $MODULE $STATUS $TENANT`
 }
 
 get_delete_installed_module_query() {
-	local VERSIONED_MODULE=$1
-	local STATUS=$2
-	
-	QUERY="UPDATE tenants SET tenantjson = jsonb_set(tenantjson::jsonb, '{enabled}', (tenantjson->'enabled') - '"$VERSIONED_MODULE"') WHERE tenantjson->'descriptor'->>'id' = '$TENANT';"
+	local MODULE="$1"
+
+	QUERY=`printf "$DELETE_INSTALLED_MODULE_QUERY" $MODULE $TENANT`
 }
 
 empty_requires_array_in_module_descriptor() {
@@ -2224,4 +2226,17 @@ directory_contains_files_by_extension_check() {
     fi
 
     return 0
+}
+
+is_argument_exists_in_available_args() {
+	local INPUT_ARG=$1
+	local AVAILABLE_ARGS=$2
+	
+    for AVAILABLE_ARG in $AVAILABLE_ARGS; do
+		if [[ $AVAILABLE_ARG == $INPUT_ARG ]]; then
+			return
+		fi
+    done
+
+	error "Invalid argument, please check your arguments"
 }

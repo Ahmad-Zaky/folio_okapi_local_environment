@@ -312,6 +312,19 @@ validate_linux_tools() {
     done
 }
 
+validate_input_args() {
+	local INPUT_ARGS=$1
+	local AVAILABLE_ARGS=$2
+
+    for INPUT_ARG in $INPUT_ARGS; do
+		if [[ $INPUT_ARG =~ ^[0-9]{4}$ ]]; then
+			continue
+		fi
+
+        is_argument_exists_in_available_args "$INPUT_ARG" "$AVAILABLE_ARGS"
+    done
+}
+
 validate_linux_tool_exists() {
     local TOOL=$1
 
