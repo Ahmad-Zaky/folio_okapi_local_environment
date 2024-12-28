@@ -206,7 +206,7 @@ The script is utilizing some linux tools, which should be installed before runni
     cd folio
     ```
 
-3. run the `install.sh` command and skip steps 4, 5, and 6.
+3. run the `install.sh` command and skip steps 4, 5, and 6, but consider changing the `<path/to/repo>` in step 5.
     ```bash
     ./install.sh
     ```
@@ -221,7 +221,7 @@ The script is utilizing some linux tools, which should be installed before runni
     - modules versions in `modules.json` are set to [`ramsons`][15] release.
 
 5. Add your aliases commands which eases running the script:
-    - open `./scripts/aliases.txt` file and replace `</path/to_repo>` with your `folio` root path.
+    - open `./scripts/aliases.txt` file and replace `</path/to/repo>` with your `folio` root path.
     - import aliases to your home `.bash_aliases` file or `.bashrc` file if `.bash_aliases` does not exists, and its recommended to add your aliases in its dedicated file `.bash_aliases`. 
     - run this command to import folio aliases, be aware that you should in the `folio` directory
         ```bash
