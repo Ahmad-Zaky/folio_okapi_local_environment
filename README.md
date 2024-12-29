@@ -54,6 +54,7 @@
                 <a href="#configuration-components">Configuration Components</a>
                 <ul>
                     <li><a href="#database-configuration">Database Configuration</a></li>
+                    <li><a href="#database-operations-configuration">Database Operations Configuration</a></li>
                     <li><a href="#kafka-configuration">Kafka Configuration</a></li>
                     <li><a href="#elastic-configuration">Elastic Configuration</a></li>
                     <li><a href="#okapi-configuration">Okapi Configuration</a></li>
