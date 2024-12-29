@@ -225,7 +225,6 @@ handle_arguments() {
 }
 
 import() {
-    
     echo -e ""
     echo "********************************"
     echo "Import database $DB_CMD_DATABASE"
@@ -371,22 +370,22 @@ import_remote_schema() {
 }
 
 import_remote_table() {
-
     echo -e ""
     echo "**********************************************************************************************"
     echo "Import remote table $REMOTE_TABLE in schema $REMOTE_SCHEMA"
     echo "**********************************************************************************************"
     echo -e ""
 
+    echo -e ""
+    echo "Step #1 - dump $REMOTE_TABLE table from $REMOTE_SCHEMA schema"
     dump_remote_table $REMOTE_SCHEMA $REMOTE_TABLE
 
+    echo -e ""
+    echo "Step #2 - import $REMOTE_TABLE table from $REMOTE_SCHEMA schema"
     import_table $REMOTE_TABLE $REMOTE_SCHEMA $DB_CMD_REMOTE_FILE $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE
- 
-    echo "!!!!! method import_remote_table() not implemented yet !!!!!"
 }
 
 dump() {
-
     echo -e ""
     echo "******************************"
     echo "Dump database $DB_CMD_DATABASE"
