@@ -189,8 +189,8 @@ The script is utilizing some linux tools, which should be installed before runni
 * `xmllint` linux tool to process xml files. [click here](https://github.com/AtomLinter/linter-xmllint?tab=readme-ov-file#linter-installation)
 * `lsof` linux tool to find process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
 * `docker` docker tool to run modules in containers instead of running it on the local host machine. [click here](https://docs.docker.com/engine/install/)
-* `netstat` its a linux tool used for displaying network connections, routing tables, interface statistics, masquerade connections, and multicast memberships. However, starting from `Ubuntu 20.04`, netstat is considered **`deprecated`** in favor of the ss command [Click here](https://www.tecmint.com/install-netstat-in-linux/).
-* `expect` linux tool used to automate control of interactive applications such as Telnet, SSH, and others.
+* `netstat` its a linux tool used for displaying network connections, routing tables, interface statistics, masquerade connections, and multicast memberships. However, starting from `Ubuntu 20.04`, netstat is considered **`deprecated`** in favor of the ss command [click here](https://www.tecmint.com/install-netstat-in-linux/).
+* `expect` linux tool used to automate control of interactive applications such as Telnet, SSH, and others [click here][https://www.geeksforgeeks.org/expect-command-in-linux-with-examples/].
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
