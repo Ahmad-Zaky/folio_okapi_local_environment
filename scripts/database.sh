@@ -2,7 +2,7 @@
 
 db_cmd_defaults() {    
 	DB_CMD_DOCKER_CMD=$(jq ".DB_CMD_DOCKER_CMD" $CONFIG_FILE)
-	DB_CMD_STAGING_OKAPI_USERNAMER=$(jq ".DB_CMD_STAGING_OKAPI_USERNAME" $CONFIG_FILE)
+	DB_CMD_STAGING_OKAPI_USERNAME=$(jq ".DB_CMD_STAGING_OKAPI_USERNAME" $CONFIG_FILE)
 	DB_CMD_USERNAME=$(jq ".DB_CMD_USERNAME" $CONFIG_FILE)
 	DB_CMD_DATABASE_STAGING=$(jq ".DB_CMD_DATABASE_STAGING" $CONFIG_FILE)
 	DB_CMD_DATABASE=$(jq ".DB_CMD_DATABASE" $CONFIG_FILE)
@@ -16,30 +16,53 @@ db_cmd_defaults() {
 	DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION=$(jq ".DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION" $CONFIG_FILE)
 	DB_CMD_CREATE_MODULE_ROLE=$(jq ".DB_CMD_CREATE_MODULE_ROLE" $CONFIG_FILE)
 	DB_CMD_ALTER_MODULE_ROLE=$(jq ".DB_CMD_ALTER_MODULE_ROLE" $CONFIG_FILE)
+	DB_CMD_PSQL_WITH_DOCKER=$(jq ".DB_CMD_PSQL_WITH_DOCKER" $CONFIG_FILE)
+	DB_CMD_REMOTE_HOST=$(jq ".DB_CMD_REMOTE_HOST" $CONFIG_FILE)
+	DB_CMD_REMOTE_USERNAME=$(jq ".DB_CMD_REMOTE_USERNAME" $CONFIG_FILE)
+	DB_CMD_REMOTE_PASSWORD=$(jq ".DB_CMD_REMOTE_PASSWORD" $CONFIG_FILE)
+	DB_CMD_REMOTE_DATABASE=$(jq ".DB_CMD_REMOTE_DATABASE" $CONFIG_FILE)
+	DB_CMD_REMOTE_DIR_PATH=$(jq ".DB_CMD_REMOTE_DIR_PATH" $CONFIG_FILE)
 
 	# Remove extra double quotes at start and end of the string
 	export DB_CMD_DOCKER_CMD=$(echo $DB_CMD_DOCKER_CMD | sed 's/"//g')
 	export DB_CMD_STAGING_OKAPI_USERNAME=$(echo $DB_CMD_STAGING_OKAPI_USERNAME | sed 's/"//g')
-	export DB_CMD_USERNAME=$(echo $DB_CMD_USERNAME | sed 's/"//g')	
-	export DB_CMD_DATABASE_STAGING=$(echo $DB_CMD_DATABASE_STAGING | sed 's/"//g')	
-	export DB_CMD_DATABASE=$(echo $DB_CMD_DATABASE | sed 's/"//g')	
+	export DB_CMD_USERNAME=$(echo $DB_CMD_USERNAME | sed 's/"//g')
+	export DB_CMD_DATABASE_STAGING=$(echo $DB_CMD_DATABASE_STAGING | sed 's/"//g')
+	export DB_CMD_DATABASE=$(echo $DB_CMD_DATABASE | sed 's/"//g')
 	export DB_CMD_DATABASE_SQL_FILE=$(echo $DB_CMD_DATABASE_SQL_FILE | sed 's/"//g')
 	export DB_CMD_DUMPED_DATABASE_SQL_FILE=$(echo $DB_CMD_DUMPED_DATABASE_SQL_FILE | sed 's/"//g')  # dumped sql file name.
 	export DB_CMD_DATABASE_SQL_DIR_PATH=$(echo $DB_CMD_DATABASE_SQL_DIR_PATH | sed 's/"//g')	    # sql db relative path to this script's directory. 
-	export DB_CMD_CONTAINER=$(echo $DB_CMD_CONTAINER | sed 's/"//g')	                            # service container name found in the `docker-compose.yml` file
-	export DB_CMD_CP_DUMP_DB_DESTINATION=$(echo $DB_CMD_CP_DUMP_DB_DESTINATION | sed 's/"//g')	
+	export DB_CMD_CONTAINER=$(echo $DB_CMD_CONTAINER | sed 's/"//g')                                # service container name found in the `docker-compose.yml` file
+	export DB_CMD_CP_DUMP_DB_DESTINATION=$(echo $DB_CMD_CP_DUMP_DB_DESTINATION | sed 's/"//g')
 	export DB_CMD_SCHEMAS_PATH=$(echo $DB_CMD_SCHEMAS_PATH | sed 's/"//g')
 	export DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION=$(echo $DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION | sed 's/"//g')
-	export DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION=$(echo $DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION | sed 's/"//g')	
-	export DB_CMD_CREATE_MODULE_ROLE=$(echo $DB_CMD_CREATE_MODULE_ROLE | sed 's/"//g')	
-	export DB_CMD_ALTER_MODULE_ROLE=$(echo $DB_CMD_ALTER_MODULE_ROLE | sed 's/"//g')	
+	export DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION=$(echo $DB_CMD_PGDUMP_EXCLUDE_SCHEMA_OPTION | sed 's/"//g')
+	export DB_CMD_CREATE_MODULE_ROLE=$(echo $DB_CMD_CREATE_MODULE_ROLE | sed 's/"//g')
+	export DB_CMD_ALTER_MODULE_ROLE=$(echo $DB_CMD_ALTER_MODULE_ROLE | sed 's/"//g')
+    export DB_CMD_PSQL_WITH_DOCKER=$(echo $DB_CMD_PSQL_WITH_DOCKER | sed 's/"//g')
+    export DB_CMD_REMOTE_HOST=$(echo $DB_CMD_REMOTE_HOST | sed 's/"//g')
+    export DB_CMD_REMOTE_USERNAME=$(echo $DB_CMD_REMOTE_USERNAME | sed 's/"//g')
+    export DB_CMD_REMOTE_PASSWORD=$(echo $DB_CMD_REMOTE_PASSWORD | sed 's/"//g')
+    export DB_CMD_REMOTE_DATABASE=$(echo $DB_CMD_REMOTE_DATABASE | sed 's/"//g')
+    export DB_CMD_REMOTE_DIR_PATH=$(echo $DB_CMD_REMOTE_DIR_PATH | sed 's/"//g')
 
-    DB_CMD_DATABASE_SQL_PATH="$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DATABASE_SQL_FILE"          # sql file relative path to this script's directory.
-    DB_CMD_COMMAND_WRAPPER="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER /bin/bash -c \"%s\" \n"   # if you use postgres on your local machine directly, replace this with "%s"
-    DB_CMD_COMMAND_WRAPPER_ALT="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER %s \n"                # if you use postgres on your local machine directly, replace this with "%s"
+    DB_CMD_DATABASE_SQL_PATH="$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DATABASE_SQL_FILE"              # sql file relative path to this script's directory.
+    DB_CMD_REMOTE_DIR_RELATIVE_PATH="$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_REMOTE_DIR_PATH"
+
+    # if you use docker for postgres go to if block else you go in the `else` block
+    if [[ $DB_CMD_PSQL_WITH_DOCKER == "true" ]]; then
+        DB_CMD_COMMAND_WRAPPER="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER /bin/bash -c \"%s\" \n"
+        DB_CMD_COMMAND_WRAPPER_ALT="$DB_CMD_DOCKER_CMD exec $DB_CMD_CONTAINER %s \n"
+        DB_CMD_COMMAND_WRAPPER_ALT_INTERACTIVE="$DB_CMD_DOCKER_CMD exec -i $DB_CMD_CONTAINER %s \n"
+    else
+        DB_CMD_COMMAND_WRAPPER="%s \n"
+        DB_CMD_COMMAND_WRAPPER_ALT="%s \n"
+        DB_CMD_COMMAND_WRAPPER_ALT_INTERACTIVE="%s \n"
+    fi
+
     DB_CMD_CP_DUMP_DB_SOURCE="/$DB_CMD_DUMPED_DATABASE_SQL_FILE"
     DB_CMD_DOCKER_CP_COMMAND="$DB_CMD_DOCKER_CMD cp $DB_CMD_CONTAINER:$DB_CMD_CP_DUMP_DB_SOURCE $DB_CMD_CP_DUMP_DB_DESTINATION"
-    DB_CMD_PGDUMP_SCHEMA_OPTION="$DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION"
+    DB_CMD_PGDUMP_SCHEMA_OPTION="$DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION"                              # default value is include '-n' option
 }
 
 db_has_arg() {
@@ -135,10 +158,50 @@ handle_arguments() {
         DB_CMD_HAS_IMPORT_SCHEMA_ARG=true
 	fi
 
+    db_has_arg "import-remote-schema" $DB_ARGS
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+        db_get_arg 2 $DB_ARGS
+        REMOTE_SCHEMA=$FOUND_ARGUMENT
+        DB_CMD_HAS_IMPORT_REMOTE_SCHEMA_ARG=true
+	fi
+
+    db_has_arg "import-remote-table" $DB_ARGS
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+        db_get_arg 2 $DB_ARGS
+        REMOTE_SCHEMA=$FOUND_ARGUMENT
+
+        db_get_arg 3 $DB_ARGS
+        REMOTE_TABLE=$FOUND_ARGUMENT
+
+        DB_CMD_HAS_IMPORT_REMOTE_TABLE_ARG=true
+	fi
+
     db_has_arg "dump" $DB_ARGS
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
         DB_CMD_HAS_DUMP_ARG=true
+	fi
+
+    db_has_arg "dump-remote-schema" $DB_ARGS
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+        db_get_arg 2 $DB_ARGS
+        REMOTE_SCHEMA=$FOUND_ARGUMENT
+        DB_CMD_HAS_DUMP_REMOTE_SCHEMA_ARG=true
+	fi
+
+    db_has_arg "dump-remote-table" $DB_ARGS
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+        db_get_arg 2 $DB_ARGS
+        REMOTE_SCHEMA=$FOUND_ARGUMENT
+
+        db_get_arg 3 $DB_ARGS
+        REMOTE_TABLE=$FOUND_ARGUMENT
+
+        DB_CMD_HAS_DUMP_REMOTE_TABLE_ARG=true
 	fi
 
     db_has_arg "dump-include-schemas" $DB_ARGS
@@ -162,6 +225,13 @@ handle_arguments() {
 }
 
 import() {
+    
+    echo -e ""
+    echo "********************************"
+    echo "Import database $DB_CMD_DATABASE"
+    echo "********************************"
+    echo -e ""
+
     # Check if the database already exists
     if eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -lqt | cut -d \| -f 1 | grep -qw $DB_CMD_DATABASE"); then
         echo "Database $DB_CMD_DATABASE already exists. Dropping it."
@@ -216,8 +286,15 @@ import() {
 }
 
 import_schema() {
-    DB_SCHEMA_FILE="$DB_SCHEMA.sql"
-    DB_CMD_SCHEMA_SQL_PATH="$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_SCHEMA_FILE"
+    local DB_SCHEMA=$1
+    local DB_SCHEMA_FILE=$2
+    local DB_CMD_SCHEMA_SQL_PATH=$3
+    
+    echo -e ""
+    echo "*********************************"
+    echo "Import database schema $DB_SCHEMA"
+    echo "*********************************"
+    echo -e ""
 
     # Drop schema if already exists
     echo "Drop Schema $DB_SCHEMA if exists."
@@ -262,7 +339,60 @@ import_schema() {
     fi
 }
 
-dump_db() {
+import_table() {
+    local DB_TABLE=$1
+    local DB_SCHEMA=$2
+    local DB_SCHEMA_FILE=$3
+    local DB_CMD_SCHEMA_SQL_PATH=$4
+
+    echo -e ""
+    echo "*********************************************"
+    echo "Import table $DB_TABLE into $DB_SCHEMA schema"
+    echo "*********************************************"
+    echo -e ""
+
+    echo "!!!!! method import_table() not implemented yet !!!!!"
+}
+
+import_remote_schema() {
+    echo -e ""
+    echo "**********************************************************************"
+    echo "Import remote schema $REMOTE_SCHEMA"
+    echo "**********************************************************************"
+    echo -e ""
+
+    echo -e ""
+    echo "Step #1 - dump $REMOTE_SCHEMA"
+    dump_remote_schema $REMOTE_SCHEMA
+
+    echo -e ""
+    echo "Step #2 - import $REMOTE_SCHEMA"
+    import_schema $REMOTE_SCHEMA $DB_CMD_REMOTE_FILE $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE
+}
+
+import_remote_table() {
+
+    echo -e ""
+    echo "**********************************************************************************************"
+    echo "Import remote table $REMOTE_TABLE in schema $REMOTE_SCHEMA"
+    echo "**********************************************************************************************"
+    echo -e ""
+
+    dump_remote_table $REMOTE_SCHEMA $REMOTE_TABLE
+
+    import_table $REMOTE_TABLE $REMOTE_SCHEMA $DB_CMD_REMOTE_FILE $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE
+ 
+    echo "!!!!! method import_remote_table() not implemented yet !!!!!"
+}
+
+dump() {
+
+    echo -e ""
+    echo "******************************"
+    echo "Dump database $DB_CMD_DATABASE"
+    echo "******************************"
+    echo -e ""
+
     local WITH_SCHEMAS=$1
 
     if [[ $WITH_SCHEMAS == true ]]; then
@@ -301,16 +431,90 @@ dump_db() {
     fi
 }
 
-db_pre_process() {
-    db_cmd_defaults
+dump_remote_schema() {
+    local REMOTE_SCHEMA=$1
+    DB_CMD_REMOTE_FILE=${REMOTE_SCHEMA}_$(date +%d_%m_%Y-%H_%M_%S).sql
+    DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE=$DB_CMD_REMOTE_DIR_RELATIVE_PATH/$DB_CMD_REMOTE_FILE
 
-    handle_arguments
+    echo -e ""
+    echo "**************************************************************************************************************"
+    echo "Dump remote schema $REMOTE_SCHEMA into $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE"
+    echo "**************************************************************************************************************"
+    echo -e ""
+
+    mkdir -p $DB_CMD_REMOTE_DIR_RELATIVE_PATH
+
+    export PG_DUMP_CMD=$(printf "$DB_CMD_COMMAND_WRAPPER_ALT_INTERACTIVE" "pg_dump -h $DB_CMD_REMOTE_HOST -U $DB_CMD_REMOTE_USERNAME -d $DB_CMD_REMOTE_DATABASE -n $REMOTE_SCHEMA -v > $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE")
+
+    dump_remote_auto_authenticate "$PG_DUMP_CMD" $DB_CMD_REMOTE_PASSWORD
+
+    unset $PG_DUMP_CMD
+}
+
+dump_remote_table() {
+    local REMOTE_SCHEMA=$1
+    local REMOTE_TABLE=$2
+    DB_CMD_REMOTE_FILE=$REMOTE_SCHEMA-${REMOTE_TABLE}_$(date +%d_%m_%Y-%H_%M_%S).sql
+    DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE=$DB_CMD_REMOTE_DIR_RELATIVE_PATH/$DB_CMD_REMOTE_FILE
+
+    echo -e ""
+    echo "***************************************************************************************************"
+    echo "Dump remote table $REMOTE_TABLE in schema $REMOTE_SCHEMA into $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE"
+    echo "***************************************************************************************************"
+    echo -e ""
+
+    mkdir -p $DB_CMD_REMOTE_DIR_RELATIVE_PATH
+
+    export PG_DUMP_CMD=$(printf "$DB_CMD_COMMAND_WRAPPER_ALT" "pg_dump -h $DB_CMD_REMOTE_HOST -U $DB_CMD_REMOTE_USERNAME -d $DB_CMD_REMOTE_DATABASE -t ${REMOTE_SCHEMA}.${REMOTE_TABLE} -v > $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE")
+
+    dump_remote_auto_authenticate "$PG_DUMP_CMD" $DB_CMD_REMOTE_PASSWORD
+
+    unset $PG_DUMP_CMD
+}
+
+dump_remote_auto_authenticate() {
+    local PG_DUMP_CMD=$1
+    local DB_CMD_REMOTE_PASSWORD=$2
+
+    # Create the expect script
+    cat << 'EOF' > automation.exp
+#!/usr/bin/expect -f
+
+set PG_DUMP_CMD $env(PG_DUMP_CMD)
+set DB_CMD_REMOTE_PASSWORD $env(DB_CMD_REMOTE_PASSWORD)
+
+set timeout -1
+
+spawn sh -c "$PG_DUMP_CMD"
+
+expect -exact "Password: " { send -- "$DB_CMD_REMOTE_PASSWORD\r" }
+# expect -re "Password:*"
+
+# send "$DB_CMD_REMOTE_PASSWORD"
+
+expect eof
+EOF
+
+    # Make the expect script executable
+    chmod +x automation.exp
+
+    # Run the expect script
+    ./automation.exp
+
+    # Clean up
+    rm automation.exp
 }
 
 db_run_query() {
     local QUERY=$1
 
     db_cmd_defaults
+
+    echo -e ""
+    echo "****************************************************************"
+    echo "Run query $QUERY"
+    echo "****************************************************************"
+    echo -e ""
 
     if [[ $DB_CMD_HAS_STAGING_ARG == true ]]; then
         DB_CMD_DATABASE="$DB_CMD_DATABASE_STAGING"
@@ -319,27 +523,60 @@ db_run_query() {
     eval $(printf "$DB_CMD_COMMAND_WRAPPER_ALT" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \"$QUERY\"")
 }
 
+db_pre_process() {
+    db_cmd_defaults
+
+    handle_arguments
+}
+
 db_process() {
     if [[ $DB_CMD_HAS_IMPORT_ARG == true ]]; then
         import
 
         return
     fi
-    
+
     if [[ $DB_CMD_HAS_IMPORT_SCHEMA_ARG == true ]]; then
-        import_schema
+        DB_SCHEMA_FILE="$DB_SCHEMA.sql"
+        DB_CMD_DATABASE_SQL_DIR_PATH_FILE="$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_SCHEMA_FILE"
+
+        import_schema $DB_SCHEMA $DB_SCHEMA_FILE $DB_CMD_DATABASE_SQL_DIR_PATH_FILE
+
+        return
+    fi
+
+    if [[ $DB_CMD_HAS_IMPORT_REMOTE_SCHEMA_ARG == true ]]; then
+        import_remote_schema $REMOTE_SCHEMA
+
+        return
+    fi
+
+    if [[ $DB_CMD_HAS_IMPORT_REMOTE_TABLE_ARG == true ]]; then
+        import_remote_table $REMOTE_SCHEMA $REMOTE_TABLE
 
         return
     fi
 
     if [[ $DB_CMD_HAS_DUMP_ARG == true ]]; then
-        dump_db
+        dump
 
         return
     fi
 
     if [[ $DB_CMD_HAS_DUMP_INCLUDE_SCHEMAS_ARG == true ]] || [[ $DB_CMD_HAS_DUMP_EXCLUDE_SCHEMAS_ARG == true ]]; then
-        dump_db true
+        dump true
+
+        return
+    fi
+
+    if [[ $DB_CMD_HAS_DUMP_REMOTE_SCHEMA_ARG == true ]]; then
+        dump_remote_schema $REMOTE_SCHEMA
+
+        return
+    fi
+
+    if [[ $DB_CMD_HAS_DUMP_REMOTE_TABLE_ARG == true ]]; then
+        dump_remote_table $REMOTE_SCHEMA $REMOTE_TABLE
 
         return
     fi

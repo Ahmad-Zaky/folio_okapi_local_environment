@@ -189,6 +189,7 @@ The script is utilizing some linux tools, which should be installed before runni
 * `lsof` linux tool to find process by port number. [click here](https://ioflood.com/blog/install-lsof-command-linux/)
 * `docker` docker tool to run modules in containers instead of running it on the local host machine. [click here](https://docs.docker.com/engine/install/)
 * `netstat` its a linux tool used for displaying network connections, routing tables, interface statistics, masquerade connections, and multicast memberships. However, starting from `Ubuntu 20.04`, netstat is considered **`deprecated`** in favor of the ss command [Click here](https://www.tecmint.com/install-netstat-in-linux/).
+* `expect` linux tool used to automate control of interactive applications such as Telnet, SSH, and others.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -337,6 +338,14 @@ The script is utilizing some linux tools, which should be installed before runni
 * if you look at the script you may see some unused methods most of them are in `helpers.sh` they were used in earlier scripts, and not removed.
 * if you start import a schema or a database locally through the folio script, be sure that the imported schemas are already enabled before through the `modules.json` as there may be missing roles, casts and/or extensions that will eventually prevent the import from succeed, or you can add the missing roles, casts, extensions manually, and then reimport the database/schema sql file again. 
 * if your postgres database is running from your own docker service or running directly on your machine, you need to have the db configurations to be changed to match your own db configurations.
+* database script works with two databases, your own local and another staging database.
+    - the script assumes that they are using the same postgres instance, which means the same connection and database configuration except for the database name.
+    - at the beginning both are empty no difference between the two.
+    - the purpose of another database with suffix name `_staging`, is to separate between your local data gained while working with your local okapi environment and the data you import from your remote database associated with your development or staging environment.
+    - so its good to separate them so if you want to connect to your staging database you can change the connection database name for a specific module to connect to your local staging database.
+* in case your `postgres` is running in a docker container you need to review two configurations `DB_CMD_CONTAINER`, and `DB_CMD_PSQL_WITH_DOCKER`
+    - `DB_CMD_CONTAINER` should have your container name as a value.
+    - `DB_CMD_PSQL_WITH_DOCKER` should be have "true" value.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -797,6 +806,30 @@ The script is utilizing some linux tools, which should be installed before runni
     - local database name.
     - **default:** `okapi_modules`
 
+- **"DB_CMD_REMOTE_HOST"**
+    - remote database host may be your development/staging database.
+    - you need to change the default value `localhost` to your remote host which is mostly a network IP.
+    - **default:** `localhost`
+
+- **"DB_CMD_REMOTE_USERNAME"**
+    - remote database username may be your development/staging database.
+    - you need to change the default value `folio_admin` to your remote username.
+    - **default:** `folio_admin`
+
+- **"DB_CMD_REMOTE_PASSWORD"**
+    - remote database password may be your development/staging database.
+    - you need to change the default value `folio_admin` to your remote password.
+    - **default:** `folio_admin`
+
+- **"DB_CMD_REMOTE_DATABASE"**
+    - remote database password may be your development/staging database.
+    - you need to change the default value `okapi_modules` to your remote database name.
+    - **default:** `okapi_modules`
+
+- **"DB_CMD_REMOTE_DIR_PATH"**
+    - this is the sub directory inside `db/` where all remote sql files will be downloaded.
+    - **default:** `remote`
+
 - **"DB_CMD_DATABASE_SQL_FILE"**
     - sql file name which will be imported in your local database.
     - **default:** `okapi.sql`
@@ -836,6 +869,11 @@ The script is utilizing some linux tools, which should be installed before runni
 - **"DB_CMD_ALTER_MODULE_ROLE"**
     - change user role for a schema query.
     - **default:** `alter user %s set search_path = %s;`
+
+- **"DB_CMD_PSQL_WITH_DOCKER"**
+    - running postgres could be through docker image or directly from the host machine.
+    - so if your postgres is running from a docker container, please set the value to `true` else set it to `false`.
+    - **default:** `true`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -1254,9 +1292,21 @@ folio db staging import
 folio db import-schema
 folio db staging import-schema
 
+# import specific remote schema into your local database or local staging database
+folio db import-remote-schema
+folio db staging import-remote-schema
+
+# import specific remote table into your local database schema or local staging database schema
+folio db import-remote-table
+folio db staging import-remote-table
+
 # dump local database or local staging database completely
 folio db dump
 folio db staging dump
+
+# dump local database or local staging database completely with print option to show the query
+folio db print dump
+folio db print staging dump
 
 # dump local database or local staging database and only include schemas from schemas.txt
 folio db dump-include-schemas
@@ -1265,6 +1315,14 @@ folio db staging dump-include-schemas
 # dump local database or local staging database and exclude schemas from schemas.txt
 folio db dump-exclude-schemas
 folio db staging dump-exclude-schemas
+
+# dump remote database schema to your machine
+folio db dump-remote-schema
+folio db staging dump-remote-schema
+
+# dump remote database schema table to your machine
+folio db dump-remote-table
+folio db staging dump-remote-table
 
 # list schemas for local database or local staging database
 folio db list-schemas
@@ -1287,6 +1345,22 @@ folio db staging list-schemas
     - import a new staging database schema sql file after dropping the old one.
     - **use cases:** in case you want to restore or update an old schema version in your staging database.
 
+- **folio db import-remote-schema**:
+    - import a remote database schema by dumping it first from remote, and then import it to local database after dropping the old schema.
+    - **use cases:** in case you want to import remote schema to your local database.
+
+- **folio db staging import-remote-schema**:
+    - import a remote database schema by dumping it first from remote, and then import it to local staging database after dropping the old schema.
+    - **use cases:** in case you want to import remote schema to your local staging database.
+
+- **folio db import-remote-table**:
+    - import a remote database table by dumping it first from remote, and then import it to local database after dropping the old table.
+    - **use cases:** in case you want to import remote table to your local database.
+
+- **folio db staging import-remote-table**:
+    - import a remote database table by dumping it first from remote, and then import it to local staging database after dropping the old table.
+    - **use cases:** in case you want to import remote table to your local staging database.
+
 - **folio db dump**:
     - dump database with all schemas to an sql file.
     - **use cases:** more like backup purpose.
@@ -1294,6 +1368,14 @@ folio db staging list-schemas
 - **folio db staging dump**:
     - dump database with all schemas to an sql file from your local staging database.
     - **use cases:** more like backup purpose. 
+
+- **folio db print dump**:
+    - same like `folio db dump` just the script will print the query shipped to postgres.
+    - **use cases:** the new option is more for debugging purposes. 
+
+- **folio db print staging dump**:
+    - same like `folio db staging dump` just the script will print the query shipped to postgres.
+    - **use cases:** the new option is more for debugging purposes. 
 
 - **folio db dump-include-schemas**:
     - dump database with included schemas found in schemas.txt file to an sql file.
@@ -1310,6 +1392,14 @@ folio db staging list-schemas
 - **folio db staging dump-exclude-schemas**:
     - dump database by excluding schemas found in schemas.txt file to an sql file from staging database.
     - **use cases:** more like backup purpose.
+
+- **folio db dump-remote-schema**:
+    - dump remote database schema to an sql file.
+    - **use cases:** more like backup purpose for remote database.
+
+- **folio db dump-remote-table**:
+    - dump remote database table to an sql file.
+    - **use cases:** more like backup purpose for remote database.
 
 - **folio db list-schemas**:
     - list your local database schemas.

@@ -27,14 +27,17 @@ pre_process() {
 
 	defaults
 
+	validate_linux_tools $TOOLS_LIST
+
+	# handle db operations separately from other folio script
+	set_db_arg $ARGS
+
+	handle_db_operations $ARGS
+
 	validate_input_args "$ARGS" "$AVAILABLE_ARGS_LIST"
 
 	set_args $ARGS
 	
-	validate_linux_tools $TOOLS_LIST
-	
-	handle_db_operations $ARGS
-
 	empty_logs
 
 	stop_running_module_or_modules
@@ -83,8 +86,8 @@ general_defaults() {
 	export BASH_ALIASES_PATH="$HOME_PATH/.bash_aliases"
 	export ALIASES_PATH="resources/aliases.txt"
 	export PERMISSIONS_PATH="resources/permissions.json"
-	export TOOLS_LIST="git java jq yq xmllint lsof docker netstat"
-	export AVAILABLE_ARGS_LIST="start restart stop init purge import-aliases without-okapi okapi modules db staging import import-schema dump dump-include-schemas dump-exclude-schemas list-schemas"
+	export TOOLS_LIST="git java jq yq xmllint lsof docker netstat expect"
+	export AVAILABLE_ARGS_LIST="start restart stop init purge import-aliases without-okapi okapi modules db staging import import-schema dump dump-include-schemas dump-exclude-schemas list-schemas print"
 }
 
 module_defaults() {
@@ -331,7 +334,6 @@ postman_defaults() {
 set_args() {
 	ARGS=$*
 	for ARG in $ARGS; do
-		set_db_arg $ARG
 		set_init_arg $ARG
 		set_purge_arg $ARG
 		set_restart_okapi_arg $ARG
@@ -344,6 +346,7 @@ set_args() {
 }
 
 set_db_arg() {
+	# get only the first argument of args list using $1 instead $*
 	local ARGUMENT=$1
 
 	if [[ "$DB_ARG" -eq 1 ]]; then
