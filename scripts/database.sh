@@ -201,6 +201,26 @@ handle_arguments() {
         DB_CMD_HAS_DUMP_ARG=true
 	fi
 
+    db_has_arg "dump-schema" $DB_ARGS
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+        db_get_arg 2 $DB_ARGS
+        DB_SCHEMA=$FOUND_ARGUMENT
+        DB_CMD_HAS_DUMP_SCHEMA_ARG=true
+	fi
+
+    db_has_arg "dump-table" $DB_ARGS
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+        db_get_arg 2 $DB_ARGS
+        DB_SCHEMA=$FOUND_ARGUMENT
+
+        db_get_arg 3 $DB_ARGS
+        DB_TABLE=$FOUND_ARGUMENT
+
+        DB_CMD_HAS_DUMP_TABLE_ARG=true
+	fi
+
     db_has_arg "dump-remote-schema" $DB_ARGS
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
@@ -605,6 +625,39 @@ dump() {
     return
 }
 
+dump_schema() {
+    local DB_SCHEMA=$1
+    DB_CMD_FILE=${DB_SCHEMA}_$(date +%d_%m_%Y-%H_%M_%S).sql
+    DB_CMD_DIR_RELATIVE_PATH_FILE=$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/$DB_CMD_FILE
+
+    echo -e ""
+    echo "**************************************************************************************************************"
+    echo "Dump schema $REMOTE_SCHEMA into $DB_CMD_DIR_RELATIVE_PATH_FILE"
+    echo "**************************************************************************************************************"
+    echo -e ""
+
+    mkdir -p $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH
+
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER_ALT_INTERACTIVE" "pg_dump -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -n $DB_SCHEMA -v > $DB_CMD_DIR_RELATIVE_PATH_FILE")
+}
+
+dump_table() {
+    local DB_SCHEMA=$1
+    local DB_TABLE=$2
+    DB_CMD_FILE=$DB_SCHEMA-${DB_TABLE}_$(date +%d_%m_%Y-%H_%M_%S).sql
+    DB_CMD_DIR_RELATIVE_PATH_FILE=$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/$DB_CMD_FILE
+
+    echo -e ""
+    echo "***************************************************************************************************"
+    echo "Dump table $DB_TABLE in schema $DB_SCHEMA into $DB_CMD_DIR_RELATIVE_PATH_FILE"
+    echo "***************************************************************************************************"
+    echo -e ""
+
+    mkdir -p $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH
+
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER_ALT_INTERACTIVE" "pg_dump -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -t ${DB_SCHEMA}.${DB_TABLE} -v > $DB_CMD_DIR_RELATIVE_PATH_FILE")
+}
+
 dump_remote_schema() {
     local REMOTE_SCHEMA=$1
     DB_CMD_REMOTE_FILE=${REMOTE_SCHEMA}_$(date +%d_%m_%Y-%H_%M_%S).sql
@@ -748,6 +801,18 @@ db_process() {
 
     if [[ $DB_CMD_HAS_DUMP_INCLUDE_SCHEMAS_ARG == true ]] || [[ $DB_CMD_HAS_DUMP_EXCLUDE_SCHEMAS_ARG == true ]]; then
         dump true
+
+        return
+    fi
+
+    if [[ $DB_CMD_HAS_DUMP_SCHEMA_ARG == true ]]; then
+        dump_schema $DB_SCHEMA
+
+        return
+    fi
+
+    if [[ $DB_CMD_HAS_DUMP_TABLE_ARG == true ]]; then
+        dump_table $DB_SCHEMA $DB_TABLE
 
         return
     fi

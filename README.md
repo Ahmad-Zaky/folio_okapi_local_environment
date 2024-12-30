@@ -1342,13 +1342,19 @@ folio db staging dump-include-schemas
 folio db dump-exclude-schemas
 folio db staging dump-exclude-schemas
 
+# dump database or staging database schema to your machine
+folio db dump-schema
+folio db staging dump-schema
+
+# dump local database or staging database schema table to your machine
+folio db dump-table
+folio db staging dump-table
+
 # dump remote database schema to your machine
 folio db dump-remote-schema
-folio db staging dump-remote-schema
 
 # dump remote database schema table to your machine
 folio db dump-remote-table
-folio db staging dump-remote-table
 
 # list schemas for local database or local staging database
 folio db list-schemas
@@ -1425,6 +1431,22 @@ folio db staging list-schemas
 
 - **folio db staging dump-exclude-schemas**:
     - dump database by excluding schemas found in schemas.txt file to an sql file from staging database.
+    - **use cases:** more like backup purpose.
+
+- **folio db dump-schema**:
+    - dump local database schema to an sql file.
+    - **use cases:** more like backup purpose.
+
+- **folio db staging dump-schema**:
+    - dump local staging database schema to an sql file.
+    - **use cases:** more like backup purpose.
+
+- **folio db dump-table**:
+    - dump local database table to an sql file.
+    - **use cases:** more like backup purpose.
+
+- **folio db staging dump-table**:
+    - dump local staging database table to an sql file.
     - **use cases:** more like backup purpose.
 
 - **folio db dump-remote-schema**:
