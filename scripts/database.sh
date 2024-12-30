@@ -58,6 +58,10 @@ db_cmd_defaults() {
         DB_CMD_COMMAND_WRAPPER="%s \n"
         DB_CMD_COMMAND_WRAPPER_ALT="%s \n"
         DB_CMD_COMMAND_WRAPPER_ALT_INTERACTIVE="%s \n"
+
+        # Current Implementation does not consider postgres works directly on the host machine
+        echo -e "Sorry, current implementation does not consider postgres works directly on the host machine !!!"
+        exit 1
     fi
 
     DB_CMD_CP_DUMP_DB_SOURCE="/$DB_CMD_DUMPED_DATABASE_SQL_FILE"
@@ -301,7 +305,7 @@ import_schema() {
     db_run_query "DROP SCHEMA IF EXISTS $DB_SCHEMA CASCADE"
 
     # Remove old schema sql file inside Docker image
-    if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == true ]]; then
+    if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_SCHEMA_FILE ]; then echo true; else echo false; fi")) == true ]]; then
         echo "Remove old $DB_SCHEMA_FILE file."
         eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_SCHEMA_FILE")
     fi
@@ -341,16 +345,75 @@ import_schema() {
 import_table() {
     local DB_TABLE=$1
     local DB_SCHEMA=$2
-    local DB_SCHEMA_FILE=$3
-    local DB_CMD_SCHEMA_SQL_PATH=$4
+    local DB_TABLE_FILE=$3
+    local DB_CMD_TABLE_SQL_PATH=$4
 
     echo -e ""
-    echo "*********************************************"
+    echo "******************************************************************************************"
     echo "Import table $DB_TABLE into $DB_SCHEMA schema"
-    echo "*********************************************"
+    echo "******************************************************************************************"
     echo -e ""
 
-    echo "!!!!! method import_table() not implemented yet !!!!!"
+    echo -e ""
+    echo -e ""
+    echo -e ""
+    echo "***************************************************************************************************************"
+    echo "NOTE: Drop a table may affect its relations with other tables, press Ctlr + c if you do not want to proceed !!!"
+    echo "***************************************************************************************************************"
+    echo -e ""
+
+    sleep 10
+
+    # Drop table if already exists
+    echo "Drop Table $DB_TABLE from Schema $DB_SCHEMA if exists."
+
+    db_run_query "DROP TABLE IF EXISTS $DB_SCHEMA.$DB_TABLE  CASCADE;"
+
+    # Remove old table sql file inside Docker image
+    if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_TABLE_FILE ]; then echo true; else echo false; fi")) == true ]]; then
+        echo -e ""
+        echo "Remove old $DB_TABLE_FILE file."
+        echo -e ""
+
+        eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_TABLE_FILE")
+    fi
+
+    # Copy SQL file to Docker container
+    echo -e ""
+    echo "Copy $DB_TABLE_FILE to $DB_CMD_CONTAINER container"
+    echo -e ""
+
+    $DB_CMD_DOCKER_CMD cp $DB_CMD_TABLE_SQL_PATH $DB_CMD_CONTAINER:/
+
+    if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_TABLE_FILE ]; then echo true; else echo false; fi")) == false ]]; then
+        echo -e ""
+        echo "Failed to copy $DB_TABLE_FILE file."
+        echo -e ""
+
+        exit 1
+    fi
+
+    echo -e ""
+    echo "Replace OWNER $DB_CMD_STAGING_OKAPI_USERNAME to $DB_CMD_USERNAME in $DB_TABLE_FILE file."
+    echo -e ""
+
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_STAGING_OKAPI_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_TABLE_FILE")
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_STAGING_OKAPI_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_TABLE_FILE")
+
+    echo -e ""
+    echo "Import $DB_TABLE_FILE table into $DB_CMD_DATABASE.$DB_SCHEMA database schema"
+    echo -e ""
+
+    eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -f $DB_TABLE_FILE")
+
+    # Remove new table sql file inside Docker image
+    if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == true ]]; then
+        echo -e ""
+        echo "Remove new $DB_TABLE_FILE file."
+        echo -e ""
+
+        eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_TABLE_FILE")
+    fi
 }
 
 import_remote_schema() {

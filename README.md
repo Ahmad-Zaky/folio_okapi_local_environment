@@ -1489,11 +1489,11 @@ folio db staging list-schemas
 - [ ] it will be very helpful to test running the script on each update, so we may add a pipeline that runs the script after each push/merge to main branch to ensure that the script works just fine and did not break after the new shipped script.
 - [ ] right now if you pull new changes from remote and `pom.xml` version has changed, the script will not automatically rebuild the project you need to rebuild the module yourself, we need to refactor the script to make the check and if the pom.xml version differs from `ModuleDescriptor.json` version if yes the script will rebuild the module.
 - [ ] running in docker environment has an issue, when you run the container the env vars will be added, we have two sources okapi genearal env vars and modules individual env vars they may have duplicates, we need that module specific env vars to overwrite any duplicates found in okapi general env vars.
+- [ ] right now, `database.sh` is implemeneted considering `postgres` works from a docker container not directly installed on the host machine, we need to refactor the `database.sh` implementation to work with both. 
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 
 ## Contributing
 
