@@ -376,21 +376,36 @@ login_user_curl() {
 	local USR=$3
 	local PWD=$4
 
+	LOGIN_URL_PATH=authn/login
+	if [[ $ENABLE_LOGIN_WITH_EXPIRY == "true" ]]; then
+		LOGIN_URL_PATH=authn/login-with-expiry
+	fi
+
 	set_file_name $BASH_SOURCE
-	curl_req -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -HAccept:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/authn/login
+	curl_req -D $HEADERS_FILE -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -HAccept:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/$LOGIN_URL_PATH
 	if [[ "$?" -eq 0 ]]; then
 		return
 	fi
 
 	# login from mod-users-bl module but the $LOGIN_WITH_MOD variable value should be 'mod-users-bl'
-	# curl_req -Dheaders -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/bl-users/login?expandPermissions=true&fullPermissions=true
+	# curl_req -D $HEADERS_FILE -HX-Okapi-Tenant:$TNT -HContent-Type:application/json -d"{\"username\":\"$USR\",\"password\":\"$PWD\"}" $URL/bl-users/login?expandPermissions=true&fullPermissions=true
 	# if [[ "$?" -eq 0 ]]; then
 	# 	return
 	# fi
 
-	TOKEN=`awk '/x-okapi-token/ {print $2}' <headers|tr -d '[:space:]'`
+	if [[ $ENABLE_LOGIN_WITH_EXPIRY == "true" ]]; then
+		TOKEN=$(grep -i -oP "(?<=set-cookie: $ACCESS_TOKEN_COOKIE_KEY=)[^;]+" "$HEADERS_FILE")
+		REFRESH_TOKEN=$(grep -i -oP "(?<=set-cookie: $REFRESH_TOKEN_COOKIE_KEY=)[^;]+" "$HEADERS_FILE")
 
-	log "Token: $TOKEN"
+		new_line
+		log "Token: $TOKEN"
+		log "Refresh Token: $REFRESH_TOKEN"
+		new_line
+	else
+		TOKEN=`awk '/x-okapi-token/ {print $2}' <$HEADERS_FILE|tr -d '[:space:]'`
+
+		log "Token: $TOKEN"
+	fi
 }
 
 # Import swagger.api OpenApi Specification file as postman collection

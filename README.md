@@ -347,6 +347,7 @@ The script is utilizing some linux tools, which should be installed before runni
 * in case your `postgres` is running in a docker container you need to review two configurations `DB_CMD_CONTAINER`, and `DB_CMD_PSQL_WITH_DOCKER`
     - `DB_CMD_CONTAINER` should have your container name as a value.
     - `DB_CMD_PSQL_WITH_DOCKER` should be have "true" value.
+* running `db` commands with `postgres` not running docker has not been tested, so you may encounter problems, if os create issues on the repo so we can fix it.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -839,6 +840,14 @@ The script is utilizing some linux tools, which should be installed before runni
     - sql file name of the local dumped databse.
     - **default:** `dumped_okapi.sql`
 
+- **"DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX"**
+    - sql file name prefix and usually the suffix will be a timestamp for the local dumped databse file name.
+    - **default:** `dumped_okapi.sql`
+
+- **"DB_CMD_DUMPED_DATABASE_DIR_PATH"**
+    - sql directory name ofor local dumped databses.
+    - **default:** `dumped_okapi.sql`
+
 - **"DB_CMD_DATABASE_SQL_DIR_PATH"**
     - path where you should place the staging sql file to be imported.
     - **default:** `../db`
@@ -851,9 +860,9 @@ The script is utilizing some linux tools, which should be installed before runni
     - path where your dumped database file will be copied to.
     - **default:** `../db/`
 
-- **"DB_CMD_SCHEMAS_PATH"**
-    - schemas list path in case you want to include/exclude specific schemas while dumping your local database.
-    - **default:** `db/schemas.txt`
+- **"DB_CMD_SCHEMAS_FILE"**
+    - schemas list file in case you want to include/exclude specific schemas while dumping your local database.
+    - **default:** `schemas.txt`
 
 - **"DB_CMD_PGDUMP_INCLUDE_SCHEMA_OPTION"**
     - include schema option used with postgres `pgdump` command.
@@ -1027,6 +1036,18 @@ The script is utilizing some linux tools, which should be installed before runni
     - at starting of the script there is a range or ports allocated to `okapi` from for example `9131` to `9199` excluding `9130` as `okapi` it self listen on this port, and to start working with modules the script frees these ports if any of them are used by other porcesses.
     - if you want to disable this feature, because some ports within the range are running on other critical programs, then you can set the value to `false` or simply reduce the range of allocated ports to `okapi`.
     - **default:** `true`
+
+- **"ENABLE_LOGIN_WITH_EXPIRY"**
+    - this configuration enables login with the new RTR (Refresh Token Rotation) approach through `/authn/login-with-expiry` api request.
+    - **default:** `true`
+
+- **"ACCESS_TOKEN_COOKIE_KEY"**
+    - when using login with expiry the token will be in the cookies within a key called `folioAccessToken` which is the default value right now.
+    - **default:** `folioAccessToken`
+
+- **"REFRESH_TOKEN_COOKIE_KEY"**
+    - when using login with expiry the refresh token will be held in the cookies within a key called `folioRefreshToken` which is the default value right now.
+    - **default:** `folioRefreshToken`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -1293,6 +1314,10 @@ folio db staging import
 folio db import-schema
 folio db staging import-schema
 
+# import specific schema table into your local database or local staging database
+folio db import-table
+folio db staging import-table
+
 # import specific remote schema into your local database or local staging database
 folio db import-remote-schema
 folio db staging import-remote-schema
@@ -1346,6 +1371,14 @@ folio db staging list-schemas
     - import a new staging database schema sql file after dropping the old one.
     - **use cases:** in case you want to restore or update an old schema version in your staging database.
 
+- **folio db import-table**:
+    - import a new schema table sql file after dropping the old table.
+    - **use cases:** in case you want to restore an old table backup.
+
+- **folio db staging import-table**:
+    - import a new staging database table sql file after dropping the old one.
+    - **use cases:** in case you want to restore or update an old table version in your staging database.
+
 - **folio db import-remote-schema**:
     - import a remote database schema by dumping it first from remote, and then import it to local database after dropping the old schema.
     - **use cases:** in case you want to import remote schema to your local database.
@@ -1371,11 +1404,11 @@ folio db staging list-schemas
     - **use cases:** more like backup purpose. 
 
 - **folio db print dump**:
-    - same like `folio db dump` just the script will print the query shipped to postgres.
+    - will print the query runs with `folio db dump` command only and the query it self will not run.
     - **use cases:** the new option is more for debugging purposes. 
 
 - **folio db print staging dump**:
-    - same like `folio db staging dump` just the script will print the query shipped to postgres.
+    - will print the query runs with `folio db dump` command only and the query it self will not run.
     - **use cases:** the new option is more for debugging purposes. 
 
 - **folio db dump-include-schemas**:
@@ -1490,6 +1523,7 @@ folio db staging list-schemas
 - [ ] right now if you pull new changes from remote and `pom.xml` version has changed, the script will not automatically rebuild the project you need to rebuild the module yourself, we need to refactor the script to make the check and if the pom.xml version differs from `ModuleDescriptor.json` version if yes the script will rebuild the module.
 - [ ] running in docker environment has an issue, when you run the container the env vars will be added, we have two sources okapi genearal env vars and modules individual env vars they may have duplicates, we need that module specific env vars to overwrite any duplicates found in okapi general env vars.
 - [ ] right now, `database.sh` is implemeneted considering `postgres` works from a docker container not directly installed on the host machine, we need to refactor the `database.sh` implementation to work with both. 
+- [ ] currently the login operation goes through `mod-login`, in future we want to have the option to use `mod-users-bl` for login as well.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 
