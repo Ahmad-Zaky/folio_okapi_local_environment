@@ -1363,22 +1363,37 @@ folio db staging list-schemas
 
 - **folio db import**:
     - import new database sql file after dropping the old one.
+    - in `db` directory the sql file should be there with the configured name, default name is `okapi.sql`
+    - if the file is missing in the directory `db` the import commmand fails.
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
     - **use cases:** in case you want restore a backup version of your local database.
 
 - **folio db staging import**:
     - import new staging database sql file after dropping the old one.
+    - in `db` directory the sql file should be there with the configured name, default name is `okapi.sql`
+    - if the file is missing in the directory `db` the import commmand fails.
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
     - **use cases:** in case you want to restore or add an updated version of your staging database.
 
 - **folio db import-schema**:
     - import a new database schema sql file after dropping the old schema.
+    - in `db` directory the sql file should be there with the configured name, default name is `<schema_name>.sql`
+    - if the file is missing in the directory `db` the import commmand fails.
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
     - **use cases:** in case you want to restore an old schema backup.
 
 - **folio db staging import-schema**:
     - import a new staging database schema sql file after dropping the old one.
+    - in `db` directory the sql file should be there with the configured name, default name is `<schema_name>.sql`
+    - if the file is missing in the directory `db` the import commmand fails.
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
     - **use cases:** in case you want to restore or update an old schema version in your staging database.
 
 - **folio db import-table**:
     - import a new schema table sql file after dropping the old table.
+    - in `db` directory the sql file should be there with the configured name, default name is `<schema_name>-<table_name>.sql`
+    - if the file is missing in the directory `db` the import commmand fails.
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
     - **use cases:** in case you want to restore an old table backup.
 
 - **folio db staging import-table**:
