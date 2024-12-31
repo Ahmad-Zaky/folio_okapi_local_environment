@@ -212,6 +212,10 @@ The script is utilizing some linux tools, which should be installed before runni
     - in step #5, `aliases.txt` has `</path/to/repo>` for `cdfolio` alias.
     - the script will auto replace `</path/to/repo>` with your current directory.
     - current directory for `cdfolio` alias is logical correct as you run the `install.sh` from the folio directory.
+    - in step #8 the install.sh script will run docker compose services needed for sample modules
+        ```bash
+        folioup postgres kafka zookeeper
+        ```
     - you can add `with-start` argument to continue until last step #9. 
     ```bash
     bash install.sh # skip steps 4, 5, 6
