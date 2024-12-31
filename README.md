@@ -214,9 +214,9 @@ The script is utilizing some linux tools, which should be installed before runni
     - current directory for `cdfolio` alias is logical correct as you run the `install.sh` from the folio directory.
     - you can add `with-start` argument to continue until last step #9. 
     ```bash
-    bash install.sh
+    bash install.sh # skip steps 4, 5, 6
     # or
-    bash install.sh with-start
+    bash install.sh with-start # skip all upcoming steps from 4 -> 9
     ```
 
 4. rename *_template.json files:
