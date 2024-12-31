@@ -125,7 +125,7 @@ services:
     volumes:
       - minio-data:/data
     ports:
-      - "9009:9000"
+      - "9000:9000"
       - "9090:9090"
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
