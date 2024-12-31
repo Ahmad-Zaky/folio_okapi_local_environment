@@ -166,7 +166,7 @@
                 "username": "diku_admin",
                 "password": "admin"
             },
-            "enabled": "true"
+            "enabled": "false"
         },
         "enabled": "true"
     },
