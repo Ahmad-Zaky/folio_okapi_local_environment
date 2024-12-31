@@ -208,9 +208,15 @@ The script is utilizing some linux tools, which should be installed before runni
     cd folio
     ```
 
-3. run the `install.sh` command and skip steps 4, 5, and 6, but consider changing the `<path/to/repo>` in step 5.
+3. run the `install.sh` command and skip steps 4, 5, and 6.
+    - in step #5, `aliases.txt` has `</path/to/repo>` for `cdfolio` alias.
+    - the script will auto replace `</path/to/repo>` with your current directory.
+    - current directory for `cdfolio` alias is logical correct as you run the `install.sh` from the folio directory.
+    - you can add `with-start` argument to continue until last step #9. 
     ```bash
-    ./install.sh
+    bash install.sh
+    # or
+    bash install.sh with-start
     ```
 
 4. rename *_template.json files:
