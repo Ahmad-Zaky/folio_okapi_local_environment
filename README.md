@@ -486,8 +486,8 @@ The script is utilizing some linux tools, which should be installed before runni
                 "enabled": "true"
             },
             "install_params": {
+                "purge": "false",
                 "tenantParameters": {
-                    "purge": "true",
                     "loadReference": "true",
                     "loadSample": "true"
                 },
@@ -716,8 +716,8 @@ The script is utilizing some linux tools, which should be installed before runni
 {
     ...
     "install_params": {
+        "purge": "false",
         "tenantParameters": {
-            "purge": "true",
             "loadReference": "true",
             "loadSample": "true"
         },
@@ -738,7 +738,7 @@ The script is utilizing some linux tools, which should be installed before runni
     - for more details [check here][purge_parameter_docs].
     - **required:** **NO**
 
-- **"install_params.tenantParameters.purge"**
+- **"install_params.purge"**
     - instructs a module to purge (remove) all persistent data. This only has an effect on modules that are also disabled.
     - **example:** `true`
     - **default:** `false`
