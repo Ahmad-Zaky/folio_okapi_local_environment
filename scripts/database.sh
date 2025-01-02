@@ -133,6 +133,14 @@ list_schemas() {
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \\\"\\dn\\\"")
 }
 
+list_remote_schemas() {
+    export PG_LIST_SCHEMAS_CMD=$(printf "$DB_CMD_COMMAND_WRAPPER_ALT_INTERACTIVE" "psql -h $DB_CMD_REMOTE_HOST -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \"\\dn\"")
+
+    remote_auto_authenticate "$PG_LIST_SCHEMAS_CMD" "Password*" $DB_CMD_REMOTE_PASSWORD
+
+    unset $PG_LIST_SCHEMAS_CMD
+}
+
 handle_arguments() {
     db_has_arg "staging" $DB_ARGS
 	FOUND=$?
@@ -258,6 +266,12 @@ handle_arguments() {
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
         DB_CMD_HAS_LIST_SCHEMAS_ARG=true
+	fi
+
+    db_has_arg "list-remote-schemas" $DB_ARGS
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+        DB_CMD_HAS_LIST_REMOTE_SCHEMAS_ARG=true
 	fi
 }
 
@@ -673,7 +687,7 @@ dump_remote_schema() {
 
     export PG_DUMP_CMD=$(printf "$DB_CMD_COMMAND_WRAPPER_ALT_INTERACTIVE" "pg_dump -h $DB_CMD_REMOTE_HOST -U $DB_CMD_REMOTE_USERNAME -d $DB_CMD_REMOTE_DATABASE -n $REMOTE_SCHEMA -v > $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE")
 
-    dump_remote_auto_authenticate "$PG_DUMP_CMD" $DB_CMD_REMOTE_PASSWORD
+    remote_auto_authenticate "$PG_DUMP_CMD" "Password*" $DB_CMD_REMOTE_PASSWORD
 
     unset $PG_DUMP_CMD
 }
@@ -694,30 +708,29 @@ dump_remote_table() {
 
     export PG_DUMP_CMD=$(printf "$DB_CMD_COMMAND_WRAPPER_ALT_INTERACTIVE" "pg_dump -h $DB_CMD_REMOTE_HOST -U $DB_CMD_REMOTE_USERNAME -d $DB_CMD_REMOTE_DATABASE -t ${REMOTE_SCHEMA}.${REMOTE_TABLE} -v > $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE")
 
-    dump_remote_auto_authenticate "$PG_DUMP_CMD" $DB_CMD_REMOTE_PASSWORD
+    remote_auto_authenticate "$PG_DUMP_CMD" "Password*" $DB_CMD_REMOTE_PASSWORD
 
     unset $PG_DUMP_CMD
 }
 
-dump_remote_auto_authenticate() {
-    local PG_DUMP_CMD=$1
-    local DB_CMD_REMOTE_PASSWORD=$2
+remote_auto_authenticate() {
+    export COMMAND=$1
+    export EXPECT_REGEX=$2
+    export REMOTE_PASSWORD=$3
 
     # Create the expect script
     cat << 'EOF' > automation.exp
 #!/usr/bin/expect -f
 
-set PG_DUMP_CMD $env(PG_DUMP_CMD)
-set DB_CMD_REMOTE_PASSWORD $env(DB_CMD_REMOTE_PASSWORD)
+set COMMAND $env(COMMAND)
+set EXPECT_REGEX $env(EXPECT_REGEX)
+set REMOTE_PASSWORD $env(REMOTE_PASSWORD)
 
 set timeout -1
 
-spawn sh -c "$PG_DUMP_CMD"
+spawn sh -c "$COMMAND"
 
-expect -exact "Password: " { send -- "$DB_CMD_REMOTE_PASSWORD\r" }
-# expect -re "Password:*"
-
-# send "$DB_CMD_REMOTE_PASSWORD"
+expect -re "$EXPECT_REGEX" { send -- "$REMOTE_PASSWORD\r" }
 
 expect eof
 EOF
@@ -730,6 +743,10 @@ EOF
 
     # Clean up
     rm automation.exp
+
+    unset $COMMAND
+    unset $EXPECT_REGEX
+    unset $REMOTE_PASSWORD
 }
 
 db_run_query() {
@@ -831,6 +848,12 @@ db_process() {
 
     if [[ $DB_CMD_HAS_LIST_SCHEMAS_ARG == true ]]; then
         list_schemas
+
+        return
+    fi
+
+    if [[ $DB_CMD_HAS_LIST_REMOTE_SCHEMAS_ARG == true ]]; then
+        list_remote_schemas
 
         return
     fi

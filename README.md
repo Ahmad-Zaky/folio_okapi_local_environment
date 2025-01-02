@@ -1321,20 +1321,20 @@ folio db import
 folio db staging import
 
 # import specific schema into your local database or local staging database
-folio db import-schema
-folio db staging import-schema
+folio db import-schema <schema_name>
+folio db staging import-schema <schema_name>
 
 # import specific schema table into your local database or local staging database
-folio db import-table
-folio db staging import-table
+folio db import-table <schema_name> <table_name>
+folio db staging import-table <schema_name> <table_name>
 
 # import specific remote schema into your local database or local staging database
-folio db import-remote-schema
-folio db staging import-remote-schema
+folio db import-remote-schema <schema_name>
+folio db staging import-remote-schema <schema_name>
 
 # import specific remote table into your local database schema or local staging database schema
-folio db import-remote-table
-folio db staging import-remote-table
+folio db import-remote-table <schema_name> <table_name>
+folio db staging import-remote-table <schema_name> <table_name>
 
 # dump local database or local staging database completely
 folio db dump
@@ -1353,77 +1353,88 @@ folio db dump-exclude-schemas
 folio db staging dump-exclude-schemas
 
 # dump database or staging database schema to your machine
-folio db dump-schema
-folio db staging dump-schema
+folio db dump-schema <schema_name>
+folio db staging dump-schema <schema_name>
 
 # dump local database or staging database schema table to your machine
-folio db dump-table
-folio db staging dump-table
+folio db dump-table <schema_name> <table_name>
+folio db staging dump-table <schema_name> <table_name>
 
 # dump remote database schema to your machine
-folio db dump-remote-schema
+folio db dump-remote-schema <schema_name>
 
 # dump remote database schema table to your machine
-folio db dump-remote-table
+folio db dump-remote-table <schema_name> <table_name>
 
 # list schemas for local database or local staging database
 folio db list-schemas
 folio db staging list-schemas
+
+# list schemas for a remote database
+folio db list-remote-schemas
 ```
 
 - **folio db import**:
     - import new database sql file after dropping the old one.
     - in `db` directory the sql file should be there with the configured name, default name is `okapi.sql`
     - if the file is missing in the directory `db` the import commmand fails.
-    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`.
     - **use cases:** in case you want restore a backup version of your local database.
 
 - **folio db staging import**:
     - import new staging database sql file after dropping the old one.
     - in `db` directory the sql file should be there with the configured name, default name is `okapi.sql`
     - if the file is missing in the directory `db` the import commmand fails.
-    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`.
     - **use cases:** in case you want to restore or add an updated version of your staging database.
 
 - **folio db import-schema**:
     - import a new database schema sql file after dropping the old schema.
     - in `db` directory the sql file should be there with the configured name, default name is `<schema_name>.sql`
     - if the file is missing in the directory `db` the import commmand fails.
-    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`.
+    - example command `folio db import-schema test_mod_users`.
     - **use cases:** in case you want to restore an old schema backup.
 
 - **folio db staging import-schema**:
     - import a new staging database schema sql file after dropping the old one.
     - in `db` directory the sql file should be there with the configured name, default name is `<schema_name>.sql`
     - if the file is missing in the directory `db` the import commmand fails.
-    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`.
+    - example command `folio db staging import-schema test_mod_users users`.
     - **use cases:** in case you want to restore or update an old schema version in your staging database.
 
 - **folio db import-table**:
     - import a new schema table sql file after dropping the old table.
     - in `db` directory the sql file should be there with the configured name, default name is `<schema_name>-<table_name>.sql`
     - if the file is missing in the directory `db` the import commmand fails.
-    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`
+    - `db` directory is also a default configurable value of key `DB_CMD_DATABASE_SQL_DIR_PATH`.
+    - example command `folio db import-table test_mod_users users users`.
     - **use cases:** in case you want to restore an old table backup.
 
 - **folio db staging import-table**:
     - import a new staging database table sql file after dropping the old one.
+    - example command `folio db staging import-table test_mod_users users`.
     - **use cases:** in case you want to restore or update an old table version in your staging database.
 
 - **folio db import-remote-schema**:
     - import a remote database schema by dumping it first from remote, and then import it to local database after dropping the old schema.
+    - example command `folio db import-remote-schema test_mod_users`.
     - **use cases:** in case you want to import remote schema to your local database.
 
 - **folio db staging import-remote-schema**:
     - import a remote database schema by dumping it first from remote, and then import it to local staging database after dropping the old schema.
+    - example command `folio db staging import-remote-schema test_mod_users`.
     - **use cases:** in case you want to import remote schema to your local staging database.
 
 - **folio db import-remote-table**:
     - import a remote database table by dumping it first from remote, and then import it to local database after dropping the old table.
+    - example command `folio db import-remote-table test_mod_users users`.
     - **use cases:** in case you want to import remote table to your local database.
 
 - **folio db staging import-remote-table**:
     - import a remote database table by dumping it first from remote, and then import it to local staging database after dropping the old table.
+    - example command `folio db staging import-remote-table test_mod_users users`.
     - **use cases:** in case you want to import remote table to your local staging database.
 
 - **folio db dump**:
@@ -1460,26 +1471,32 @@ folio db staging list-schemas
 
 - **folio db dump-schema**:
     - dump local database schema to an sql file.
+    - example command `folio db dump-schema test_mod_users`.
     - **use cases:** more like backup purpose.
 
 - **folio db staging dump-schema**:
     - dump local staging database schema to an sql file.
+    - example command `folio db staging dump-schema test_mod_users users`.
     - **use cases:** more like backup purpose.
 
 - **folio db dump-table**:
     - dump local database table to an sql file.
+    - example command `folio db dump-table test_mod_users users`.
     - **use cases:** more like backup purpose.
 
 - **folio db staging dump-table**:
     - dump local staging database table to an sql file.
+    - example command `folio db staging dump-table test_mod_users users`.
     - **use cases:** more like backup purpose.
 
 - **folio db dump-remote-schema**:
     - dump remote database schema to an sql file.
+    - example command `folio db dump-remote-schema test_mod_users`.
     - **use cases:** more like backup purpose for remote database.
 
 - **folio db dump-remote-table**:
     - dump remote database table to an sql file.
+    - example command `folio db dump-remote-table test_mod_users users`.
     - **use cases:** more like backup purpose for remote database.
 
 - **folio db list-schemas**:
@@ -1489,6 +1506,10 @@ folio db staging list-schemas
 - **folio db staging list-schemas**:
     - list database schemas from your local staging database.
     - **use cases:** to show current schemas to help you pick what you want to dump.
+
+- **folio db list-remote-schemas**:
+    - list your remote database schemas.
+    - **use cases:** to show current remote database schemas to help you pick what you want to dump.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
