@@ -82,6 +82,7 @@
             <li>
                 <a href="#folio-examples">Folio Examples</a>
                 <ul>
+                    <li><a href="#run-okapi-from-ide-with-one-module-from-ide">Run okapi from IDE with one module from IDE</a></li>
                     <li><a href="#run-okapi-with-sample-modules">Run okapi with sample modules</a></li>
                     <li><a href="#run-okapi-from-ide-with-sample-modules">Run okapi from IDE with sample modules</a></li>
                     <li><a href="#run-okapi-with-modules-with-remote-okapi">Run okapi with modules with remote okapi</a></li>
