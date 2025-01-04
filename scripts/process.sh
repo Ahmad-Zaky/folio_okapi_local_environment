@@ -499,7 +499,9 @@ clone_module() {
 	if [ ! -d $MODULE ]; then
 		new_line
 		new_line
+		log "**************************"
 		log "Clone module $MODULE"
+		log "**************************"
 		new_line
 		new_line
 		
@@ -590,7 +592,9 @@ build_module() {
 
 	new_line
 	new_line
+	log "**************************"
 	log "Build module $MODULE"
+	log "**************************"
 	new_line
 	new_line
 
