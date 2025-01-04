@@ -5,9 +5,12 @@
     "perms.permissions.get",
     "perms.permissions.item.get",
     "perms.permissions.collection.get",
+    "perms.users.assign.immutable",
     "users.all",
     "users.item.get",
     "login.item.post",
-    "perms.users.assign.immutable",
-    "inventory-storage.locations.collection.get"
+    "inventory-storage.all",
+    "inventory-storage.locations.collection.get",
+    "inventory.all",
+    "inventory.instances.collection.get"
 ]
