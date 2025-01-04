@@ -991,6 +991,8 @@ export_module_envs() {
 		return
 	fi
 
+	log "Export module ($MODULE) environment variables"
+
 	local LENGTH=$(jq ".[$INDEX].env | length" $JSON_LIST)
 
 	for ((k=0; k<$LENGTH; k++))

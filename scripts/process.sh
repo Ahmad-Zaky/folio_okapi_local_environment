@@ -497,7 +497,11 @@ clone_module() {
 	# Clone the module repo
 	JUST_CLONED_MODULE=0
 	if [ ! -d $MODULE ]; then
+		new_line
+		new_line
 		log "Clone module $MODULE"
+		new_line
+		new_line
 		
 		# Print Repo Link
 		log $REPO
@@ -505,6 +509,9 @@ clone_module() {
 		eval "$REPO"
 		
 		JUST_CLONED_MODULE=1
+
+		new_line
+		new_line
 	fi
 
 	if [[ ! -d "$MODULE" ]]; then
@@ -581,11 +588,17 @@ build_module() {
 		BUILD=$(echo $BUILD | sed 's/"//g')	
 	fi
 
+	new_line
+	new_line
 	log "Build module $MODULE"
+	new_line
+	new_line
 
 	# build
 	eval "$BUILD"
-
+	new_line
+	new_line
+	
 	# Opt out from the module
 	cd ..
 }

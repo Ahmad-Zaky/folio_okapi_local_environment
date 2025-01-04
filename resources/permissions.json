@@ -1,7 +1,12 @@
 [
     "okapi.all",
     "perms.all",
+    "perms.users.get",
+    "perms.permissions.get",
+    "perms.permissions.item.get",
+    "perms.permissions.collection.get",
     "users.all",
+    "users.item.get",
     "login.item.post",
     "perms.users.assign.immutable",
     "inventory-storage.locations.collection.get"
