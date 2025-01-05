@@ -85,10 +85,11 @@
                     <li><a href="#run-okapi-from-ide-with-one-module-from-ide">Run okapi from IDE with one module from IDE</a></li>
                     <li><a href="#run-okapi-with-sample-modules">Run okapi with sample modules</a></li>
                     <li><a href="#run-okapi-from-ide-with-sample-modules">Run okapi from IDE with sample modules</a></li>
-                    <li><a href="#run-okapi-with-modules-with-remote-okapi">Run okapi with modules with remote okapi</a></li>
-                    <li><a href="#run-okapi-with-samples-modules-in-docker-containers">Run okapi with samples modules in docker containers</a></li>
-                    <li><a href="#run-okapi-with-samples-modules-and-stoprestart-a-module-or-more-from-ide">Run okapi with samples modules and stop/restart a module or more from IDE</a></li>
+                    <li><a href="#run-okapi-with-sample-modules-and-stoprestart-a-module-or-more-from-ide">Run okapi with sample modules and stop/restart a module or more from IDE</a></li>
+                    <li><a href="#run-remote-okapi-with-one-or-more-modules">Run remote okapi with one or more modules</a></li>
+                    <li><a href="#rerun-okapi-from-ide-without-dropping-attached-modules">Rerun okapi from IDE without dropping attached modules</a></li>
                     <li><a href="#run-okapi-with-sample-modules-and-skip-authentication-filter">Run okapi with sample modules and skip authentication filter</a></li>
+                    <li><a href="#run-okapi-with-sample-modules-in-docker-containers">Run okapi with sample modules in docker containers</a></li>
                     <li><a href="#just-clone-and-build-mdoules-using-without-okapi-argument">Just clone and build mdoules using `without-okapi` argument</a></li>
                 </ul>
             </li>
@@ -1529,13 +1530,15 @@ folio db list-remote-schemas
 
 #### Run okapi from IDE with sample modules
 
-#### Run okapi with modules with remote okapi
+#### Run okapi with sample modules and stop/restart a module or more from IDE
 
-#### Run okapi with samples modules in docker containers
+#### Run remote okapi with one or more modules
 
-#### Run okapi with samples modules and stop/restart a module or more from IDE
+#### Rerun okapi from IDE without dropping attached modules
 
 #### Run okapi with sample modules and skip authentication filter
+
+#### Run okapi with sample modules in docker containers
 
 #### Just clone and build mdoules using `without-okapi` argument
 
