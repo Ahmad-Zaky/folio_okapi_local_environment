@@ -122,15 +122,6 @@ Key features:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Youtube Playlist
-
-This playlist is a brief explanation for our repository README.md documenation.
-
-[![Folio Local Environment Playlist][folio_local_environment_yt_img]][folio_local_environment_yt]
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 ### Module Sample from `modules.json`
 ```json
 [
@@ -168,6 +159,15 @@ This playlist is a brief explanation for our repository README.md documenation.
 ]
 ```
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Youtube Playlist
+
+This playlist is a brief explanation for our repository README.md documenation.
+
+[![Folio Local Environment Playlist][folio_local_environment_yt_img]][folio_local_environment_yt]
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- GETTING STARTED -->
 ## Getting Started
