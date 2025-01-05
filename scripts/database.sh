@@ -138,7 +138,7 @@ list_remote_schemas() {
 
     remote_auto_authenticate "$PG_LIST_SCHEMAS_CMD" "Password*" $DB_CMD_REMOTE_PASSWORD
 
-    unset $PG_LIST_SCHEMAS_CMD
+    unset PG_LIST_SCHEMAS_CMD
 }
 
 handle_arguments() {
@@ -689,7 +689,7 @@ dump_remote_schema() {
 
     remote_auto_authenticate "$PG_DUMP_CMD" "Password*" $DB_CMD_REMOTE_PASSWORD
 
-    unset $PG_DUMP_CMD
+    unset PG_DUMP_CMD
 }
 
 dump_remote_table() {
@@ -710,7 +710,7 @@ dump_remote_table() {
 
     remote_auto_authenticate "$PG_DUMP_CMD" "Password*" $DB_CMD_REMOTE_PASSWORD
 
-    unset $PG_DUMP_CMD
+    unset PG_DUMP_CMD
 }
 
 remote_auto_authenticate() {
@@ -744,9 +744,9 @@ EOF
     # Clean up
     rm automation.exp
 
-    unset $COMMAND
-    unset $EXPECT_REGEX
-    unset $REMOTE_PASSWORD
+    unset COMMAND
+    unset EXPECT_REGEX
+    unset REMOTE_PASSWORD
 }
 
 db_run_query() {

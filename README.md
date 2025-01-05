@@ -1603,6 +1603,10 @@ folio db list-remote-schemas
 - [ ] right now, `database.sh` is implemeneted considering `postgres` works from a docker container not directly installed on the host machine, we need to refactor the `database.sh` implementation to work with both. 
 - [ ] currently the login operation goes through `mod-login`, in future we want to have the option to use `mod-users-bl` for login as well.
 - [ ] currently we have the option to authenticate using the new RTR (Refresh Token Rotation) approach, but the curl requests still add the token in the old `X-Okapi-Token` header instead of the `Cookie` header, like it should be.
+- [ ] currently if you run in docker environment, you may face some problems with modules which have Dockerfile that exposes a port not equal to the `8081` standard port configured in `configuration.json` file, with `DOCKER_MODULE_DEFAULT_PORT` key, what we want to a complish is to set the module default port in `modules.json` for each module separately, instead of this general default port.
+- [ ] check the script it self you may find `# TODO ...` comments.
+- [ ] run module with remote okapi I want to have the option to export module environments for the deployed module.
+- [ ] this is one is for me, I want to create a playlist showing how to work with database operations commands.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 

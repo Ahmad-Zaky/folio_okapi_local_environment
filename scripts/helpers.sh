@@ -537,6 +537,14 @@ has_tenant() {
 has_user() {
 	local USERNAME=$1
 
+	run_with_docker
+	FOUND=$?
+	if [[ "$FOUND" -eq 1 ]]; then
+		local WAIT_UNTIL_MOD_USERS_FINISH_STARTING=$OKAPI_WAIT_UNTIL_FINISH_STARTING
+		log "Wait for $WAIT_UNTIL_MOD_USERS_FINISH_STARTING seconds until mod-users docker containers finish starting ..."
+		sleep $WAIT_UNTIL_MOD_USERS_FINISH_STARTING
+	fi
+
 	okapi_curl true $OKAPI_URL/users?query=username%3D%3D$USERNAME
 	if [[ "$?" -eq 0 ]]; then
 		return
@@ -991,6 +999,11 @@ export_module_envs() {
 		return
 	fi
 
+	# Do not proceed if the argument without-okapi has been set
+	if [[ "$WITHOUT_OKAPI_ARG" -eq 1 ]]; then
+		return
+	fi
+
 	log "Export module ($MODULE) environment variables"
 
 	local LENGTH=$(jq ".[$INDEX].env | length" $JSON_LIST)
@@ -1048,7 +1061,7 @@ start_okapi() {
 		eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 	fi
 
-	log "Wait a little until Okapi is fully up an running"
+	log "Wait for $OKAPI_WAIT_UNTIL_FINISH_STARTING seconds until Okapi is fully up an running"
 	sleep $OKAPI_WAIT_UNTIL_FINISH_STARTING
 }
 
@@ -1362,9 +1375,10 @@ enable_module_directly() {
 	CLOUD_USERNAME=$(echo $CLOUD_USERNAME | sed 's/"//g')
 	CLOUD_PASSWORD=$(echo $CLOUD_PASSWORD | sed 's/"//g')
 
-	
-	# Sleep until the deployment process finish
-	sleep 15
+	# Sleep until the deployment process finishes
+	local WAIT_UNTIL_MODULE_FINISH_STARTING=15
+	log "Wait for $WAIT_UNTIL_MODULE_FINISH_STARTING seconds until the module finishes starting ..."
+	sleep $WAIT_UNTIL_MODULE_FINISH_STARTING
 
 	# Cloud Okapi login
 	login_user_curl $CLOUD_OKAPI_URL $CLOUD_TENANT $CLOUD_USERNAME $CLOUD_PASSWORD
@@ -1633,7 +1647,7 @@ remove_authtoken_and_permissions_if_enabled_previously() {
 		if [[ "$EXISTS" -eq 0 ]]; then
 			get_module_index_by_id $AUTHTOKEN_MODULE $JSON_FILE
 			process_module $MODULE_INDEX $JSON_FILE build 1
-			unset $MODULE_INDEX
+			unset MODULE_INDEX
 		fi
 
 		module_dir_exists $PERMISSIONS_MODULE
@@ -1641,7 +1655,7 @@ remove_authtoken_and_permissions_if_enabled_previously() {
 		if [[ "$EXISTS" -eq 0 ]]; then
 			get_module_index_by_id $PERMISSIONS_MODULE $JSON_FILE
 			process_module $MODULE_INDEX $JSON_FILE build 1
-			unset $MODULE_INDEX
+			unset MODULE_INDEX
 		fi
 
 		delete_installed_module $AUTHTOKEN_MODULE
@@ -1747,7 +1761,7 @@ disable_installed_module() {
 		update_installed_module_status $MODULE false
 	fi
 
-	unset $VERSIONED_MODULE
+	unset VERSIONED_MODULE
 }
 
 enable_installed_module() {
@@ -1761,7 +1775,7 @@ enable_installed_module() {
 		update_installed_module_status $MODULE true
 	fi
 
-	unset $VERSIONED_MODULE
+	unset VERSIONED_MODULE
 }
 
 delete_installed_module() {
@@ -1773,7 +1787,7 @@ delete_installed_module() {
 		delete_installed_module_from_enabled_modules $MODULE
 	fi
 
-	unset $VERSIONED_MODULE
+	unset VERSIONED_MODULE
 }
 
 update_installed_module_status() {
@@ -1840,8 +1854,8 @@ checkout_new_tag() {
 	# Opt out from the module
 	cd ..
 
-	unset $HAS_NEW_TAG
-	unset $NEW_MODULE_TAG
+	unset HAS_NEW_TAG
+	unset NEW_MODULE_TAG
 }
 
 checkout_new_branch() {
@@ -1871,8 +1885,8 @@ checkout_new_branch() {
 	# Opt out from the module
 	cd ..
 
-	unset $HAS_NEW_BRANCH
-	unset $NEW_MODULE_BRANCH
+	unset HAS_NEW_BRANCH
+	unset NEW_MODULE_BRANCH
 }
 
 remove_directory() {
@@ -1882,18 +1896,21 @@ remove_directory() {
 get_module_versioned() {
 	local MODULE=$1
 	local LOCAL_VERSION_FROM=$2
-	unset $VERSIONED_MODULE
-	unset $MODULE_VERSION
+	unset VERSIONED_MODULE
+	unset MODULE_VERSION
 
 	get_module_version $MODULE $LOCAL_VERSION_FROM
 
-	VERSIONED_MODULE="$MODULE-$MODULE_VERSION"
+	VERSIONED_MODULE="$MODULE"
+	if [[ -n $MODULE_VERSION ]]; then
+		VERSIONED_MODULE="$MODULE-$MODULE_VERSION"
+	fi
 }
 
 get_installed_module_versioned() {
 	local MODULE=$1
-	unset $VERSIONED_MODULE
-	unset $MODULE_VERSION
+	unset VERSIONED_MODULE
+	unset MODULE_VERSION
 
 	OPTIONS=""
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
@@ -2070,8 +2087,11 @@ run_container() {
 
 	get_okapi_docker_container_env_options
 
-	# TODO: validate duplication between okapi, and module env options is not implemented
-	$DOCKER_CMD run -d --name $CONTAINER -p $OUTER_PORT:$INNER_PORT --add-host=$DOCKER_ADDED_HOST --network $DOCKER_NETWORK $OKAPI_DOCKER_ENV_OPTIONS $MODULE_DOCKER_ENV_OPTIONS $MODULE $ARGS
+	# TODO: JDK_JAVA_OPTIONS should be reviewed and tested properly
+	MODULE_DOCKER_ENV_OPTIONS="$MODULE_DOCKER_ENV_OPTIONS -e JDK_JAVA_OPTIONS='-Dport=$DOCKER_MODULE_DEFAULT_PORT -Dhttp.port=$DOCKER_MODULE_DEFAULT_PORT -Dserver.port=$DOCKER_MODULE_DEFAULT_PORT'"
+
+	# If there is duplicate env vars from okapi and module the module env vars will overwrite any duplicates in the okapi env vars as they came the last
+	eval "$DOCKER_CMD run -d --name $CONTAINER -p $OUTER_PORT:$INNER_PORT --add-host=$DOCKER_ADDED_HOST --network $DOCKER_NETWORK $OKAPI_DOCKER_ENV_OPTIONS $MODULE_DOCKER_ENV_OPTIONS $MODULE $ARGS"
 }
 
 run_module_container() {
@@ -2079,7 +2099,10 @@ run_module_container() {
 	
 	cd $MODULE
 
-	run_container $MODULE $MODULE $SERVER_PORT $DOCKER_MODULE_DEFAULT_PORT $MODULE_DOCKER_ENV_OPTIONS
+	run_container $MODULE $MODULE $SERVER_PORT $DOCKER_MODULE_DEFAULT_PORT "$MODULE_DOCKER_ENV_OPTIONS"
+
+	# remove it after each module so it will not be added to the next modules
+	unset MODULE_DOCKER_ENV_OPTIONS
 
 	cd ..
 }

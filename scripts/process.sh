@@ -77,7 +77,7 @@ has_deployed() {
 		return
 	fi
 
-	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .srvcId == \"$VERSIONED_MODULE\"")
+	RESULT=$(echo $CURL_RESPONSE | jq ".[] | .srvcId | contains(\"$VERSIONED_MODULE\")")
 	RESULT=$(echo $RESULT | sed 's/"//g')
 
 	has_arg "$RESULT" "true"
@@ -454,13 +454,13 @@ post_install() {
 		return
 	fi
 
-	# Add new user
 	should_login
 	local SHOULD_LOGIN=$?
 	if [[ $SHOULD_LOGIN -eq 1 ]]; then
 		post_authenticate
 	fi
 
+	# Add new user
 	if [[ $HAS_USERS_MODULE == true ]] && [[ -z "$UUID" ]]; then
 		new_user
 		update_env_postman $POSTMAN_API_KEY # Update postman environment variables
