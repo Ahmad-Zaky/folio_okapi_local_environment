@@ -21,6 +21,7 @@
   ## Table of Contents
   <ol>
     <li><a href="#about-the-project">About The Project</a></li>
+    <li><a href="#youtube-playlist">Youtube Playlist</a></li>
     <li>
       <a href="#getting-started">Getting Started</a>
       <ul>
@@ -79,20 +80,7 @@
                     <li><a href="#group-4---db">Group #4 - db</a></li>
                 </ul>
             </li>
-            <li>
-                <a href="#folio-examples">Folio Examples</a>
-                <ul>
-                    <li><a href="#run-okapi-from-ide-with-one-module-from-ide">Run okapi from IDE with one module from IDE</a></li>
-                    <li><a href="#run-okapi-with-sample-modules">Run okapi with sample modules</a></li>
-                    <li><a href="#run-okapi-from-ide-with-sample-modules">Run okapi from IDE with sample modules</a></li>
-                    <li><a href="#run-okapi-with-sample-modules-and-stoprestart-a-module-or-more-from-ide">Run okapi with sample modules and stop/restart a module or more from IDE</a></li>
-                    <li><a href="#run-remote-okapi-with-one-or-more-modules">Run remote okapi with one or more modules</a></li>
-                    <li><a href="#rerun-okapi-from-ide-without-dropping-attached-modules">Rerun okapi from IDE without dropping attached modules</a></li>
-                    <li><a href="#run-okapi-with-sample-modules-and-skip-authentication-filter">Run okapi with sample modules and skip authentication filter</a></li>
-                    <li><a href="#run-okapi-with-sample-modules-in-docker-containers">Run okapi with sample modules in docker containers</a></li>
-                    <li><a href="#just-clone-and-build-mdoules-using-without-okapi-argument">Just clone and build mdoules using `without-okapi` argument</a></li>
-                </ul>
-            </li>
+            <li><a href="#folio-examples">Folio Examples</a></li>
             <li><a href="#module-dependencies-examples">Module dependencies examples</a></li>
         </ul>
     </li>
@@ -131,6 +119,14 @@ Key features:
 - You have the ability to run with or without authentication.
 - In case your module has swagger openapi configuration you can import it to `postman` as a Collection.
 - ...
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Youtube Playlist
+
+This playlist is a brief explanation for our repository README.md documenation.
+
+[![Folio Local Environment Playlist][folio_local_environment_yt_img]][folio_local_environment_yt]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -1524,23 +1520,45 @@ folio db list-remote-schemas
 
 ### Folio Examples
 
-#### Run okapi from IDE with one module from IDE
+- I did record a series of videos uploaded on youtube so anyone can see it and grouped the series in [Folio Local Environment Examples][folio_examples_yt] playlist.     
 
-#### Run okapi with sample modules
+- The playlist shows actual examples how to use the script in different scenarios.
 
-#### Run okapi from IDE with sample modules
-
-#### Run okapi with sample modules and stop/restart a module or more from IDE
-
-#### Run remote okapi with one or more modules
-
-#### Rerun okapi from IDE without dropping attached modules
-
-#### Run okapi with sample modules and skip authentication filter
-
-#### Run okapi with sample modules in docker containers
-
-#### Just clone and build mdoules using `without-okapi` argument
+- Here are the examples recorded in the playlist:
+    1. **Run okapi from IDE with one module from IDE**: 
+        - here we will not use the automation script.
+        - we will run `okapi` from the IDE (Intillij), and use postman to attach a module (mod-users) to it.
+        - we go through the `okapi` 3 steps to add a module (Register, Deploy, Install (Enable)).
+        - each step will be handled through postman api request.
+        - the reason we did this example is to show to you how slow the process is to to do it manually, and also a way to explain how to do it from the first place.
+    2. **Run okapi with sample modules**: 
+        - here we will start run the automation script.
+        - we will navigate to the installation process in the docs and start walking through the steps step by step.
+        - we will utilize the `install.sh` step to skip all following steps and run the script using the sample modules.
+    3. **Run okapi from IDE with sample modules**: 
+        - its the same like the previous example except we will run `okapi` from IDE (Intillij) instead of running it in a background process.
+        - you will see how we can configure `okapi` to run it from our own IDE (Intillij) directly.
+        - I may need to run `okapi` in the IDE for debugging purposes, or for adding env vars as right now the script cannot export env vars while running `okapi`.
+    4. **Run okapi with sample modules and stop/restart a module or more from IDE**: 
+        - here we will see how to stop one or more already running modules and run them again from our IDE mostly for debugging purposes.
+    5. **Run remote okapi with one or more modules**: 
+        - here you can run a module without running local `okapi`, instead you will connect the module directly to a remote (cloud) `okapi` instance, like `folio-snapshot`.
+    - **Rerun okapi from IDE without dropping attached modules**: 
+        - if you want to stop and rerun okapi many times from your IDE for debugging purposes you can achieve this.
+        - you need to stop the `okapi` process it self first.
+        - then persist deployment information of all your current modules manually into `okapi` database.
+        - after that you are free to rerun your `okapi` from IDE again and all attached moduels will be up and running as well. 
+    6. **Run okapi with sample modules and skip authentication filter**: 
+        - the straight forward way is to reconfigure the script and disable okapi authentication filter and disable `mod-authtoken` from the `modules.json` list and rerun the script.
+        - or there is a nother way where you can utilize the previous example, to achieve the same result.
+        - if you can stop and rerun your `okapi` instance from your IDE, then you can simply set the `-Denable_system_auth=false` to false, and simply rerun okapi.
+        - even if `mod-authtoken` is up and running you can still work with your modules without the need to authenticate.
+        - but you cannot use `mod-authtoken` in this case, for example you cannot hit the login `/authn/login` endpoint.
+    7. **Run okapi with sample modules in docker containers**: 
+        - this one will take you to a next level where you can run your environment in Docker Containers.
+        - there is a way to run `okapi` directly throug the script or you can run the `okapi` like a service from `docker-compose.yml` file, but this option has not been mentioned in the video. 
+    8. **Just clone and build mdoules using `without-okapi` argument**: 
+        - here you can use the script for just `clone` or/and `build` modules.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -1685,3 +1703,6 @@ Ahmed Zaky - [Linked In][linkedin-url] - ahmed6mohamed6@gmail.com
 [platform-complete]: https://github.com/folio-org/platform-complete
 [okapi-console]: https://folio-snapshot.dev.folio.org/settings/developer/okapi-console
 [folio-snapshot]: https://folio-snapshot.dev.folio.org
+[folio_examples_yt]: https://www.youtube.com/playlist?list=PLPLXtkKpB3YzfJUkLb8id7STbp0Qwjo5a
+[folio_local_environment_yt]: https://www.youtube.com/playlist?list=PLPLXtkKpB3Yz145fYtelvuWOtmBMEFsbc
+[folio_local_environment_yt_img]: https://i.ytimg.com/vi/vgyT2qlow6g/maxresdefault.jpg 
