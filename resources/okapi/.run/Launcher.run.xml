@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Launcher" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="17 (2)" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="org.folio.okapi.common.MainLauncher" />
+    <module name="okapi-core" />
+    <option name="PROGRAM_PARAMETERS" value="run org.folio.okapi.MainVerticle -conf &quot;{\&quot;mode\&quot;:\&quot;dev\&quot;}&quot;" />
+    <option name="VM_PARAMETERS" value="-Dport=9130 -Dport_end=9199 -Dstorage=postgres -Dpostgres_host=localhost -Dpostgres_port=5432 -Dpostgres_database=okapi_modules -Dpostgres_username=folio_admin -Dpostgres_password=folio_admin -Denable_system_auth=true" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

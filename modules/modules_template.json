@@ -160,7 +160,7 @@
         "step": "install",
         "tag": "v21.0.4",
         "okapi": {
-            "url": "https://folio-snapshot.dev.folio.org",
+            "url": "https://folio-snapshot-okapi.dev.folio.org",
             "tenant": "diku",
             "credentials": {
                 "username": "diku_admin",

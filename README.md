@@ -377,7 +377,10 @@ The script is utilizing some linux tools, which should be installed before runni
     │   └── configuration.json
     ├── resources
     │   ├── aliases.txt
-    │   └── permissions.json
+    │   ├── permissions.json
+    │   ├── mod-inventory/.run/Launcher.run.xml
+    │   ├── okapi/.run/Launcher.run.xml
+    │   └── okapi/deployments.sql
     ├── scripts
     ├── .env
     ├── run.sh
@@ -392,6 +395,9 @@ The script is utilizing some linux tools, which should be installed before runni
 - **resources**: All modules we work on, are located here, in this directory, starting from first step clone a module until last step install that module.
     - **aliases.txt**: this is .bashrc/.bash_aliases aliases to help running terminal commands for folio local environment more easy and to feal more like running a tool.
     - **permissions.json**: All user permissions needed to perform your requests and it depends upon which modules you want to run, so you can add your own permissions to the list and it will automatically assign them to the user while running the script.
+    - **mod-inventory/.run/Launcher.run.xml**: This is the sample Module `mod-inventory` configuration file, which we did run from the IDE (Intillij), so I thought that adding the configuration here for you, will be very helpful to replicate the example with ease.
+    - **okapi/.run/Launcher.run.xml**: This is the configuration file for `Okapi`, which we used in our example, when we did run `Okapi` from the IDE (Intillij)
+    - **okapi/deployments.sql**: This is the deployments added manually to the database, which has been used in the example where we did stop okapi without stopping other modules.
 - **scripts**: contains all our bash script files implementation for our `FOLIO` local environment enabler, and also contains the old scripts which we started from at the beginning.
 - **.env**: has the env vars for `docker-compose.yml` services.
 - **run.sh**: entry point for our folio local environment script, which connects to the script files located in `script` directory.
@@ -1593,6 +1599,7 @@ folio db list-remote-schemas
 - [ ] running in docker environment has an issue, when you run the container the env vars will be added, we have two sources okapi genearal env vars and modules individual env vars they may have duplicates, we need that module specific env vars to overwrite any duplicates found in okapi general env vars.
 - [ ] right now, `database.sh` is implemeneted considering `postgres` works from a docker container not directly installed on the host machine, we need to refactor the `database.sh` implementation to work with both. 
 - [ ] currently the login operation goes through `mod-login`, in future we want to have the option to use `mod-users-bl` for login as well.
+- [ ] currently we have the option to authenticate using the new RTR (Refresh Token Rotation) approach, but the curl requests still add the token in the old `X-Okapi-Token` header instead of the `Cookie` header, like it should be.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 

@@ -1,0 +1,24 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Launcher" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="17" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <envs>
+      <env name="DB_DATABASE" value="okapi_modules" />
+      <env name="DB_HOST" value="localhost" />
+      <env name="DB_MAXPOOLSIZE" value="5" />
+      <env name="DB_PASSWORD" value="folio_admin" />
+      <env name="DB_PORT" value="5432" />
+      <env name="DB_QUERYTIMEOUT" value="60000" />
+      <env name="DB_USERNAME" value="folio_admin" />
+      <env name="KAFKA_HOST" value="localhost" />
+      <env name="KAFKA_PORT" value="9092" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="org.folio.inventory.Launcher" />
+    <module name="mod-inventory" />
+    <option name="PROGRAM_PARAMETERS" value="run org.folio.inventory.InventoryVerticle" />
+    <option name="VM_PARAMETERS" value="-Dport=8081 -Dhttp.port=8081" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
