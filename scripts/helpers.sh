@@ -1039,14 +1039,14 @@ start_okapi() {
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
 		run_okapi_container
+	else
+		new_line
+		log "Okapi start command: "
+		log "$OKAPI_COMMAND"
+		new_line
+
+		eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 	fi
-
-	new_line
-	log "Okapi start command: "
-	log "$OKAPI_COMMAND"
-	new_line
-
-	eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 
 	log "Wait a little until Okapi is fully up an running"
 	sleep $OKAPI_WAIT_UNTIL_FINISH_STARTING
