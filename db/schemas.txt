@@ -1,2 +1,2 @@
 public
-medad_mod_permissions
+test_mod_permissions

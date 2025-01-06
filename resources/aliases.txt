@@ -1,5 +1,5 @@
 # folio
-alias cdfolio='cd /home/ahmed/folio'
+alias cdfolio='cd </path/to/folio>'
 alias folio='cdfolio && bash run.sh'
 alias folioup='cdfolio && docker compose up -d' # NOTE: add sudo if your docker does need sudo
 
