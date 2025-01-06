@@ -1319,6 +1319,12 @@ folio stop modules
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 #### Group #4 - db
+
+- Here is a recorded video to see a real example how to work with the db operations.
+
+[![Folio Database Operations Playlist][folio_db_operations_yt_img]][folio_db_operations_yt]
+
+
 ```bash
 # drop your local or staging local database and import complete new database or local staging database
 folio db import
@@ -1522,6 +1528,9 @@ folio db list-remote-schemas
 
 - I did record a series of videos uploaded on youtube so anyone can see it and grouped the series in [Folio Local Environment Examples][folio_examples_yt] playlist.     
 
+[![Folio Local Environment Examples Playlist][folio_examples_yt_img]][folio_examples_yt]
+
+
 - The playlist shows actual examples how to use the script in different scenarios.
 
 - Here are the examples recorded in the playlist:
@@ -1704,5 +1713,8 @@ Ahmed Zaky - [Linked In][linkedin-url] - ahmed6mohamed6@gmail.com
 [okapi-console]: https://folio-snapshot.dev.folio.org/settings/developer/okapi-console
 [folio-snapshot]: https://folio-snapshot.dev.folio.org
 [folio_examples_yt]: https://www.youtube.com/playlist?list=PLPLXtkKpB3YzfJUkLb8id7STbp0Qwjo5a
+[folio_examples_yt_img]: https://i.ytimg.com/vi/RXDNS78KO6E/maxresdefault.jpg
 [folio_local_environment_yt]: https://www.youtube.com/playlist?list=PLPLXtkKpB3Yz145fYtelvuWOtmBMEFsbc
 [folio_local_environment_yt_img]: https://i.ytimg.com/vi/vgyT2qlow6g/maxresdefault.jpg 
+[folio_db_operations_yt]: https://www.youtube.com/playlist?list=PLPLXtkKpB3Yz96uVdUxlSNV129fWBntSO
+[folio_db_operations_yt_img]: https://i.ytimg.com/vi/xg0UP3M-GbU/maxresdefault.jpg
