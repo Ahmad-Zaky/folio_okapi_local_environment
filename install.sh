@@ -33,12 +33,12 @@ install() {
         cp modules/configuration_template.json modules/configuration.json
     fi
 
-    # Replace </path/to/repo> with the current working directory
+    # Replace </path/to/folio> with the current working directory
     echo -e
-    echo -e "Replace </path/to/repo> with your FOLIO directory $FOLIO_DIR"
+    echo -e "Replace </path/to/folio> with your FOLIO directory ($FOLIO_DIR)"
     echo -e
 
-    sed -i "s|</path/to/repo>|$CURRENT_DIR|g" "$ALIASES_FILE_PATH"
+    sed -i "s|</path/to/folio>|$CURRENT_DIR|g" "$ALIASES_FILE_PATH"
 
     # import the aliases
     echo -e
@@ -47,11 +47,18 @@ install() {
 
     ./run.sh import-aliases
 
+    # Replace </path/to/folio> with the current working directory
+    echo -e
+    echo -e "Replace FOLIO directory ($FOLIO_DIR) back to placeholder after importing aliases step"
+    echo -e
+
+    sed -i "s|$CURRENT_DIR|</path/to/folio>|g" "$ALIASES_FILE_PATH"
+
     # refresh the bashrc source
     echo -e
     echo -e "Refresh your terminal bash source to work with aliases right a way"
     echo -e
-
+    
     if [ -f ~/.bashrc ]; then
         source ~/.bashrc
     fi
