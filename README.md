@@ -217,7 +217,11 @@ The script is utilizing some linux tools, which should be installed before runni
     - you can add `with-start` argument to continue until last step #9. 
     ```bash
     bash install.sh # skip steps 4, 5, 6
-    # or
+    ```
+    
+    Or
+
+    ```bash
     bash install.sh with-start # skip all upcoming steps from 4 -> 9
     ```
 
