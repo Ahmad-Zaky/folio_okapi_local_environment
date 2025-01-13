@@ -360,7 +360,7 @@ set_db_arg() {
 	fi
 
 	DB_ARG=0
-	if [ $ARGUMENT == "db" ]; then
+	if [[ $ARGUMENT == "db" ]]; then
 		DB_ARG=1
 	fi
 }
@@ -373,7 +373,7 @@ set_init_arg() {
 	fi
 
 	INIT_ARG=0
-	if [ $ARGUMENT == "init" ]; then
+	if [[ $ARGUMENT == "init" ]]; then
 		INIT_ARG=1
 	fi
 }
@@ -386,7 +386,7 @@ set_purge_arg() {
 	fi
 
 	PURGE_ARG=0
-	if [ $ARGUMENT == "purge" ]; then
+	if [[ $ARGUMENT == "purge" ]]; then
 		PURGE_ARG=1
 	fi
 }
@@ -399,7 +399,7 @@ set_restart_okapi_arg() {
 	fi
 
 	RESTART_OKAPI_ARG=0
-	if [ $ARGUMENT == "restart" ]; then
+	if [[ $ARGUMENT == "restart" ]]; then
 		RESTART_OKAPI_ARG=1
 	fi
 }
@@ -412,7 +412,7 @@ set_start_okapi_arg() {
 	fi
 
 	START_OKAPI_ARG=0
-	if [ $ARGUMENT == "start" ]; then
+	if [[ $ARGUMENT == "start" ]]; then
 		START_OKAPI_ARG=1
 	fi
 }
@@ -436,7 +436,7 @@ set_stop_okapi_arg() {
 		return
 	fi
 
-	if [ ! -z "$PORT" ]; then
+	if [[ ! -z "$PORT" ]]; then
         STOP_OKAPI_PROT_ARG=$PORT
 	fi
 
@@ -454,7 +454,7 @@ set_without_okapi_arg() {
 	fi
 
 	WITHOUT_OKAPI_ARG=0
-	if [ $ARGUMENT == "without-okapi" ]; then
+	if [[ $ARGUMENT == "without-okapi" ]]; then
 		WITHOUT_OKAPI_ARG=1
 	fi
 }

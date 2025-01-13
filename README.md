@@ -392,8 +392,8 @@ The script is utilizing some linux tools, which should be installed before runni
 - **resources**: All modules we work on, are located here, in this directory, starting from first step clone a module until last step install that module.
     - **aliases.txt**: this is .bashrc/.bash_aliases aliases to help running terminal commands for folio local environment more easy and to feal more like running a tool.
     - **permissions.json**: All user permissions needed to perform your requests and it depends upon which modules you want to run, so you can add your own permissions to the list and it will automatically assign them to the user while running the script.
-    - **mod-inventory/.run/Launcher.run.xml**: This is the sample Module `mod-inventory` configuration file, which we did run from the IDE (Intillij), so I thought that adding the configuration here for you, will be very helpful to replicate the example with ease.
-    - **okapi/.run/Launcher.run.xml**: This is the configuration file for `Okapi`, which we used in our example, when we did run `Okapi` from the IDE (Intillij)
+    - **mod-inventory/.run/Launcher.run.xml**: This is the sample Module `mod-inventory` configuration file, which we did run from the IDE (IntelliJ), so I thought that adding the configuration here for you, will be very helpful to replicate the example with ease.
+    - **okapi/.run/Launcher.run.xml**: This is the configuration file for `Okapi`, which we used in our example, when we did run `Okapi` from the IDE (IntelliJ)
     - **okapi/deployments.sql**: This is the deployments added manually to the database, which has been used in the example where we did stop okapi without stopping other modules.
 - **scripts**: contains all our bash script files implementation for our `FOLIO` local environment enabler, and also contains the old scripts which we started from at the beginning.
 - **.env**: has the env vars for `docker-compose.yml` services.
@@ -1247,7 +1247,7 @@ folio purge
 - **folio**:
     - all modules will be stopped first.
     - then it will just walk through the modules and run them again one after the other and skip starting okapi step.
-    - **use cases:** sometimes you want to debug okapi it self and for that you decided to run okapi in your IDE like `Intillij`, so you do not need to run okapi through the script.
+    - **use cases:** sometimes you want to debug okapi it self and for that you decided to run okapi in your IDE like `IntelliJ`, so you do not need to run okapi through the script.
     
 - **folio without-okapi**:
     - this command seams like the previous one, but they are not the same.
@@ -1536,7 +1536,7 @@ folio db list-remote-schemas
 - Here are the examples recorded in the playlist:
     1. **Run okapi from IDE with one module from IDE**: 
         - here we will not use the automation script.
-        - we will run `okapi` from the IDE (Intillij), and use postman to attach a module (mod-users) to it.
+        - we will run `okapi` from the IDE (IntelliJ), and use postman to attach a module (mod-users) to it.
         - we go through the `okapi` 3 steps to add a module (Register, Deploy, Install (Enable)).
         - each step will be handled through postman api request.
         - the reason we did this example is to show to you how slow the process is to to do it manually, and also a way to explain how to do it from the first place.
@@ -1545,8 +1545,8 @@ folio db list-remote-schemas
         - we will navigate to the installation process in the docs and start walking through the steps step by step.
         - we will utilize the `install.sh` step to skip all following steps and run the script using the sample modules.
     3. **Run okapi from IDE with sample modules**: 
-        - its the same like the previous example except we will run `okapi` from IDE (Intillij) instead of running it in a background process.
-        - you will see how we can configure `okapi` to run it from our own IDE (Intillij) directly.
+        - its the same like the previous example except we will run `okapi` from IDE (IntelliJ) instead of running it in a background process.
+        - you will see how we can configure `okapi` to run it from our own IDE (IntelliJ) directly.
         - I may need to run `okapi` in the IDE for debugging purposes, or for adding env vars as right now the script cannot export env vars while running `okapi`.
     4. **Run okapi with sample modules and stop/restart a module or more from IDE**: 
         - here we will see how to stop one or more already running modules and run them again from our IDE mostly for debugging purposes.
@@ -1568,6 +1568,14 @@ folio db list-remote-schemas
         - there is a way to run `okapi` directly throug the script or you can run the `okapi` like a service from `docker-compose.yml` file, but this option has not been mentioned in the video. 
     8. **Just clone and build mdoules using `without-okapi` argument**: 
         - here you can use the script for just `clone` or/and `build` modules.
+    9. **Run a module from IDE with a remote okapi**:
+        - here we will not use the automation script.
+        - run module `mod-inventory` from our IDE, and use the remote `okapi` instance from `folio-snapshot`.
+        - The use case for this example is to run one module only, without the need to run local `okapi` instance.
+    10. **Run a module from `Docker` manually with a remote okapi**:
+        - here we will not use the automation script.
+        - run module `mod-inventory` Docker container, and use the remote `okapi` instance from `folio-snapshot`.
+        - The use case for this example is to test running the Docker image to debug any problems could happens while deploying the module.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

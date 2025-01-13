@@ -14,7 +14,7 @@
     {
         "id": "mod-inventory-storage",
         "repo": "https://github.com/folio-org/mod-inventory-storage.git",
-        "tag": "v28.0.3",
+        "tag": "v28.0.4",
         "step": "install",
         "build": "mvn clean install -DskipTests -Dcheckstyle.skip",
         "rebuild": "false",
@@ -158,7 +158,7 @@
     {
         "id": "mod-inventory",
         "step": "install",
-        "tag": "v21.0.4",
+        "tag": "v21.0.5",
         "okapi": {
             "url": "https://folio-snapshot-okapi.dev.folio.org",
             "tenant": "diku",
@@ -168,6 +168,26 @@
             },
             "enabled": "false"
         },
+        "enabled": "true"
+    },
+    {
+        "id": "mod-search",
+        "step": "install",
+        "tag": "v4.0.7",
+        "env": [
+            {
+                "name": "SYSTEM_USER_ENABLED",
+                "value": "true"
+            },
+            {
+                "name": "SYSTEM_USER_NAME",
+                "value": "mod-search"
+            },
+            {
+                "name": "SYSTEM_USER_PASSWORD",
+                "value": "Mod-search-1-0-0"
+            }
+        ],
         "enabled": "true"
     },
     {

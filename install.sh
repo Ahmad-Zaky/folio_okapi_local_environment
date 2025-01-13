@@ -21,9 +21,17 @@ install() {
     echo -e "Make config files ready by removing suffixes like '_template', or '.example'"
     echo -e
 
-    cp .env.example .env
-    cp modules/modules_template.json modules/modules.json
-    cp modules/configuration_template.json modules/configuration.json
+    if [[ ! -f .env ]]; then
+        cp .env.example .env
+    fi
+
+    if [[ ! -f modules/modules.json ]]; then
+        cp modules/modules_template.json modules/modules.json
+    fi
+
+    if [[ ! -f modules/configuration.json ]]; then
+        cp modules/configuration_template.json modules/configuration.json
+    fi
 
     # Replace </path/to/repo> with the current working directory
     echo -e
