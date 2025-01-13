@@ -1642,6 +1642,7 @@ folio db list-remote-schemas
 - [ ] check the script it self you may find `# TODO ...` comments.
 - [ ] run module with remote okapi I want to have the option to export module environments for the deployed module.
 - [ ] this is one is for me, I want to create a playlist showing how to work with database operations commands.
+- [ ] add the option to update user permissions after each new enabled module instead of adding it only once after enable `mod-authtoken`, `mod-users-bl`, and `mod-users`.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 
