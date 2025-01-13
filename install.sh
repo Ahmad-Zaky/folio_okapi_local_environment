@@ -69,7 +69,7 @@ install() {
     echo -e "Start services needed for the sample modules (postgres, kafka, zookeeper)"
     echo -e
 
-    folioup postgres kafka zookeeper
+    folioup postgres kafka zookeeper elasticsearch
 
     # start running folio with sample modules
     echo -e
