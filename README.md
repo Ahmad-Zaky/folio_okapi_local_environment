@@ -1580,6 +1580,12 @@ folio db list-remote-schemas
         - here we will not use the automation script.
         - run module `mod-inventory` Docker container, and use the remote `okapi` instance from `folio-snapshot`.
         - The use case for this example is to test running the Docker image to debug any problems could happens while deploying the module.
+    11. **Run a module from IDE and manually examine an asynchronous communication using `KAFKA`**:
+        - we will use the script to run all sample modules plus `mod-search`
+        - we added `mod-search` to examine the asynchronouse communication through `KAFKA`.
+        - when we create/update/delete an instance for example from `mod-inventory-storage` the `mod-search` elasticsearch index should be synced.
+        - the way `mod-inventory-storage` and `mod-search` communicate is through `KAFKA` published event messages.
+        - so in case you want to debug a specific module and there is an asynchrous communication you can learn from this example how to achieve this.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
