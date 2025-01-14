@@ -395,7 +395,7 @@ The script is utilizing some linux tools, which should be installed before runni
     - **configuration.json**: All configurable data is configured here through (key -> value) approach starting from database configurations until 3rd party integrations like postman.
 - **resources**: All modules we work on, are located here, in this directory, starting from first step clone a module until last step install that module.
     - **aliases.txt**: this is .bashrc/.bash_aliases aliases to help running terminal commands for folio local environment more easy and to feal more like running a tool.
-    - **permissions.json**: All user permissions needed to perform your requests and it depends upon which modules you want to run, so you can add your own permissions to the list and it will automatically assign them to the user while running the script.
+    - **permissions.json**: All user permissions needed to perform your requests, they are grouped by modules, so each module contains its own permissions, and it depends upon which modules you want to run, so you can add your own permissions to the list and it will automatically assign them to the user while running the script.
     - **mod-inventory/.run/Launcher.run.xml**: This is the sample Module `mod-inventory` configuration file, which we did run from the IDE (IntelliJ), so I thought that adding the configuration here for you, will be very helpful to replicate the example with ease.
     - **okapi/.run/Launcher.run.xml**: This is the configuration file for `Okapi`, which we used in our example, when we did run `Okapi` from the IDE (IntelliJ)
     - **okapi/deployments.sql**: This is the deployments added manually to the database, which has been used in the example where we did stop okapi without stopping other modules.
@@ -1652,7 +1652,6 @@ folio db list-remote-schemas
 - [ ] check the script it self you may find `# TODO ...` comments.
 - [ ] run module with remote okapi I want to have the option to export module environments for the deployed module.
 - [ ] this is one is for me, I want to create a playlist showing how to work with database operations commands.
-- [ ] add the option to update user permissions after each new enabled module instead of adding it only once after enable `mod-authtoken`, `mod-users-bl`, and `mod-users`.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 
