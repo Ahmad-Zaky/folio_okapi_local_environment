@@ -1,16 +1,32 @@
-[
-    "okapi.all",
-    "perms.all",
-    "perms.users.get",
-    "perms.permissions.get",
-    "perms.permissions.item.get",
-    "perms.permissions.collection.get",
-    "perms.users.assign.immutable",
-    "users.all",
-    "users.item.get",
-    "login.item.post",
-    "inventory-storage.all",
-    "inventory-storage.locations.collection.get",
-    "inventory.all",
-    "inventory.instances.collection.get"
-]
+{
+    "okapi": [
+        "okapi.all"
+    ],
+    "mod-permissions": [
+        "perms.all",
+        "perms.users.get",
+        "perms.permissions.get",
+        "perms.permissions.item.get",
+        "perms.permissions.collection.get",
+        "perms.users.assign.immutable"
+    ],
+    "mod-users": [
+        "users.all",
+        "users.item.get"
+    ],
+    "mod-login": [
+        "login.item.post"
+    ],
+    "mod-inventory-storage": [
+        "inventory-storage.all",
+        "inventory-storage.locations.collection.get"
+    ],
+    "mod-inventory": [
+        "inventory.all",
+        "inventory.instances.collection.get"
+    ],
+    "mod-search": [
+        "search.instances.collection.get",
+        "search.authorities.collection.get"
+    ]
+}

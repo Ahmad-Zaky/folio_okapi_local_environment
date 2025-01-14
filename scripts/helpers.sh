@@ -313,33 +313,53 @@ attach_credentials() {
 
 attach_permissions() {
 	local UUID=$1
-	PUUID=`uuidgen`
 
-	build_permissions_payload ".."
-	has_user_permissions
-	HAS_USER_PERMISSIONS=$?
-	if [[ "$HAS_USER_PERMISSIONS" -eq 1 ]]; then
-		log "Reattach permissions ..."
+	build_permissions_payload $MODULE
+	rebuild_permissions_payload "$PERMISSIONS_PAYLOAD"
 
-		okapi_curl true -X PUT -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":$PERMISSIONS_PAYLOAD}" $OKAPI_URL/perms/users/$PUUID
+	get_permission_id_by_user_id
+	if [[ -z $PUUID ]]; then
+		log "Attach permissions ..."
 
+		PUUID=`uuidgen`
+		okapi_curl true -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":$PERMISSIONS_PAYLOAD}" $OKAPI_URL/perms/users
+		
 		return
 	fi
 
-	log "Attach permissions ..."
+	log "Reattach permissions ..."
 
-	okapi_curl true -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":$PERMISSIONS_PAYLOAD}" $OKAPI_URL/perms/users
+	okapi_curl true -X PUT -d"{\"id\":\"$PUUID\",\"userId\":\"$UUID\",\"permissions\":$PERMISSIONS_PAYLOAD}" $OKAPI_URL/perms/users/$PUUID
 }
 
 build_permissions_payload() {
-	local RELATIVE_PATH=$1
-	local PERMISSIONS_RELATIVE_PATH="$RELATIVE_PATH/$PERMISSIONS_PATH"
-	local LENGTH=$(jq ". | length" $PERMISSIONS_RELATIVE_PATH)
-    
+	local MODULE_GROUP=$1
+	
+	has_installed_module $MODULE_GROUP
+	if [[ $? -eq 0 ]]; then
+		return
+	fi
+
+	get_user_permissions
+	PERMISSIONS_PAYLOAD="$USER_PERMISSIONS"
+	for INSTALLED_MODULE in $INSTALLED_MODULES; do
+	    # get module permissions group
+		get_module_permissions_group ".." $INSTALLED_MODULE
+
+		# combine both module permissions with user permissions
+		combine_permissions "$MODULE_GROUP_PERMISSIONS" "$PERMISSIONS_PAYLOAD"
+		PERMISSIONS_PAYLOAD="$COMBINED_PERMISSIONS"
+	done
+}
+
+rebuild_permissions_payload() {
+	local PERMISSIONS_PAYLOAD_JSON=$1
+	local LENGTH=`echo "$PERMISSIONS_PAYLOAD_JSON" | jq ". | length"`
+
 	PERMISSIONS_PAYLOAD="["
 	for ((k=0; k<$LENGTH; k++))
 	do
-		PERMISSION=$(jq ".[$k]" $PERMISSIONS_RELATIVE_PATH)
+		PERMISSION=$(echo $PERMISSIONS_PAYLOAD_JSON | jq ".[$k]")
 
 		# Remove extra double quotes at start and end of the string
 		PERMISSION=$(echo $PERMISSION | sed 's/"//g')
@@ -604,6 +624,75 @@ has_user_permissions() {
 	fi
 
 	return 0
+}
+
+has_empty_user_permissions() {
+	get_user_permissions
+
+	IS_EMPTY=$(echo $USER_PERMISSIONS | jq ". | length == 0")
+	IS_EMPTY=$(echo $IS_EMPTY | sed 's/"//g')
+
+	if [[ $IS_EMPTY == true ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+get_user_permissions() {
+
+	okapi_curl true $OKAPI_URL/perms/users/$UUID/permissions?indexField=userId
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	USER_PERMISSIONS=$(echo $CURL_RESPONSE | jq ".permissionNames")
+}
+
+get_permission_id_by_user_id() {
+	okapi_curl true $OKAPI_URL/perms/users?limit=1000
+	if [[ "$?" -eq 0 ]]; then
+		return
+	fi
+
+	# no user permissions exists 
+	IS_EMPTY=$(echo $CURL_RESPONSE | jq ".permissionUsers | length == 0")
+	IS_EMPTY=$(echo $IS_EMPTY | sed 's/"//g')
+	if [[ $IS_EMPTY == true ]]; then
+		return
+	fi
+
+	RESULT=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | .userId == \"$UUID\"")
+	RESULT=$(echo $RESULT | sed 's/"//g')
+
+	# user has no permissions because he does not exists in the response or you need to increase the 1000 limit value   
+	has_arg "$RESULT" "true"
+	FOUND=$?
+	if [[ "$FOUND" -eq 0 ]]; then
+		return
+	fi
+
+	USER_PERMISSIONS=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | first(select(.userId == \"$UUID\")) | .permissions")
+	PUUID=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | first(select(.userId == \"$UUID\")) | .id")
+	PUUID=$(echo $PUUID | sed 's/"//g')
+}
+
+get_module_permissions_group() {
+	local RELATIVE_PATH=$1
+	local MODULE_GROUP=$2
+	local PERMISSIONS_RELATIVE_PATH="$RELATIVE_PATH/$PERMISSIONS_PATH"
+
+	MODULE_GROUP_PERMISSIONS=$(jq '."'$MODULE_GROUP'"' $PERMISSIONS_RELATIVE_PATH)
+	if [[ $MODULE_GROUP_PERMISSIONS == null ]]; then
+		MODULE_GROUP_PERMISSIONS="[]"
+	fi
+}
+
+combine_permissions() {
+	local USER_PERMISSIONS=$1
+	local MODULE_GROUP_PERMISSIONS=$2
+
+    COMBINED_PERMISSIONS=$(echo "[$USER_PERMISSIONS, $MODULE_GROUP_PERMISSIONS]" | jq 'flatten | unique')
 }
 
 should_login() {
@@ -1140,6 +1229,10 @@ export_next_port() {
 }
 
 get_user_uuid_by_username() {
+	if [[ -n $UUID ]]; then
+		return
+	fi
+
 	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
 	if test "$OKAPI_HEADER_TOKEN" != "x"; then
 		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
@@ -1474,19 +1567,16 @@ pre_authenticate() {
 		return
 	fi
 
+	has_installed_module okapi
+	if [[  $? -eq 0 ]]; then
+		enable_okapi $INDEX $JSON_LIST
+	fi
+
 	if [ $MODULE != $LOGIN_WITH_MOD ]; then
 		return
 	fi
 
-	enable_okapi $INDEX $JSON_LIST
-
-	if [[ -z "$UUID" ]]; then
-		new_user
-		get_user_uuid_by_username
-	fi
-
 	attach_credentials $UUID
-	attach_permissions $UUID
 }
 
 # Post register mod-authtoken module
@@ -1729,6 +1819,9 @@ install_module_request() {
 	has_installed $MODULE $TENANT $VERSION_FROM
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
+		# It means the module already installed
+		add_installed_module $MODULE
+
 		return
 	fi
 
@@ -1747,6 +1840,9 @@ install_module_request() {
 		# Install (enable) modules
 		set_file_name $BASH_SOURCE
 		curl_req $OPTIONS -d "$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install"
+		if [[ $? -eq 1 ]]; then
+			add_installed_module $MODULE
+		fi
 	fi
 }
 
@@ -2279,4 +2375,37 @@ is_argument_exists_in_available_args() {
     done
 
 	error "Invalid argument, please check your arguments"
+}
+
+add_installed_module() {
+	local MODULE_ID=$1
+
+	has_installed_module $MODULE_ID
+	if [[ $? -eq 1 ]]; then
+		return
+	fi
+
+	log "Add module ($MODULE_ID) to installed module list" 
+
+	if [[ -z $INSTALLED_MODULES ]]; then
+		INSTALLED_MODULES=$MODULE_ID
+
+		return
+	fi
+
+	INSTALLED_MODULES="$INSTALLED_MODULES $MODULE_ID"
+}
+
+has_installed_module() {
+	local MODULE_ID=$1
+	
+	log "Check if module ($MODULE_ID) has been installed already" 
+
+	for INSTALLED_MODULE in $INSTALLED_MODULES; do
+		if [[ $INSTALLED_MODULE == $MODULE_ID ]]; then
+			return 1
+		fi
+	done
+
+	return 0
 }

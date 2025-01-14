@@ -454,16 +454,25 @@ post_install() {
 		return
 	fi
 
+	if [[ $HAS_USERS_MODULE == true ]]; then
+		# Add new user
+		new_user
+		get_user_uuid_by_username
+
+		# Attach permissions
+		has_installed_module $USERS_MODULE
+		if [[ $? -eq 1 ]]; then
+			attach_permissions $UUID
+		fi
+
+		# Update postman environment variables
+		update_env_postman $POSTMAN_API_KEY
+	fi
+
 	should_login
 	local SHOULD_LOGIN=$?
 	if [[ $SHOULD_LOGIN -eq 1 ]]; then
 		post_authenticate
-	fi
-
-	# Add new user
-	if [[ $HAS_USERS_MODULE == true ]] && [[ -z "$UUID" ]]; then
-		new_user
-		update_env_postman $POSTMAN_API_KEY # Update postman environment variables
 	fi
 
 	should_install $INDEX $JSON_LIST $SUPPRESS_STEP
@@ -785,6 +794,9 @@ install_module() {
 	has_installed $MODULE $TENANT $VERSION_FROM
 	FOUND=$?
 	if [[ "$FOUND" -eq 1 ]]; then
+		# It means the module already installed
+		add_installed_module $MODULE
+
 		return
 	fi
 
@@ -805,6 +817,9 @@ install_module() {
 		# Install (enable) modules
 		set_file_name $BASH_SOURCE
 		curl_req $OPTIONS -d "$PAYLOAD" "$OKAPI_URL/_/proxy/tenants/$TENANT/install$INSTALL_PARAMS"
+		if [[ $? -eq 1 ]]; then
+			add_installed_module $MODULE
+		fi
 	fi
 }
 

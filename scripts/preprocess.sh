@@ -636,5 +636,5 @@ enable_okapi() {
 
 	log "Enable okapi for tenant: $TENANT"
 
-	install_module enable okapi $INDEX $JSON_LIST
+	install_module enable okapi 0 $JSON_LIST
 }
