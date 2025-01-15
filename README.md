@@ -1151,6 +1151,8 @@ The script is utilizing some linux tools, which should be installed before runni
 
 #### Docker Configuration
 
+> NOTE: here you can run okapi + folio modules within Docker environment, and if you want to run a module Dockerfile manually follow the steps [click here][manual_docker_run]
+
 - **"RUN_WITH_DOCKER"**
     - a flag states whether the script will run on local machine as jar processes or in docker containers enivonment.
     - if true then all modules including okapi will run in docker containers.
@@ -1580,6 +1582,7 @@ folio db list-remote-schemas
         - here we will not use the automation script.
         - run module `mod-inventory` Docker container, and use the remote `okapi` instance from `folio-snapshot`.
         - The use case for this example is to test running the Docker image to debug any problems could happens while deploying the module.
+        - follow the steps in this document to run it yourself [click here][manual_docker_run]
     11. **Run a module from IDE and manually examine an asynchronous communication using `KAFKA`**:
         - we will use the script to run all sample modules plus `mod-search`
         - we added `mod-search` to examine the asynchronouse communication through `KAFKA`.
@@ -1736,3 +1739,4 @@ Ahmed Zaky - [Linked In][linkedin-url] - ahmed6mohamed6@gmail.com
 [folio_local_environment_yt_img]: https://i.ytimg.com/vi/vgyT2qlow6g/maxresdefault.jpg 
 [folio_db_operations_yt]: https://www.youtube.com/playlist?list=PLPLXtkKpB3Yz96uVdUxlSNV129fWBntSO
 [folio_db_operations_yt_img]: https://i.ytimg.com/vi/xg0UP3M-GbU/maxresdefault.jpg
+[manual_docker_run]: https://github.com/Ahmad-Zaky/folio_okapi_local_environment/blob/main/resources/mod-inventory/RunWithDockerGuide.md
