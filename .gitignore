@@ -6,5 +6,6 @@ modules/*
 !modules/configuration_template.json
 db/*
 !db/init.sql
-!db/schemas.txt
+!db/schemas_template.txt
 test.sh
+resources/permissions.json

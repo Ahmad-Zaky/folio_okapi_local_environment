@@ -640,7 +640,6 @@ has_empty_user_permissions() {
 }
 
 get_user_permissions() {
-
 	okapi_curl true $OKAPI_URL/perms/users/$UUID/permissions?indexField=userId
 	if [[ "$?" -eq 0 ]]; then
 		return

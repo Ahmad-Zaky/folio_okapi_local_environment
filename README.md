@@ -231,6 +231,8 @@ The script is utilizing some linux tools, which should be installed before runni
         cp .env.example .env
         cp modules/modules_template.json modules/modules.json
         cp modules/configuration_template.json modules/configuration.json
+        cp db/schemas_template.json db/schemas.json
+        cp resources/permissions_template.json resources/permissions.json
         ```
     - modules versions in `modules.json` are set to [`ramsons`][15] release.
 
@@ -360,6 +362,7 @@ The script is utilizing some linux tools, which should be installed before runni
     - `DB_CMD_CONTAINER` should have your container name as a value.
     - `DB_CMD_PSQL_WITH_DOCKER` should be have "true" value.
 * running `db` commands with `postgres` not running docker has not been tested, so you may encounter problems, if os create issues on the repo so we can fix it.
+* if you use modules across our two local databases `okapi_modules` and `okapi_modules_staging`, when you run the script, do not switch a module firstly enabled on a database ex. `okapi_modules` to the other database ex. `okapi_modules_staging` because it will start to create the schema at the second database and it will first create a new role with the same name of the schema in order to use this new role to create the schema, but the role has been already created when you enabled it firstly on the first database so the second try on the second database will fail with this error `Error: role 'test_mod_users' already exists (42710)`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

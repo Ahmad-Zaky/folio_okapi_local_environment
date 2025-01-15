@@ -33,6 +33,14 @@ install() {
         cp modules/configuration_template.json modules/configuration.json
     fi
 
+    if [[ ! -f db/schemas.txt ]]; then
+        cp db/schemas_template.txt db/schemas.txt
+    fi
+
+    if [[ ! -f resources/permissions.json ]]; then
+        cp resources/permissions_template.json resources/permissions.json
+    fi
+
     # Replace </path/to/folio> with the current working directory
     echo -e
     echo -e "Replace </path/to/folio> with your FOLIO directory ($FOLIO_DIR)"
