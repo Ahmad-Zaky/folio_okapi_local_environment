@@ -124,6 +124,7 @@ module_defaults() {
 	ENABLE_LOGIN_WITH_EXPIRY=$(jq ".ENABLE_LOGIN_WITH_EXPIRY" $CONFIG_FILE)
 	ACCESS_TOKEN_COOKIE_KEY=$(jq ".ACCESS_TOKEN_COOKIE_KEY" $CONFIG_FILE)
 	REFRESH_TOKEN_COOKIE_KEY=$(jq ".REFRESH_TOKEN_COOKIE_KEY" $CONFIG_FILE)
+	WAITING_BEFORE_RETRY=$(jq ".WAITING_BEFORE_RETRY" $CONFIG_FILE)
 
 	# Remove extra double quotes at start and end of the string
 	export SHOULD_STOP_RUNNING_MODULES=$(echo $SHOULD_STOP_RUNNING_MODULES | sed 's/"//g')
@@ -137,6 +138,7 @@ module_defaults() {
 	export ENABLE_LOGIN_WITH_EXPIRY=$(echo $ENABLE_LOGIN_WITH_EXPIRY | sed 's/"//g')
 	export ACCESS_TOKEN_COOKIE_KEY=$(echo $ACCESS_TOKEN_COOKIE_KEY | sed 's/"//g')
 	export REFRESH_TOKEN_COOKIE_KEY=$(echo $REFRESH_TOKEN_COOKIE_KEY | sed 's/"//g')
+	export WAITING_BEFORE_RETRY=$(echo $WAITING_BEFORE_RETRY | sed 's/"//g')
 }
 
 db_defaults() {

@@ -1309,7 +1309,7 @@ get_install_params() {
 
 reset_and_verify_password() {
 	local UUID=$1
-	local WAITING_BEFORE_RETRY=50
+	local WAITING_BEFORE_RETRY=$2
 
 	if [[ -z "$UUID" ]]; then
 		get_user_uuid_by_username
@@ -1349,7 +1349,7 @@ reset_and_verify_password() {
 
 		sleep $WAITING_BEFORE_RETRY
 
-		reset_and_verify_password $UUID
+		reset_and_verify_password $UUID $WAITING_BEFORE_RETRY
 
 		return
 	fi
@@ -2382,4 +2382,14 @@ is_empty() {
 	else
 		return 0
 	fi
+}
+
+log_stars_title() {
+    local title="$1"
+    local star_line_length=$(( ${#title} + 4 )) # 2 spaces + 2 stars
+    local star_line=$(printf '*%.0s' $(seq 1 $star_line_length))
+    
+    log "$star_line"
+    log "* $title *"
+    log "$star_line"
 }

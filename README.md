@@ -1070,6 +1070,10 @@ The script is utilizing some linux tools, which should be installed before runni
     - when using login with expiry the refresh token will be held in the cookies within a key called `folioRefreshToken` which is the default value right now.
     - **default:** `folioRefreshToken`
 
+- **"WAITING_BEFORE_RETRY"**
+    - After installing (enable) mod-users-bl we are testing reset password functionality and it needs some permissions if these permissions have been added recently while running the script, they may not be propagated yet due to kafka event messages delays, so we do retry on failure and we have waiting time before each retry, this time could be configured using this configuration which has 50 as default value and time unit is seconds.
+    - **default:** `50`
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 #### Tenant Configuration

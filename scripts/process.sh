@@ -480,7 +480,7 @@ post_install() {
 		if [[ $HAS_USERS_BL_MODULE == true ]] && [[ $MODULE == "$USERS_BL_MODULE" ]]; then
 
 			# Reset and verify user password after deploy, and install mod-users-bl module
-			reset_and_verify_password $UUID
+			reset_and_verify_password $UUID $WAITING_BEFORE_RETRY
 
 			# Update postman environment variables
 			update_env_postman $POSTMAN_API_KEY
@@ -873,6 +873,12 @@ process_module() {
 
 	# Set $MODULE_ID variable to proceed
 	set_module_id $INDEX $JSON_LIST
+	
+	new_line
+	new_line
+	log_stars_title $MODULE_ID
+	new_line
+	new_line
 
 	# Step No. 1
 	pre_clone $INDEX $JSON_LIST	$MODULE_ID $SUPPRESS_STEP

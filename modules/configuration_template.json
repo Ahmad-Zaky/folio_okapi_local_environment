@@ -71,6 +71,7 @@
     "ENABLE_LOGIN_WITH_EXPIRY": "true",
     "ACCESS_TOKEN_COOKIE_KEY": "folioAccessToken",
     "REFRESH_TOKEN_COOKIE_KEY": "folioRefreshToken",
+    "WAITING_BEFORE_RETRY": 50,
 
     "TENANT": "test",
     "TENANT_NAME": "Test",
