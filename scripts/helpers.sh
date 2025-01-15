@@ -317,7 +317,7 @@ attach_permissions() {
 	build_permissions_payload $MODULE
 	rebuild_permissions_payload "$PERMISSIONS_PAYLOAD"
 
-	get_permission_id_by_user_id
+	get_permission_id_by_user_id $UUID
 	if [[ -z $PUUID ]]; then
 		log "Attach permissions ..."
 
@@ -377,6 +377,11 @@ rebuild_permissions_payload() {
 # Login to obtain the token from the header
 login_user() {
 	if [[ "$OKAPI_OPTION_ENABLE_SYSTEM_AUTH" == "false" ]]; then
+		return
+	fi
+	
+	is_empty $TOKEN
+	if [[ $? -eq 0 ]]; then
 		return
 	fi
 
@@ -649,6 +654,7 @@ get_user_permissions() {
 }
 
 get_permission_id_by_user_id() {
+	local UUID=$1
 	okapi_curl true $OKAPI_URL/perms/users?limit=1000
 	if [[ "$?" -eq 0 ]]; then
 		return
@@ -1255,35 +1261,6 @@ get_user_uuid_by_username() {
 	POSTMAN_ENV_USER_ID_VAL=$UUID
 }
 
-get_random_permission_uuid_by_user_uuid() {
-	local UUID=$1
-
-	log "Get permission id by user id $UUID"
-
-	local OPTIONS="-HX-Okapi-Tenant:$TENANT"
-	if [[ "$OKAPI_HEADER_TOKEN" != "x" ]] && [[ "$OKAPI_HEADER_TOKEN" != "" ]]; then
-		OPTIONS="-HX-Okapi-Token:$OKAPI_HEADER_TOKEN"
-	fi
-
-	set_file_name $BASH_SOURCE
-	curl_req $OPTIONS $OKAPI_URL/perms/users
-	if [[ "$?" -eq 0 ]]; then
-		return
-	fi
-
-	USER_PUUIDS=$(echo $CURL_RESPONSE | jq ".permissionUsers[] | select(.userId == \"$UUID\") | .id")
-
-	# Return the first incoming PUUID
-	for USER_PUUID in $USER_PUUIDS; do
-		PUUID=$USER_PUUID
-
-		# Remove extra double quotes at start and end of the string
-		PUUID=$(echo $PUUID | sed 's/"//g')
-
-		return
-	done
-}
-
 get_install_params() {
 	local MODULE=$1
 	local INDEX=$2
@@ -1332,6 +1309,28 @@ get_install_params() {
 
 reset_and_verify_password() {
 	local UUID=$1
+	local WAITING_BEFORE_RETRY=50
+
+	if [[ -z "$UUID" ]]; then
+		get_user_uuid_by_username
+	fi
+
+	# Validate that mod-users-bl exists in modules.json and enabled
+	if [[ "$HAS_USERS_BL_MODULE" == false ]]; then
+		return
+	fi
+
+	# Validate that mod-permissions exists in modules.json and enabled
+	if [[ "$HAS_PERMISSIONS_MODULE" == false ]]; then
+		return
+	fi
+
+	# Validate that mod-password-validator exists in modules.json and enabled
+	if [[ "$HAS_PASSWORD_VALIDATOR_MODULE" == false ]]; then
+		return
+	fi
+
+	get_permission_id_by_user_id $UUID
 
 	log "Reset and verify user password"
 	okapi_curl true $OKAPI_URL/bl-users/password-reset/link -d"{\"userId\":\"$UUID\"}"
@@ -1348,7 +1347,7 @@ reset_and_verify_password() {
 		
 		log "Please wait until permissions added are persisted, which may delay due to underlying kafka process in users module so we will try again now."
 
-		sleep 50
+		sleep $WAITING_BEFORE_RETRY
 
 		reset_and_verify_password $UUID
 
@@ -1362,42 +1361,6 @@ reset_and_verify_password() {
 
 	set_file_name $BASH_SOURCE
 	curl_req -HX-Okapi-Token:$RESET_PASSWORD_TOKEN $OKAPI_URL/bl-users/password-reset/validate -d'{}'
-}
-
-# Set extra permissions related to module mod-users-bl
-set_users_bl_module_permissions() {
-	local INDEX=$1
-	
-	if [[ -z "$UUID" ]]; then
-		get_user_uuid_by_username
-	fi
-
-	# Validate that mod-users-bl exists in modules.json and enabled
-	if [[ "$HAS_USERS_BL_MODULE" == false ]]; then
-		return
-	fi
-
-	# Validate that mod-permissions exists in modules.json and enabled
-	if [[ "$HAS_PERMISSIONS_MODULE" == false ]]; then
-		return
-	fi
-
-	log "Set mod-users-bl permissions."
-
-	get_random_permission_uuid_by_user_uuid $UUID
-
-	okapi_curl true $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.all"}'
-
-	okapi_curl true $OKAPI_URL/perms/users/$PUUID/permissions -d'{"permissionName":"users-bl.password-reset-link.generate"}'
-
-	login_user
-
-	# Validate that mod-password-validator exists in modules.json and enabled
-	if [[ "$HAS_PASSWORD_VALIDATOR_MODULE" == false ]]; then
-		return
-	fi
-
-	reset_and_verify_password $UUID
 }
 
 deploy_module_directly() {
@@ -2407,4 +2370,16 @@ has_installed_module() {
 	done
 
 	return 0
+}
+
+is_empty() {
+	local VAR=$1
+
+	if [ -z "${VAR+x}" ]; then
+		return 1
+	elif [ -z "$VAR" ]; then
+		return 1
+	else
+		return 0
+	fi
 }

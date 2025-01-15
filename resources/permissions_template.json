@@ -14,6 +14,10 @@
         "users.all",
         "users.item.get"
     ],
+    "mod-users-bl": [
+        "users-bl.all",
+        "users-bl.password-reset-link.generate"
+    ],
     "mod-login": [
         "login.item.post"
     ],

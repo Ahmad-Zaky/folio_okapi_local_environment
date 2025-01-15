@@ -454,6 +454,12 @@ post_install() {
 		return
 	fi
 
+	should_login
+	local SHOULD_LOGIN=$?
+	if [[ $SHOULD_LOGIN -eq 1 ]]; then
+		post_authenticate
+	fi
+
 	if [[ $HAS_USERS_MODULE == true ]]; then
 		# Add new user
 		new_user
@@ -469,17 +475,12 @@ post_install() {
 		update_env_postman $POSTMAN_API_KEY
 	fi
 
-	should_login
-	local SHOULD_LOGIN=$?
-	if [[ $SHOULD_LOGIN -eq 1 ]]; then
-		post_authenticate
-	fi
-
 	should_install $INDEX $JSON_LIST $SUPPRESS_STEP
 	if [[ "$?" -eq 1 ]]; then
-		# Set permissions related to mod-users-bl
 		if [[ $HAS_USERS_BL_MODULE == true ]] && [[ $MODULE == "$USERS_BL_MODULE" ]]; then
-			set_users_bl_module_permissions $INDEX
+
+			# Reset and verify user password after deploy, and install mod-users-bl module
+			reset_and_verify_password $UUID
 
 			# Update postman environment variables
 			update_env_postman $POSTMAN_API_KEY
