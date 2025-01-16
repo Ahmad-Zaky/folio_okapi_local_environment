@@ -94,6 +94,10 @@
             {
                 "name": "TOKEN_EXPIRATION_SECONDS",
                 "value": "accessToken:600,refreshToken:604800"
+            },
+            {
+                "name": "JDK_JAVA_OPTIONS",
+                "value": "-Djwt.signing.key=test-jwt-singing-key"
             }
         ],
         "enabled": "true"

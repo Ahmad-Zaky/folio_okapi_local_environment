@@ -878,7 +878,6 @@ process_module() {
 	new_line
 	log_stars_title $MODULE_ID
 	new_line
-	new_line
 
 	# Step No. 1
 	pre_clone $INDEX $JSON_LIST	$MODULE_ID $SUPPRESS_STEP
