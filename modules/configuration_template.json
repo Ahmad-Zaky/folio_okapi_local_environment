@@ -69,8 +69,7 @@
     "DELETE_INSTALLED_MODULE_QUERY": "UPDATE tenants SET tenantjson = jsonb_set(tenantjson::jsonb, '{enabled}', COALESCE((SELECT jsonb_object_agg(key, value) FROM jsonb_each(tenantjson->'enabled') WHERE key NOT LIKE '%s%%'), '{}'::jsonb));",
     "ENABLE_FREE_ALLOCATED_PORTS_FOR_OKAPI_MODULES": "true",
     "ENABLE_LOGIN_WITH_EXPIRY": "true",
-    "ACCESS_TOKEN_COOKIE_KEY": "folioAccessToken", WHERE tenantjson->'descriptor'->>'id' = '%s'
-    WHERE tenantjson->'descriptor'->>'id' = '%s'
+    "ACCESS_TOKEN_COOKIE_KEY": "folioAccessToken",
     "REFRESH_TOKEN_COOKIE_KEY": "folioRefreshToken",
     "WAITING_BEFORE_RETRY": 50,
 
