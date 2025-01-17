@@ -194,6 +194,12 @@ The script is utilizing some linux tools, which should be installed before runni
 
 ### Installation
 
+0. For one shot clone, install, and start, you can run this one, for step by step installation process start from the next step, here we combine the first steps together to save time for those who want to start quick.
+
+    ```bash
+    git clone https://github.com/Ahmad-Zaky/folio_okapi_local_environment.git folio && cd folio && bash install.sh with-start
+    ```
+
 1. Clone the repository from github.
 
     ```bash
