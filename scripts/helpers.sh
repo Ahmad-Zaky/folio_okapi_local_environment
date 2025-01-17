@@ -379,7 +379,7 @@ login_user() {
 	if [[ "$OKAPI_OPTION_ENABLE_SYSTEM_AUTH" == "false" ]]; then
 		return
 	fi
-	
+
 	is_empty $TOKEN
 	if [[ $? -eq 0 ]]; then
 		return
@@ -1693,26 +1693,8 @@ get_deployed_instance_id() {
 remove_authtoken_and_permissions_if_enabled_previously() {
 	if [[ $REMOVE_AUTHTOKEN_IF_ENABLED_PREVIOUSLY == "true" ]]; then
 		new_line
-
-		module_dir_exists $AUTHTOKEN_MODULE
-		local EXISTS=$?
-		if [[ "$EXISTS" -eq 0 ]]; then
-			get_module_index_by_id $AUTHTOKEN_MODULE $JSON_FILE
-			process_module $MODULE_INDEX $JSON_FILE build 1
-			unset MODULE_INDEX
-		fi
-
-		module_dir_exists $PERMISSIONS_MODULE
-		local EXISTS=$?
-		if [[ "$EXISTS" -eq 0 ]]; then
-			get_module_index_by_id $PERMISSIONS_MODULE $JSON_FILE
-			process_module $MODULE_INDEX $JSON_FILE build 1
-			unset MODULE_INDEX
-		fi
-
 		delete_installed_module $AUTHTOKEN_MODULE
 		delete_installed_module $PERMISSIONS_MODULE
-
 		new_line
 	fi
 }
@@ -1839,18 +1821,28 @@ enable_installed_module() {
 delete_installed_module() {
 	local MODULE=$1
 
-	get_installed_module_versioned $MODULE
-
-	if [[ -n "$VERSIONED_MODULE" ]]; then
-		delete_installed_module_from_enabled_modules $MODULE
+	is_empty $MODULE
+	if [[ $? -eq 1 ]]; then
+		return
 	fi
 
-	unset VERSIONED_MODULE
+	delete_installed_module_from_enabled_modules $MODULE
 }
 
 update_installed_module_status() {
 	local MODULE=$1
 	local STATUS=$2
+
+	is_empty $MODULE
+	if [[ $? -eq 1 ]]; then
+		return
+	fi
+
+
+	is_empty $STATUS
+	if [[ $? -eq 1 ]]; then
+		return
+	fi
 
 	get_update_installed_module_status_query $MODULE $STATUS
 
@@ -1871,13 +1863,13 @@ get_update_installed_module_status_query() {
 	local MODULE="$1"
 	local STATUS=$2
 
-	QUERY=`printf "$UPDATE_INSTALLED_MODULE_STATUS_QUERY" $MODULE $STATUS $TENANT`
+	QUERY=`printf "$UPDATE_INSTALLED_MODULE_STATUS_QUERY" $MODULE $STATUS`
 }
 
 get_delete_installed_module_query() {
 	local MODULE="$1"
 
-	QUERY=`printf "$DELETE_INSTALLED_MODULE_QUERY" $MODULE $TENANT`
+	QUERY=`printf "$DELETE_INSTALLED_MODULE_QUERY" $MODULE`
 }
 
 empty_requires_array_in_module_descriptor() {
