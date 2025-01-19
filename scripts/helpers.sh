@@ -942,11 +942,8 @@ free_from_start_to_end_ports() {
 	local START_PORT=$((OKAPI_PORT + 1))
 
 	new_line
+	log_stars_title "Free allocated ports from $START_PORT to $END_PORT ..."
 	new_line
-
-	log "******************************************************"
-	log "Free allocated ports from $START_PORT to $END_PORT ..."
-	log "******************************************************"
 
 	local SWAP_OKAPI_PORT=$STOP_OKAPI_PROT_ARG
 	

@@ -29,9 +29,7 @@ fi
 
 post_process() {
 	new_line
-	log "****************"
-	log "Post process ..."
-	log "****************"
+	log_stars_title "Post process ..."
 
 	delete_tmp_files
 }

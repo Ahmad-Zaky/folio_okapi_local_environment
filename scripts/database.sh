@@ -70,6 +70,24 @@ db_cmd_defaults() {
     DB_CMD_SCHEMAS_PATH=$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_SCHEMAS_FILE
 }
 
+log() {
+	echo -e "["$(date +"%A, %b %d, %Y %I:%M:%S %p")"] $1"
+}
+
+log_stars_title() {
+    local title="$1"
+    local star_line_length=$(( ${#title} + 4 )) # 2 spaces + 2 stars
+    local star_line=$(printf '*%.0s' $(seq 1 $star_line_length))
+    
+    log "$star_line"
+    log "* $title *"
+    log "$star_line"
+}
+
+new_line() {
+	echo -e "\n"
+}
+
 db_has_arg() {
     local TO_BE_FOUND_ARG=$1
     shift
@@ -115,7 +133,7 @@ generate_schemas_substring() {
 
     # Check if the file exists
     if ! [ -e "$DB_CMD_SCHEMAS_PATH" ]; then
-        echo -e "\e[1;31mERROR: File $DB_CMD_SCHEMAS_PATH not found. \033[0m"
+        log -e "\e[1;31mERROR: File $DB_CMD_SCHEMAS_PATH not found. \033[0m"
 
         exit 1
     fi
@@ -276,25 +294,23 @@ handle_arguments() {
 }
 
 import() {
-    echo -e ""
-    echo "********************************"
-    echo "Import database $DB_CMD_DATABASE"
-    echo "********************************"
-    echo -e ""
+    new_line
+    log_stars_title "Import database $DB_CMD_DATABASE"
+    new_line
 
     # Check if the database already exists
     if eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -lqt | cut -d \| -f 1 | grep -qw $DB_CMD_DATABASE"); then
-        echo -e ""
-        echo "Database $DB_CMD_DATABASE already exists. Dropping it."
-        echo -e ""
+        new_line
+        log "Database $DB_CMD_DATABASE already exists. Dropping it."
+        new_line
 
         eval $(printf "$DB_CMD_COMMAND_WRAPPER" "dropdb -U $DB_CMD_USERNAME --if-exists $DB_CMD_DATABASE")
     fi
 
     if eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -lqt | cut -d \| -f 1 | grep -qw $DB_CMD_DATABASE"); then
-        echo -e ""
-        echo "Failed Dropping Database $DB_CMD_DATABASE"
-        echo -e ""
+        new_line
+        log "Failed Dropping Database $DB_CMD_DATABASE"
+        new_line
 
         exit 1
     fi
@@ -302,9 +318,9 @@ import() {
     # Create the database
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "createdb -U $DB_CMD_USERNAME $DB_CMD_DATABASE")
 
-    echo -e ""
-    echo "Database $DB_CMD_DATABASE created successfully."
-    echo -e ""
+    new_line
+    log "Database $DB_CMD_DATABASE created successfully."
+    new_line
 
     DB_CMD_DATABASE_SQL_FILE_PATH=$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DATABASE_SQL_FILE
     if echo "$DB_CMD_COMMAND_WRAPPER" | grep -q "docker"; then
@@ -312,24 +328,24 @@ import() {
 
         # Remove old database sql file inside Docker image
         if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == true ]]; then
-            echo -e ""
-            echo "Remove old $DB_CMD_DATABASE_SQL_FILE file."
-            echo -e ""
+            new_line
+            log "Remove old $DB_CMD_DATABASE_SQL_FILE file."
+            new_line
 
             eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_CMD_DATABASE_SQL_FILE")
         fi
 
         # Copy SQL file to Docker container
-        echo -e ""
-        echo "Copy $DB_CMD_DATABASE_SQL_FILE to $DB_CMD_CONTAINER container"
-        echo -e ""
+        new_line
+        log "Copy $DB_CMD_DATABASE_SQL_FILE to $DB_CMD_CONTAINER container"
+        new_line
 
         $DB_CMD_DOCKER_CMD cp $DB_CMD_DATABASE_SQL_PATH $DB_CMD_CONTAINER:/
 
         if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == false ]]; then
-            echo -e ""
-            echo "Failed to copy $DB_CMD_DATABASE_SQL_FILE file."
-            echo -e ""
+            new_line
+            log "Failed to copy $DB_CMD_DATABASE_SQL_FILE file."
+            new_line
 
             exit 1
         fi
@@ -341,24 +357,24 @@ import() {
     #     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -c \"CREATE ROLE $DB_CMD_STAGING_OKAPI_USERNAME WITH LOGIN; GRANT $DB_CMD_USERNAME TO $DB_CMD_STAGING_OKAPI_USERNAME;\"")
     # fi
 
-    echo -e ""
-    echo "Replace OWNER $DB_CMD_STAGING_OKAPI_USERNAME to $DB_CMD_USERNAME in $DB_CMD_DATABASE_SQL_FILE_PATH file."
-    echo -e ""
+    new_line
+    log "Replace OWNER $DB_CMD_STAGING_OKAPI_USERNAME to $DB_CMD_USERNAME in $DB_CMD_DATABASE_SQL_FILE_PATH file."
+    new_line
 
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_STAGING_OKAPI_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_CMD_DATABASE_SQL_FILE_PATH")
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_STAGING_OKAPI_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_CMD_DATABASE_SQL_FILE_PATH")
 
-    echo -e ""
-    echo "Import $DB_CMD_DATABASE_SQL_FILE_PATH into $DB_CMD_DATABASE database"
-    echo -e ""
+    new_line
+    log "Import $DB_CMD_DATABASE_SQL_FILE_PATH into $DB_CMD_DATABASE database"
+    new_line
 
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -f $DB_CMD_DATABASE_SQL_FILE_PATH")
 
     # Remove new schema sql file inside Docker image
     if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE_PATH ]; then echo true; else echo false; fi")) == true ]]; then
-        echo -e ""
-        echo "Remove new $DB_CMD_DATABASE_SQL_FILE_PATH file."
-        echo -e ""
+        new_line
+        log "Remove new $DB_CMD_DATABASE_SQL_FILE_PATH file."
+        new_line
 
         eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_CMD_DATABASE_SQL_FILE_PATH")
     fi
@@ -369,16 +385,14 @@ import_schema() {
     local DB_SCHEMA_FILE=$2
     local DB_CMD_SCHEMA_SQL_PATH=$3
 
-    echo -e ""
-    echo "*********************************"
-    echo "Import database schema $DB_SCHEMA"
-    echo "*********************************"
-    echo -e ""
+    new_line
+    log_stars_title "Import database schema $DB_SCHEMA"
+    new_line
 
     # Drop schema if already exists
-    echo -e ""
-    echo "Drop Schema $DB_SCHEMA if exists."
-    echo -e ""
+    new_line
+    log "Drop Schema $DB_SCHEMA if exists."
+    new_line
 
     db_run_query "DROP SCHEMA IF EXISTS $DB_SCHEMA CASCADE"
 
@@ -388,33 +402,33 @@ import_schema() {
 
         # Remove old schema sql file inside Docker image
         if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_SCHEMA_FILE_PATH ]; then echo true; else echo false; fi")) == true ]]; then
-            echo -e ""
-            echo "Remove old $DB_SCHEMA_FILE_PATH file."
-            echo -e ""
+            new_line
+            log "Remove old $DB_SCHEMA_FILE_PATH file."
+            new_line
 
             eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_SCHEMA_FILE_PATH")
         fi
 
         # Copy SQL file to Docker container
-        echo -e ""
-        echo "Copy $DB_SCHEMA_FILE_PATH to $DB_CMD_CONTAINER container"
-        echo -e ""
+        new_line
+        log "Copy $DB_SCHEMA_FILE_PATH to $DB_CMD_CONTAINER container"
+        new_line
 
         $DB_CMD_DOCKER_CMD cp $DB_CMD_SCHEMA_SQL_PATH $DB_CMD_CONTAINER:/
 
         if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_SCHEMA_FILE_PATH ]; then echo true; else echo false; fi")) == false ]]; then
-            echo -e ""
-            echo "Failed to copy $DB_SCHEMA_FILE_PATH file."
-            echo -e ""
+            new_line
+            log "Failed to copy $DB_SCHEMA_FILE_PATH file."
+            new_line
 
             exit 1
         fi
     fi
 
     # Add schema role
-    echo -e ""
-    echo "Create $DB_SCHEMA role"
-    echo -e ""
+    new_line
+    log "Create $DB_SCHEMA role"
+    new_line
 
     local QUERY=$(printf "$DB_CMD_CREATE_MODULE_ROLE" "$DB_SCHEMA")
     db_run_query "$QUERY"
@@ -422,24 +436,24 @@ import_schema() {
     local QUERY=$(printf "$DB_CMD_ALTER_MODULE_ROLE" "$DB_SCHEMA" "$DB_SCHEMA")
     db_run_query "$QUERY"
 
-    echo -e ""
-    echo "Replace OWNER $DB_CMD_STAGING_OKAPI_USERNAME to $DB_CMD_USERNAME in $DB_SCHEMA_FILE_PATH file."
-    echo -e ""
+    new_line
+    log "Replace OWNER $DB_CMD_STAGING_OKAPI_USERNAME to $DB_CMD_USERNAME in $DB_SCHEMA_FILE_PATH file."
+    new_line
 
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_STAGING_OKAPI_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_SCHEMA_FILE_PATH")
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_STAGING_OKAPI_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_SCHEMA_FILE_PATH")
 
-    echo -e ""
-    echo "Import $DB_SCHEMA_FILE_PATH schema into $DB_CMD_DATABASE database"
-    echo -e ""
+    new_line
+    log "Import $DB_SCHEMA_FILE_PATH schema into $DB_CMD_DATABASE database"
+    new_line
 
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -f $DB_SCHEMA_FILE_PATH")
 
     # Remove new schema sql file inside Docker image
     if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == true ]]; then
-        echo -e ""
-        echo "Remove new $DB_SCHEMA_FILE_PATH file."
-        echo -e ""
+        new_line
+        log "Remove new $DB_SCHEMA_FILE_PATH file."
+        new_line
 
         eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_SCHEMA_FILE_PATH")
     fi
@@ -451,24 +465,18 @@ import_table() {
     local DB_TABLE_FILE=$3
     local DB_CMD_TABLE_SQL_PATH=$4
 
-    echo -e ""
-    echo "******************************************************************************************"
-    echo "Import table $DB_TABLE into $DB_SCHEMA schema"
-    echo "******************************************************************************************"
-    echo -e ""
+    new_line
+    log_stars_title "Import table $DB_TABLE into $DB_SCHEMA schema"
+    new_line
 
-    echo -e ""
-    echo -e ""
-    echo -e ""
-    echo "***************************************************************************************************************"
-    echo "NOTE: Drop a table may affect its relations with other tables, press Ctlr + c if you do not want to proceed !!!"
-    echo "***************************************************************************************************************"
-    echo -e ""
+    new_line
+    log_stars_title "NOTE: Drop a table may affect its relations with other tables, press Ctlr + c if you do not want to proceed !!!"
+    new_line
 
     sleep 10
 
     # Drop table if already exists
-    echo "Drop Table $DB_TABLE from Schema $DB_SCHEMA if exists."
+    log "Drop Table $DB_TABLE from Schema $DB_SCHEMA if exists."
 
     db_run_query "DROP TABLE IF EXISTS $DB_SCHEMA.$DB_TABLE  CASCADE;"
 
@@ -478,90 +486,84 @@ import_table() {
 
         # Remove old table sql file inside Docker image
         if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_TABLE_FILE ]; then echo true; else echo false; fi")) == true ]]; then
-            echo -e ""
-            echo "Remove old $DB_TABLE_FILE file."
-            echo -e ""
+            new_line
+            log "Remove old $DB_TABLE_FILE file."
+            new_line
 
             eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_TABLE_FILE")
         fi
 
         # Copy SQL file to Docker container
-        echo -e ""
-        echo "Copy $DB_TABLE_FILE to $DB_CMD_CONTAINER container"
-        echo -e ""
+        new_line
+        log "Copy $DB_TABLE_FILE to $DB_CMD_CONTAINER container"
+        new_line
 
         $DB_CMD_DOCKER_CMD cp $DB_CMD_TABLE_SQL_PATH $DB_CMD_CONTAINER:/
 
         if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_TABLE_FILE ]; then echo true; else echo false; fi")) == false ]]; then
-            echo -e ""
-            echo "Failed to copy $DB_TABLE_FILE file."
-            echo -e ""
+            new_line
+            log "Failed to copy $DB_TABLE_FILE file."
+            new_line
 
             exit 1
         fi
     fi
 
-    echo -e ""
-    echo "Replace OWNER $DB_CMD_STAGING_OKAPI_USERNAME to $DB_CMD_USERNAME in $DB_TABLE_FILE_PATH file."
-    echo -e ""
+    new_line
+    log "Replace OWNER $DB_CMD_STAGING_OKAPI_USERNAME to $DB_CMD_USERNAME in $DB_TABLE_FILE_PATH file."
+    new_line
 
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/Owner: $DB_CMD_STAGING_OKAPI_USERNAME/Owner: $DB_CMD_USERNAME/g' $DB_TABLE_FILE_PATH")
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "sed -i 's/OWNER TO $DB_CMD_STAGING_OKAPI_USERNAME/OWNER TO $DB_CMD_USERNAME/g' $DB_TABLE_FILE_PATH")
 
-    echo -e ""
-    echo "Import $DB_TABLE_FILE_PATH table into $DB_CMD_DATABASE.$DB_SCHEMA database schema"
-    echo -e ""
+    new_line
+    log "Import $DB_TABLE_FILE_PATH table into $DB_CMD_DATABASE.$DB_SCHEMA database schema"
+    new_line
 
     eval $(printf "$DB_CMD_COMMAND_WRAPPER" "psql -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE -f $DB_TABLE_FILE_PATH")
 
     # Remove new table sql file inside Docker image
     if [[ $(eval $(printf "$DB_CMD_COMMAND_WRAPPER" "if [ -f $DB_CMD_DATABASE_SQL_FILE ]; then echo true; else echo false; fi")) == true ]]; then
-        echo -e ""
-        echo "Remove new $DB_TABLE_FILE_PATH file."
-        echo -e ""
+        new_line
+        log "Remove new $DB_TABLE_FILE_PATH file."
+        new_line
 
         eval $(printf "$DB_CMD_COMMAND_WRAPPER" "rm $DB_TABLE_FILE_PATH")
     fi
 }
 
 import_remote_schema() {
-    echo -e ""
-    echo "**********************************************************************"
-    echo "Import remote schema $REMOTE_SCHEMA"
-    echo "**********************************************************************"
-    echo -e ""
+    new_line
+    log_stars_title "Import remote schema $REMOTE_SCHEMA"
+    new_line
 
-    echo -e ""
-    echo "Step #1 - dump $REMOTE_SCHEMA"
+    new_line
+    log_stars_title "Step #1 - dump $REMOTE_SCHEMA"
     dump_remote_schema $REMOTE_SCHEMA
 
-    echo -e ""
-    echo "Step #2 - import $REMOTE_SCHEMA"
+    new_line
+    log_stars_title "Step #2 - import $REMOTE_SCHEMA"
     import_schema $REMOTE_SCHEMA $DB_CMD_REMOTE_FILE $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE
 }
 
 import_remote_table() {
-    echo -e ""
-    echo "**********************************************************************************************"
-    echo "Import remote table $REMOTE_TABLE in schema $REMOTE_SCHEMA"
-    echo "**********************************************************************************************"
-    echo -e ""
+    new_line
+    log_stars_title "Import remote table $REMOTE_TABLE in schema $REMOTE_SCHEMA"
+    new_line
 
-    echo -e ""
-    echo "Step #1 - dump $REMOTE_TABLE table from $REMOTE_SCHEMA schema"
+    new_line
+    log_stars_title "Step #1 - dump $REMOTE_TABLE table from $REMOTE_SCHEMA schema"
     dump_remote_table $REMOTE_SCHEMA $REMOTE_TABLE
 
-    echo -e ""
-    echo "Step #2 - import $REMOTE_TABLE table from $REMOTE_SCHEMA schema"
+    new_line
+    log_stars_title "Step #2 - import $REMOTE_TABLE table from $REMOTE_SCHEMA schema"
     import_table $REMOTE_TABLE $REMOTE_SCHEMA $DB_CMD_REMOTE_FILE $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE
 }
 
 dump() {
-    echo -e ""
-    echo "******************************"
-    echo "Dump database $DB_CMD_DATABASE"
-    echo "******************************"
-    echo -e ""
+    new_line
+    log_stars_title "Dump database $DB_CMD_DATABASE"
+    new_line
 
     local WITH_SCHEMAS=$1
 
@@ -573,32 +575,32 @@ dump() {
 
         local DB_DUMP_COMMAND=`printf "$DB_CMD_COMMAND_WRAPPER" "pg_dump -b -v -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE $SCHEMAS_PATTERN > $DB_CMD_DUMPED_DATABASE_SQL_FILE"`
         if [[ $DB_CMD_HAS_PRINT_ARG == true ]]; then
-            echo $DB_DUMP_COMMAND
+            log $DB_DUMP_COMMAND
 
             exit 0
         fi
 
-        echo -e ""
-        echo "Dump Database $DB_CMD_DATABASE to $DB_CMD_DUMPED_DATABASE_SQL_FILE"
-        echo -e ""
+        new_line
+        log "Dump Database $DB_CMD_DATABASE to $DB_CMD_DUMPED_DATABASE_SQL_FILE"
+        new_line
 
         eval $DB_DUMP_COMMAND
 
         if echo "$DB_CMD_COMMAND_WRAPPER" | grep -q "docker"; then
             eval $DB_CMD_DOCKER_CP_COMMAND
 
-            echo -e ""
-            echo "Move Database $DB_CMD_DUMPED_DATABASE_SQL_FILE to $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql"
-            echo -e ""
+            new_line
+            log "Move Database $DB_CMD_DUMPED_DATABASE_SQL_FILE to $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql"
+            new_line
 
             mv $DB_CMD_CP_DUMP_DB_DESTINATION$DB_CMD_DUMPED_DATABASE_SQL_FILE $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql
 
             return
         fi
 
-        echo -e ""
-        echo "Move Database $DB_CMD_DUMPED_DATABASE_SQL_FILE to $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql"
-        echo -e ""
+        new_line
+        log "Move Database $DB_CMD_DUMPED_DATABASE_SQL_FILE to $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql"
+        new_line
 
         mv $DB_CMD_DUMPED_DATABASE_SQL_FILE $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql
 
@@ -607,32 +609,32 @@ dump() {
 
     local DB_DUMP_COMMAND=`printf "$DB_CMD_COMMAND_WRAPPER" "pg_dump -b -v -U $DB_CMD_USERNAME -d $DB_CMD_DATABASE > $DB_CMD_DUMPED_DATABASE_SQL_FILE"`
     if [[ $DB_CMD_HAS_PRINT_ARG == true ]]; then
-        echo -e ""
-        echo $DB_DUMP_COMMAND
-        echo -e ""
+        new_line
+        log $DB_DUMP_COMMAND
+        new_line
     fi
 
-    echo -e ""
-    echo "Dump Database $DB_CMD_DATABASE to $DB_CMD_DUMPED_DATABASE_SQL_FILE"
-    echo -e ""
+    new_line
+    log "Dump Database $DB_CMD_DATABASE to $DB_CMD_DUMPED_DATABASE_SQL_FILE"
+    new_line
 
     eval $DB_DUMP_COMMAND
 
     if echo "$DB_CMD_COMMAND_WRAPPER" | grep -q "docker"; then
         eval $DB_CMD_DOCKER_CP_COMMAND
 
-        echo -e ""
-        echo "Move Database $DB_CMD_DUMPED_DATABASE_SQL_FILE to $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql"
-        echo -e ""
+        new_line
+        log "Move Database $DB_CMD_DUMPED_DATABASE_SQL_FILE to $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql"
+        new_line
 
         mv $DB_CMD_CP_DUMP_DB_DESTINATION$DB_CMD_DUMPED_DATABASE_SQL_FILE $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql
 
         return
     fi
 
-    echo -e ""
-    echo "Move Database $DB_CMD_DUMPED_DATABASE_SQL_FILE to $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql"
-    echo -e ""
+    new_line
+    log "Move Database $DB_CMD_DUMPED_DATABASE_SQL_FILE to $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql"
+    new_line
 
     mv $DB_CMD_DUMPED_DATABASE_SQL_FILE $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/${DB_CMD_DUMPED_DATABASE_SQL_FILE_PREFIX}_$(date +%d_%m_%Y-%H_%M_%S).sql
 
@@ -644,11 +646,9 @@ dump_schema() {
     DB_CMD_FILE=${DB_SCHEMA}_$(date +%d_%m_%Y-%H_%M_%S).sql
     DB_CMD_DIR_RELATIVE_PATH_FILE=$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/$DB_CMD_FILE
 
-    echo -e ""
-    echo "**************************************************************************************************************"
-    echo "Dump schema $REMOTE_SCHEMA into $DB_CMD_DIR_RELATIVE_PATH_FILE"
-    echo "**************************************************************************************************************"
-    echo -e ""
+    new_line
+    log_stars_title "Dump schema $REMOTE_SCHEMA into $DB_CMD_DIR_RELATIVE_PATH_FILE"
+    new_line
 
     mkdir -p $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH
 
@@ -661,11 +661,9 @@ dump_table() {
     DB_CMD_FILE=$DB_SCHEMA-${DB_TABLE}_$(date +%d_%m_%Y-%H_%M_%S).sql
     DB_CMD_DIR_RELATIVE_PATH_FILE=$DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH/$DB_CMD_FILE
 
-    echo -e ""
-    echo "***************************************************************************************************"
-    echo "Dump table $DB_TABLE in schema $DB_SCHEMA into $DB_CMD_DIR_RELATIVE_PATH_FILE"
-    echo "***************************************************************************************************"
-    echo -e ""
+    new_line
+    log_stars_title "Dump table $DB_TABLE in schema $DB_SCHEMA into $DB_CMD_DIR_RELATIVE_PATH_FILE"
+    new_line
 
     mkdir -p $DB_CMD_DATABASE_SQL_DIR_PATH/$DB_CMD_DUMPED_DATABASE_DIR_PATH
 
@@ -677,11 +675,9 @@ dump_remote_schema() {
     DB_CMD_REMOTE_FILE=${REMOTE_SCHEMA}_$(date +%d_%m_%Y-%H_%M_%S).sql
     DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE=$DB_CMD_REMOTE_DIR_RELATIVE_PATH/$DB_CMD_REMOTE_FILE
 
-    echo -e ""
-    echo "**************************************************************************************************************"
-    echo "Dump remote schema $REMOTE_SCHEMA into $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE"
-    echo "**************************************************************************************************************"
-    echo -e ""
+    new_line
+    log_stars_title "Dump remote schema $REMOTE_SCHEMA into $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE"
+    new_line
 
     mkdir -p $DB_CMD_REMOTE_DIR_RELATIVE_PATH
 
@@ -698,11 +694,9 @@ dump_remote_table() {
     DB_CMD_REMOTE_FILE=$REMOTE_SCHEMA-${REMOTE_TABLE}_$(date +%d_%m_%Y-%H_%M_%S).sql
     DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE=$DB_CMD_REMOTE_DIR_RELATIVE_PATH/$DB_CMD_REMOTE_FILE
 
-    echo -e ""
-    echo "***************************************************************************************************"
-    echo "Dump remote table $REMOTE_TABLE in schema $REMOTE_SCHEMA into $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE"
-    echo "***************************************************************************************************"
-    echo -e ""
+    new_line
+    log_stars_title "Dump remote table $REMOTE_TABLE in schema $REMOTE_SCHEMA into $DB_CMD_REMOTE_DIR_RELATIVE_PATH_FILE"
+    new_line
 
     mkdir -p $DB_CMD_REMOTE_DIR_RELATIVE_PATH
 
@@ -754,11 +748,9 @@ db_run_query() {
 
     db_cmd_defaults
 
-    echo -e ""
-    echo "****************************************************************"
-    echo "Run query: $QUERY"
-    echo "****************************************************************"
-    echo -e ""
+    new_line
+    log_stars_title "Run query: $QUERY"
+    new_line
 
     if [[ $DB_CMD_HAS_STAGING_ARG == true ]]; then
         DB_CMD_DATABASE="$DB_CMD_DATABASE_STAGING"
@@ -858,7 +850,7 @@ db_process() {
         return
     fi
 
-    echo -e "\e[1;31mERROR: No arguments passed. \033[0m"
+    log -e "\e[1;31mERROR: No arguments passed. \033[0m"
 
     exit 1
 }

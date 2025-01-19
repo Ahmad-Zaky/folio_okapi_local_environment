@@ -18,9 +18,7 @@ fi
 pre_process() {
 
 	new_line
-	log "**************"
-	log "Preprocess ..."
-	log "**************"
+	log_stars_title "Preprocess ..."
 	new_line
 
 	local ARGS=$*

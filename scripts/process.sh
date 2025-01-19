@@ -471,23 +471,23 @@ post_install() {
 		post_authenticate
 	fi
 
-	if [[ $HAS_USERS_MODULE == true ]]; then
-		# Add new user
-		new_user
-		get_user_uuid_by_username
-
-		# Attach permissions
-		has_installed_module $USERS_MODULE
-		if [[ $? -eq 1 ]]; then
-			attach_permissions $UUID
-		fi
-
-		# Update postman environment variables
-		update_env_postman $POSTMAN_API_KEY
-	fi
-
 	should_install $INDEX $JSON_LIST $SUPPRESS_STEP
 	if [[ "$?" -eq 1 ]]; then
+		if [[ $HAS_USERS_MODULE == true ]]; then
+			# Add new user
+			new_user
+			get_user_uuid_by_username
+
+			# Attach permissions
+			has_installed_module $USERS_MODULE
+			if [[ $? -eq 1 ]]; then
+				attach_permissions $UUID
+			fi
+
+			# Update postman environment variables
+			update_env_postman $POSTMAN_API_KEY
+		fi
+
 		if [[ $HAS_USERS_BL_MODULE == true ]] && [[ $MODULE == "$USERS_BL_MODULE" ]]; then
 
 			# Reset and verify user password after deploy, and install mod-users-bl module
@@ -523,9 +523,7 @@ clone_module() {
 	if [ ! -d $MODULE ]; then
 		new_line
 		new_line
-		log "**************************"
-		log "Clone module $MODULE"
-		log "**************************"
+		log_stars_title "Clone module $MODULE"
 		new_line
 		new_line
 		
@@ -616,9 +614,7 @@ build_module() {
 
 	new_line
 	new_line
-	log "**************************"
-	log "Build module $MODULE"
-	log "**************************"
+	log_stars_title "Build module $MODULE"
 	new_line
 	new_line
 
@@ -841,9 +837,7 @@ install_module() {
 process() {
 
 	new_line
-	log "***********"
-	log "Process ..."
-	log "***********"
+	log_stars_title "Process ..."
 
 	# Skip okapi module if exists with other modules sent as a parameter to the process method
 	FILTERED_MODULE="okapi"
