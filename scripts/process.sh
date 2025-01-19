@@ -136,6 +136,7 @@ should_clone() {
 	local JSON_LIST=$2
 	local SUPPRESS_STEP=$3
 
+	# TODO: we can refactor this ORed conditions in a more better way like using regex.
 	if [[ $SUPPRESS_STEP == "clone" ]] || [[ $SUPPRESS_STEP == "build" ]] || [[ $SUPPRESS_STEP == "register" ]] || [[ $SUPPRESS_STEP == "deploy" ]] || [[ $SUPPRESS_STEP == "install" ]]; then
 		return 1
 	fi
@@ -176,6 +177,7 @@ should_build() {
 	local JSON_LIST=$2
 	local SUPPRESS_STEP=$3
 
+	# TODO: we can refactor this ORed conditions in a more better way like using regex.
 	if [[ $SUPPRESS_STEP == "build" ]] || [[ $SUPPRESS_STEP == "register" ]] || [[ $SUPPRESS_STEP == "deploy" ]] || [[ $SUPPRESS_STEP == "install" ]]; then
 		return 1
 	fi
@@ -245,6 +247,7 @@ should_register() {
 	local JSON_LIST=$2
 	local SUPPRESS_STEP=$3
 
+	# TODO: we can refactor this ORed conditions in a more better way like using regex.
 	if [[ $SUPPRESS_STEP == "register" ]] || [[ $SUPPRESS_STEP == "deploy" ]] || [[ $SUPPRESS_STEP == "install" ]]; then
 		return 1
 	fi
@@ -279,6 +282,7 @@ should_deploy() {
 	local JSON_LIST=$2
 	local SUPPRESS_STEP=$3
 
+	# TODO: we can refactor this ORed conditions in a more better way like using regex.
 	if [[ $SUPPRESS_STEP == "deploy" ]] || [[ $SUPPRESS_STEP == "install" ]]; then
 		return 1
 	fi
@@ -345,18 +349,25 @@ pre_clone() {
 	# Validate Module Tags and Branches
 	validate_module_tag_branch $INDEX $JSON_LIST
 
-	# Validate New Module Tags
-	validate_new_module_tag $MODULE $INDEX $JSON_LIST
-	
-	# Validate New Module Branches
-	validate_new_module_branch $MODULE $INDEX $JSON_LIST
+	should_build $INDEX $JSON_LIST $SUPPRESS_STEP
+	if [[ "$?" -eq 1 ]]; then
+		# Validate New Module Tags
+		validate_new_module_tag $MODULE $INDEX $JSON_LIST
+		
+		# Validate New Module Branches
+		validate_new_module_branch $MODULE $INDEX $JSON_LIST
+	fi
 
 	# Validate Access Token
 	validate_module_access_token $INDEX $JSON_LIST
 
-	export_module_envs $MODULE $INDEX $JSON_LIST
+	# exporting module environment variables is needed only when we really start with the module not just cloning or/and building the module
+	should_register $INDEX $JSON_LIST $SUPPRESS_STEP
+	if [[ "$?" -eq 1 ]]; then
+		export_module_envs $MODULE $INDEX $JSON_LIST
 
-	get_module_docker_container_env_options $MODULE $INDEX $JSON_LIST
+		get_module_docker_container_env_options $MODULE $INDEX $JSON_LIST
+	fi
 }
 
 pre_build() {
@@ -487,7 +498,10 @@ post_install() {
 		fi
 	fi
 
-	re_export_env_vars
+	should_register $INDEX $JSON_LIST $SUPPRESS_STEP
+	if [[ "$?" -eq 1 ]]; then
+		re_export_env_vars
+	fi
 
 	reset_vars
 }

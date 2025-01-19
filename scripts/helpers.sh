@@ -1067,7 +1067,9 @@ stop_running_module() {
 
 		log "Stop running module with port $STOP_OKAPI_PROT_ARG ..."
 
+		new_line
 		stop_container_by_port $STOP_OKAPI_PROT_ARG
+		new_line
 
 		return
 	fi
@@ -1141,7 +1143,9 @@ stop_okapi() {
 	if [[ "$IS_OKAPI_CONTAINER_USED" -eq 1 ]]; then
 		log "Stopping Okapi Container ..."
 
+		new_line
 		stop_container_by_port $OKAPI_PORT
+		new_line
 
 		return
 	fi
@@ -1163,6 +1167,7 @@ start_okapi() {
 		eval "cd $OKAPI_DIR && nohup $OKAPI_COMMAND &"
 	fi
 
+	new_line
 	log "Wait for $OKAPI_WAIT_UNTIL_FINISH_STARTING seconds until Okapi is fully up an running"
 	sleep $OKAPI_WAIT_UNTIL_FINISH_STARTING
 }
@@ -1180,6 +1185,7 @@ init_okapi() {
 	new_line
 
 	eval "cd $OKAPI_DIR && nohup $OKAPI_INIT_COMMAND &"
+	new_line
 
 	# wait untill okapi is fully up and initialized
 	log "Wait a little until Okapi is fully up an running"
@@ -1199,6 +1205,7 @@ purge_okapi() {
 	new_line
 
 	eval "cd $OKAPI_DIR && nohup $OKAPI_PURGE_COMMAND &"
+	new_line
 	
 	# wait untill okapi is fully up and purged
 	log "Wait a little until Okapi is fully up an running"
@@ -1389,6 +1396,7 @@ deploy_module_directly() {
 
 	# Deploy module
 	eval "cd $MODULE && nohup $DEPLOYMENT_COMMAND &"
+	new_line
 }
 
 enable_module_directly() {
@@ -2046,6 +2054,18 @@ trim() {
 
 stop_container_by_port() {
 	local PORT=$1
+
+	is_empty $PORT
+	if [[ $? -eq 1 ]]; then
+		return
+	fi
+	
+	DOCKER_FOUND_CONTAINERS=$($DOCKER_CMD ps --filter "expose=$PORT" -q)
+	trim "$DOCKER_FOUND_CONTAINERS"
+	is_empty "$TRIMMED"
+	if [[ $? -eq 1 ]]; then
+		return
+	fi
 
 	$DOCKER_CMD stop $($DOCKER_CMD ps --filter "expose=$PORT" -q)
 }
