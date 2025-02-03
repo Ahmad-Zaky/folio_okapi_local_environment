@@ -960,11 +960,6 @@ free_from_start_to_end_ports() {
 }
 
 stop_running_module_or_modules() {
-	is_okapi_running
-	IS_OKAPI_RUNNING=$?
-	if [[ "$IS_OKAPI_RUNNING" -eq 0 ]] ; then
-		return
-	fi
 
 	# stop okapi and its modules all together
 	if [[ "$STOP_OKAPI_ARG" -eq 1 ]] && [[ -z "$STOP_OKAPI_PROT_ARG" ]]; then
