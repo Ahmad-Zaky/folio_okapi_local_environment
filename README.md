@@ -128,6 +128,7 @@ Key features:
     ...
     {
         "id": "mod-users",
+        "repo": "https://github.com/folio-org/mod-users.git",
         "tag": "v19.4.4",
         "step": "install",
         "build": "mvn clean install -DskipTests -Dcheckstyle.skip",
