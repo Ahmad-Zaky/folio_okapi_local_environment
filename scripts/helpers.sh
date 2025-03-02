@@ -2377,6 +2377,8 @@ has_installed_module() {
 
 	for INSTALLED_MODULE in $INSTALLED_MODULES; do
 		if [[ $INSTALLED_MODULE == $MODULE_ID ]]; then
+			log "Module ($MODULE_ID) is already been installed"
+
 			return 1
 		fi
 	done
