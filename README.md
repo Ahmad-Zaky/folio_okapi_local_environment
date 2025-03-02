@@ -1671,6 +1671,7 @@ folio db list-remote-schemas
 - [ ] check the script it self you may find `# TODO ...` comments.
 - [ ] run module with remote okapi I want to have the option to export module environments for the deployed module.
 - [ ] this is one is for me, I want to create a playlist showing how to work with database operations commands.
+- [ ] deployment right now, works by using `DeploymentDescriptor.json` file content with the `okapi` deploy request, we want to have the option to take the responsibility of running the module (java project) on our own, and then hit the `okapi` deploy request with the `url`, `instId`, and `servId` so that `okapi` will not be responsible of deploying the module by it self.
 
 See the [open issues](https://github.com/Ahmad-Zaky/folio_okapi_local_environment/issues) for a full list of proposed features (and known issues).
 
