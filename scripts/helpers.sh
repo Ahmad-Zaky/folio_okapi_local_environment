@@ -2382,6 +2382,7 @@ has_installed_module() {
 			return 1
 		fi
 	done
+	log "Module ($MODULE_ID) has not been installed"
 
 	return 0
 }
