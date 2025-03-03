@@ -1616,6 +1616,7 @@ folio db list-remote-schemas
 - some modules are only needed for authentication to work properly and some modules are not that essential for the api call to work, but they have been added because the have been called along the api call journy inside the system.
 - here we could benefit from the help of others who has experience with working in a local okapi environment, so be free to add more examples in this section, to help others.
 - working with other api requests than provided here may work properly without problems, so the api calls listed here its just related to our experience, if you want to work with other api requests you can start right a way, and only add a new module to the list if the api request fails because of a missing module.
+- If you add a new module, you need to be sure that you have added the new module permissions to `permissions.json` file, so that the user gets the new module permissions, and works smoothly when start test the module APIs.
 
 - **Example #1**:
     - **module**: mod-circulation
