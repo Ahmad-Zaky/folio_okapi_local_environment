@@ -214,7 +214,7 @@ should_rebuild() {
 	local MODULE=$1
 	local INDEX=$2
 	local JSON_LIST=$3
-	local SUPPRESS_STEP=$3
+	local SUPPRESS_STEP=$4
 
 	if [[ $SUPPRESS_STEP == "rebuild" ]]; then
 		return 1
@@ -227,7 +227,7 @@ should_rebuild() {
 	if [[ "$SHOULD_REBUILD_MODULE" == "$MODULE" ]]; then
 		return 1
 	fi
-	
+
 	# By default module should not be rebuilt if the key is missing
 	has "rebuild" $INDEX $JSON_LIST
 	if [[ "$?" -eq 0 ]]; then
