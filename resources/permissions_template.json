@@ -32,5 +32,8 @@
     "mod-search": [
         "search.instances.collection.get",
         "search.authorities.collection.get"
+    ],
+    "mod-configuration": [
+        "configuration.all"
     ]
 }
